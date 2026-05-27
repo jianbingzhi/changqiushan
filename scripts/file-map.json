@@ -1,0 +1,281 @@
+{
+  "A": [
+    {
+      "title": "AI 智能问答",
+      "nodeId_md": "6dbc7615cd444495b07bc41b5e8d840d",
+      "nodeId_log": null,
+      "label": null,
+      "pageCode": null
+    },
+    {
+      "title": "园区导览地图",
+      "nodeId_md": "111db3ed71d54318896806d29de57150",
+      "nodeId_log": null,
+      "label": null,
+      "pageCode": null
+    },
+    {
+      "title": "填写预约信息",
+      "nodeId_md": "743bd9ee9ab5412fa0fdb9563dae5b42",
+      "nodeId_log": null,
+      "label": null,
+      "pageCode": null
+    },
+    {
+      "title": "小程序首页",
+      "nodeId_md": "b486e10c8a4a469faf15a56b5f4e1b5c",
+      "nodeId_log": null,
+      "label": null,
+      "pageCode": null
+    },
+    {
+      "title": "我的中心",
+      "nodeId_md": "abf572fff62047938c9e01f89c5a1447",
+      "nodeId_log": null,
+      "label": null,
+      "pageCode": null
+    },
+    {
+      "title": "我的预约列表",
+      "nodeId_md": "0923e33086cc439ca13e852d2b5cf196",
+      "nodeId_log": null,
+      "label": null,
+      "pageCode": null
+    },
+    {
+      "title": "景区活动列表",
+      "nodeId_md": "382911a51422434dab506c40b9b70d59",
+      "nodeId_log": null,
+      "label": null,
+      "pageCode": null
+    },
+    {
+      "title": "活动详情",
+      "nodeId_md": null,
+      "nodeId_log": null,
+      "label": null,
+      "pageCode": null
+    },
+    {
+      "title": "登录授权页",
+      "nodeId_md": "385ef4bfa1924d38a6d2330d980e126e",
+      "nodeId_log": null,
+      "label": null,
+      "pageCode": null
+    },
+    {
+      "title": "预约成功与核销码",
+      "nodeId_md": "1049651c781f40d29cd7e150dc2741d8",
+      "nodeId_log": null,
+      "label": null,
+      "pageCode": null
+    },
+    {
+      "title": "预约日历与时段选择",
+      "nodeId_md": null,
+      "nodeId_log": null,
+      "label": null,
+      "pageCode": null
+    }
+  ],
+  "B": [
+    {
+      "title": "AI 问答知识库",
+      "nodeId_md": "3aa9715e7cea46878e9152aeb81d77a5",
+      "nodeId_log": null,
+      "label": null,
+      "pageCode": null
+    },
+    {
+      "title": "主框架与仪表盘",
+      "nodeId_md": null,
+      "nodeId_log": null,
+      "label": null,
+      "pageCode": null
+    },
+    {
+      "title": "停车场动静态上图",
+      "nodeId_md": "e40d7f5f46ae4064ba7e384c3517df61",
+      "nodeId_log": null,
+      "label": null,
+      "pageCode": null
+    },
+    {
+      "title": "分时预约配额配置",
+      "nodeId_md": "e44f469c83ec4d52b04ed02ffc9d3806",
+      "nodeId_log": null,
+      "label": null,
+      "pageCode": null
+    },
+    {
+      "title": "后台管理系统登录",
+      "nodeId_md": "6c7fe1084bb246c6aff002c7f1e98f27",
+      "nodeId_log": null,
+      "label": null,
+      "pageCode": null
+    },
+    {
+      "title": "实时路况查询",
+      "nodeId_md": "3086df6e0b564a989dedd7ce009f4e62",
+      "nodeId_log": null,
+      "label": null,
+      "pageCode": null
+    },
+    {
+      "title": "客流分析",
+      "nodeId_md": "aaaed96d971f4c6db7cbaeb76910cc5a",
+      "nodeId_log": null,
+      "label": null,
+      "pageCode": null
+    },
+    {
+      "title": "景区介绍维护",
+      "nodeId_md": "498a68a874e1488995014f3ff05717a9",
+      "nodeId_log": null,
+      "label": null,
+      "pageCode": null
+    },
+    {
+      "title": "景区介绍维护_新建编辑表单",
+      "nodeId_md": "8380ba793f994bf1a69ed3f954e20853",
+      "nodeId_log": "8380ba793f994bf1a69ed3f954e20853",
+      "label": "景区介绍维护-新建编辑表单",
+      "pageCode": "B3b"
+    },
+    {
+      "title": "来源分析",
+      "nodeId_md": "fc834b50ea944d8bbac89f8848348364",
+      "nodeId_log": null,
+      "label": null,
+      "pageCode": null
+    },
+    {
+      "title": "活动运营管理",
+      "nodeId_md": "c407a6e3745f4b99aaa0491bf01cc988",
+      "nodeId_log": null,
+      "label": null,
+      "pageCode": null
+    },
+    {
+      "title": "渠道预约接入管理",
+      "nodeId_md": "fa833464234e466c94468a1da59e55d8",
+      "nodeId_log": null,
+      "label": null,
+      "pageCode": null
+    },
+    {
+      "title": "热力图分析",
+      "nodeId_md": "47c25c1865c242e5a75565c515efd3bf",
+      "nodeId_log": null,
+      "label": null,
+      "pageCode": null
+    },
+    {
+      "title": "爽约风控与黑名单",
+      "nodeId_md": "f599d3264f0f4299a12ab222b0da4556",
+      "nodeId_log": null,
+      "label": null,
+      "pageCode": null
+    },
+    {
+      "title": "物联网设备实时列表",
+      "nodeId_md": "f630bd67784348b5ac0df5893c6af0c6",
+      "nodeId_log": null,
+      "label": null,
+      "pageCode": null
+    },
+    {
+      "title": "现场补录面板",
+      "nodeId_md": "79e408b4f00f440fb392f77afb43b82e",
+      "nodeId_log": null,
+      "label": null,
+      "pageCode": null
+    },
+    {
+      "title": "用户画像_APP偏好",
+      "nodeId_md": "3fb21fe9b8be4bc2ac7fbca3d266d616",
+      "nodeId_log": "3fb21fe9b8be4bc2ac7fbca3d266d616",
+      "label": "APP 偏好",
+      "pageCode": "B20"
+    },
+    {
+      "title": "用户画像_出行偏好",
+      "nodeId_md": "0df4402ac2b94c5fbecb3f3112a3c2a5",
+      "nodeId_log": "e1ad942cf9a343b5b03822b7b87a72c6",
+      "label": "出行偏好",
+      "pageCode": "B19"
+    },
+    {
+      "title": "用户画像总览",
+      "nodeId_md": "adb3b1e90caf409b866bee907d799fd7",
+      "nodeId_log": null,
+      "label": null,
+      "pageCode": null
+    },
+    {
+      "title": "设备详情与心跳监测",
+      "nodeId_md": "f2e3bb326a144d4f895694b67443da79",
+      "nodeId_log": null,
+      "label": null,
+      "pageCode": null
+    },
+    {
+      "title": "资讯模块",
+      "nodeId_md": "bc2950db20f64bae91fb6397458d544b",
+      "nodeId_log": "bc2950db20f64bae91fb6397458d544b",
+      "label": "资讯模块",
+      "pageCode": "B18"
+    }
+  ],
+  "C": [
+    {
+      "title": "客流与预约趋势对比",
+      "nodeId_md": "97c21ff5bb2447ccab23bc87f1fdd7b4",
+      "nodeId_log": null,
+      "label": null,
+      "pageCode": null
+    },
+    {
+      "title": "数字大屏主屏",
+      "nodeId_md": null,
+      "nodeId_log": null,
+      "label": null,
+      "pageCode": null
+    },
+    {
+      "title": "数字孪生底座导览图",
+      "nodeId_md": "f9b99c191242455a995ee4a04d52f3ae",
+      "nodeId_log": null,
+      "label": null,
+      "pageCode": null
+    },
+    {
+      "title": "景区数据概览首屏",
+      "nodeId_md": "bf3b83961f4549b08b2da076c38a25fa",
+      "nodeId_log": null,
+      "label": null,
+      "pageCode": null
+    },
+    {
+      "title": "综合运营态势面板",
+      "nodeId_md": null,
+      "nodeId_log": null,
+      "label": null,
+      "pageCode": null
+    },
+    {
+      "title": "运营宣传一张图",
+      "nodeId_md": null,
+      "nodeId_log": null,
+      "label": null,
+      "pageCode": null
+    },
+    {
+      "title": "预约分时热力图",
+      "nodeId_md": "bfe038ecf35942a6891509c6ce2e1cb8",
+      "nodeId_log": null,
+      "label": null,
+      "pageCode": null
+    }
+  ]
+}

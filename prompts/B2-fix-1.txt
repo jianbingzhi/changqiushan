@@ -1,0 +1,1 @@
+仅在"后台管理系统主框架"页面里把头像的 alt 或 aria-label "System Administrator" 改成"系统管理员头像"。其他文字、布局、配色、菜单全部保持不变。

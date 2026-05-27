@@ -1,0 +1,8 @@
+仅在"用户画像 · 旅游出行偏好"页面里:把所有英文项目名、菜单名、页标题统一改为中文,具体:
+- "Forest Stewardship" / "Changqiu Forest" / "Forest" 改成 "长秋山森林公园智慧景区"
+- "Dashboard" 改成 "仪表盘" 或 "首页"
+- "User Portrait" / "User Profile" 改成 "用户画像"
+- "Travel Preference" 改成 "出行偏好"
+- "Appointment Mgmt" / "Appointment" 改成 "预约管理"
+- "Administrative map" (作为 alt 文本) 改成 "行政图"
+其他文字、布局、配色保持不变。
