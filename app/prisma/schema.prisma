@@ -1,0 +1,14 @@
+// Prisma 主入口 — 仅声明 generator 和 datasource
+// 业务模型按模块拆到 prisma/models/<module>.prisma
+// prisma.config.ts 中 schema 指向整个 prisma/ 目录,Prisma 7 自动合并
+
+// 用 prisma-client-js(单文件版,输出到 node_modules/@prisma/client)
+// 而不是 Prisma 7 默认的 prisma-client(多文件 TS,Turbopack 编译时会吃满内存)
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // Prisma 7:URL 走 prisma.config.ts;运行时通过 driver adapter 连接
+}

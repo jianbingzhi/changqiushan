@@ -1,0 +1,24 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: changqiushan-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: changqiushan
+      POSTGRES_PASSWORD: changqiushan_dev
+      POSTGRES_DB: changqiushan
+      TZ: Asia/Shanghai
+      PGTZ: Asia/Shanghai
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      # PG 18 新约定:挂整个 /var/lib/postgresql,版本目录 18/docker/ 自动放数据
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U changqiushan -d changqiushan"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres_data:

@@ -1,0 +1,69 @@
+// 预约模块 — 分时配额、预约单、爽约风控
+// 表名前缀 booking_ 做模块隔离;边界由 eslint-plugin-boundaries 在应用层保护
+
+// === 分时配额配置(B6 页面)===
+model BookingSlot {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @db.VarChar(80)
+  date        DateTime @db.Date
+  startTime   String   @map("start_time") @db.VarChar(5)
+  endTime     String   @map("end_time") @db.VarChar(5)
+  capacity    Int
+  bookedCount Int      @default(0) @map("booked_count")
+  status      BookingSlotStatus @default(ACTIVE)
+  remark      String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  bookings    Booking[]
+
+  @@index([date, startTime])
+  @@map("booking_slot")
+}
+
+enum BookingSlotStatus {
+  ACTIVE
+  PAUSED
+  CLOSED
+}
+
+// === 预约单 ===
+model Booking {
+  id            String   @id @default(uuid()) @db.Uuid
+  slotId        String   @map("slot_id") @db.Uuid
+  visitorName   String   @map("visitor_name") @db.VarChar(40)
+  idCard        String   @map("id_card") @db.VarChar(32)
+  phone         String   @db.VarChar(20)
+  plate         String?  @db.VarChar(16)
+  channel       BookingChannel @default(MINI_PROGRAM)
+  status        BookingStatus  @default(CONFIRMED)
+  qrCode        String   @unique @map("qr_code") @db.VarChar(64)
+  checkedInAt   DateTime? @map("checked_in_at") @db.Timestamptz(3)
+  cancelledAt   DateTime? @map("cancelled_at") @db.Timestamptz(3)
+  noShowAt      DateTime? @map("no_show_at") @db.Timestamptz(3)
+  metadata      Json?     @db.JsonB
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  slot          BookingSlot @relation(fields: [slotId], references: [id])
+
+  @@index([phone])
+  @@index([idCard])
+  @@index([status, createdAt(sort: Desc)])
+  @@map("booking")
+}
+
+enum BookingChannel {
+  MINI_PROGRAM
+  ONSITE_MAKEUP
+  OTA
+  ADMIN_MANUAL
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CHECKED_IN
+  CANCELLED
+  NO_SHOW
+  EXPIRED
+}
