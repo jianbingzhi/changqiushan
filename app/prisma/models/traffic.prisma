@@ -1,0 +1,23 @@
+// 出行服务模块 — 停车场动静态管理
+// 表名前缀 traffic_
+// 路况数据来自高德 REST API,不入库(实时轮询或 SSE push)
+
+enum ParkingStatus {
+  OPEN
+  FULL
+  CLOSED
+}
+
+model TrafficParkingLot {
+  id          String        @id @default(uuid()) @db.Uuid
+  name        String        @unique @db.VarChar(80)
+  capacity    Int
+  occupied    Int           @default(0)
+  status      ParkingStatus @default(OPEN)
+  coordinates Json?         @db.JsonB
+  location    String?       @db.VarChar(255)
+  updatedAt   DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@map("traffic_parking_lot")
+}

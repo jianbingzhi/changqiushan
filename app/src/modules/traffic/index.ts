@@ -1,3 +1,5 @@
-// traffic 模块对外公共 API — 占位
-// 待 schema 与 service 就位后,在此 re-export 公共函数与类型
-export {};
+export { trafficService } from "./service/traffic";
+export { trafficRepository } from "./repository";
+export { PARKING_STATE_CHANNEL } from "./events";
+export type { ParkingStatePayload } from "./events";
+export type { TrafficParkingLot, ParkingStatus } from "@prisma/client";

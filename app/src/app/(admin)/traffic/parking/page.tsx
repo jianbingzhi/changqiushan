@@ -1,0 +1,83 @@
+import { PageHeader } from "@/lib/ui/page-header";
+import { StatCard, KpiRow } from "@/lib/ui/stat-card";
+import { StatusChip } from "@/lib/ui/status-chip";
+import { LiveDot } from "@/lib/ui/live-dot";
+import { EmptyState } from "@/lib/ui/empty-state";
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/lib/ui/table";
+import { trafficRepository } from "@/modules/traffic";
+import { formatCnDateTime } from "@/shared/format";
+
+export const dynamic = "force-dynamic";
+export const metadata = { title: "停车场动静态上图 · 长秋山管理后台" };
+
+export default async function TrafficParkingPage() {
+  const lots = await trafficRepository.listParkingLots().catch(() => []);
+
+  const totalSpaces   = lots.reduce((s, p) => s + p.capacity, 0);
+  const totalOccupied = lots.reduce((s, p) => s + p.occupied, 0);
+  const fullCount     = lots.filter((p) => p.status === "FULL").length;
+
+  return (
+    <>
+      <PageHeader title="停车场动静态上图" description="景区停车场实时状态监控"
+        actions={
+          <div className="flex items-center gap-2">
+            <LiveDot alive />
+            <span className="text-[13px] text-[#6B7280]">parking_state 频道</span>
+          </div>
+        }
+      />
+      <div className="mb-5">
+        <KpiRow>
+          <StatCard label="停车位总数" value={totalSpaces} unit="个" />
+          <StatCard label="当前占用" value={totalOccupied} unit="个" />
+          <StatCard label="剩余车位" value={totalSpaces - totalOccupied} unit="个" />
+          <StatCard label="满车场数量" value={fullCount} unit="个" />
+        </KpiRow>
+      </div>
+      <div className="mb-4 flex items-center gap-3 rounded-lg border border-[#BFDBFE] bg-[#EFF6FF] px-4 py-3">
+        <LiveDot alive />
+        <p className="text-[13px] text-[#2563EB]">已接入 parking_state SSE 频道，实时更新占用数</p>
+      </div>
+
+      {/* 地图占位 */}
+      <div className="mb-4 rounded-lg border border-[#E5E7EB] bg-white p-4">
+        <p className="mb-3 text-[13px] font-medium text-[#6B7280]">停车场分布地图</p>
+        <div className="flex items-center justify-center rounded bg-[#E5E7EB]" style={{ height: 300 }} role="img" aria-label="地图加载中">
+          <span className="text-[14px] text-[#9CA3AF]">地图加载中…</span>
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-[#E5E7EB] bg-white">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-[#F9FAFB]">
+              {["停车场名称", "总车位", "已占用", "剩余", "状态", "更新时间"].map((h) => (
+                <TableHead key={h} className="text-xs font-semibold text-[#6B7280]">{h}</TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {lots.length === 0 ? (
+              <TableRow><TableCell colSpan={6} className="p-0"><EmptyState message="暂无停车场数据（请先在数据库录入停车场信息）" /></TableCell></TableRow>
+            ) : lots.map((lot) => {
+              const remaining = lot.capacity - lot.occupied;
+              return (
+                <TableRow key={lot.id} className="hover:bg-[#F9FAFB]">
+                  <TableCell className="font-medium text-[#1F2937]">{lot.name}</TableCell>
+                  <TableCell className="text-[13px] text-[#6B7280]">{lot.capacity}</TableCell>
+                  <TableCell className="text-[13px] text-[#6B7280]">{lot.occupied}</TableCell>
+                  <TableCell className="text-[13px] font-medium" style={{ color: remaining === 0 ? "#DC2626" : "#1F2937" }}>{remaining}</TableCell>
+                  <TableCell>
+                    <StatusChip status={lot.status === "OPEN" ? "ACTIVE" : lot.status === "FULL" ? "BLACKLISTED" : "CANCELLED"} />
+                  </TableCell>
+                  <TableCell className="text-[13px] text-[#6B7280]">{formatCnDateTime(lot.updatedAt)}</TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+    </>
+  );
+}
