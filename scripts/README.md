@@ -2,6 +2,10 @@
 
 控制 Stitch AI 完成 UI 设计交付的核心脚本。所有脚本都通过 CDP 操作真实 Chrome 浏览器,不使用 headless。
 
+> **本目录是自包含 npm 工程**(`package.json` + `node_modules`,依赖 `ws` + `cheerio`)。
+> 首次使用:`cd scripts && npm install`。
+> 脚本仍从**仓库根目录**调用(cwd=根),命令里的 `prompts/`、`UI/`、`logs/` 等相对路径以根为基准;npm 依赖经 `scripts/node_modules` 解析。
+
 ## 核心库
 
 | 文件 | 用途 |

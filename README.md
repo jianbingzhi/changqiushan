@@ -32,7 +32,7 @@ PRD → 拆页 → 写提示词 → 驱动 Stitch 设计 → 三点验证 → �
 - Node.js 18+
 - Chrome 启动参数 `--remote-debugging-port=9222`
 - 通过 CDP 远程控制(默认 `localhost:9222`,可用 `CDP_HOST` 环境变量覆盖)
-- `npm install` 安装 ws + cheerio
+- `cd scripts && npm install` 安装 ws + cheerio(工具链已收进 scripts/,自包含 npm 工程)
 
 ## 目录结构
 
@@ -41,9 +41,11 @@ PRD → 拆页 → 写提示词 → 驱动 Stitch 设计 → 三点验证 → �
 ├── docs/
 │   └── PRD.md                  # 需求规格说明书
 ├── prompts/                    # 每页 Stitch 提示词(40+ 文件)
-├── scripts/                    # 自动化脚本(CDP 控制 + 验证 + 截图)
+├── scripts/                    # Stitch 工具链(自包含 npm:含 package.json + node_modules)
+│   ├── *.js                    # CDP 控制 + 验证 + 截图脚本
+│   └── package.json            # ws + cheerio
 ├── UI/                         # 交付截图 + DESIGN.md
-└── package.json
+└── app/                        # B 端管理后台(Next.js,独立 pnpm 工程)
 ```
 
 ## 已知约束
