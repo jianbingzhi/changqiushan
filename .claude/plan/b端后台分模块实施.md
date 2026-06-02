@@ -428,3 +428,32 @@ M1 的 issuer 检查只补在 `session.ts`，`middleware.ts` 的 `jwtVerify(toke
 
 ### D·二、逐页接线进度（持续回写）
 - ✅ **B10 现场补录**(`4e0f5b7`)：真时段下拉 + 落库 + 黑名单拦截 + 错误回显。连带补 `riskcontrolService.isBlacklistedByIdCard`(3.6 黑名单拦截首个调用方)、seed 渠道配额(原全 0 致所有预约被拒)。
+- ✅ **导出红线5**(`a45dec9`)：export Route 接 analyticsRepository(traffic/heatmap/source/profile)；新增 `getProfileOverview`(身份证派生性别+年龄)。seed 重写：近7天35时段+1911预约+刷新3物化视图。
+- ✅ **B22 预约单查询 + 3.5 核销**(`1e44bcb`)：`listBookings(filter)` + `CheckinButton`→`checkinService.checkin`(幂等,窗口校验)。
+- ✅ **B11 黑名单/申诉**(`ee99da1`)：`findBlacklistAll`+`listAppeals` + 移除/审核 Server Action。**潜伏 bug 修复**：`reviewAppeal` 通过时删黑名单但 `risk_appeal` FK 为 RESTRICT→审核必崩,改 `onDelete:Cascade`。
+- ✅ **B03/B05/B06/B07 内容列表 + 发布/下线**(`648afac`)：4 列表接 contentRepository + 共享 `StatusToggle`。**潜伏 bug 修复**：`contentService` 发布时给所有模型写 `publishedAt`,但 `ContentKnowledge` 无此列→发布知识库必崩,改按模型条件写。
+- ✅ **B14-B19 数据分析**(`76560ef`)：4 页接 analytics(新增 `getTravelPreference`)+ 新增 `BarList` 服务端条形图替代纯占位。APP偏好诚实标注待C端埋点(无数据源)。
+- ✅ **B20/B21/B13 IoT+停车场**(`e0e32b6`)：页面本已接线,仅缺数据——补 seed(5设备×48心跳+4停车场)。
+- ✅ **B25 系统管理**(`0d6bd44`)：三 Tab 接 `findAllProfiles`/`listRolesWithPermissions`/`listAuditLogs` + 新建/停用/重置 Server Action。seed 补角色+权限矩阵+审计;新增 `scripts/seed-admin.ts` 引导真实登录超管(13900000000/Admin@12345)。
+- ✅ **B23 报名审核 + B24 获奖公示**(`b748767`)：B23 接 getActivity+listSignups+审核写notes;B24 **新增 content_award 表**+迁移+repo+seed。
+
+### D·三、🔴 实际启动 dev 揪出的 3 个致命运行时阻断（`f9456ee`/`90a7cc3`）
+
+> **本附录最重要的发现**：附录 C 说"tsc/lint 0 错误",但**从未真正在浏览器跑过**——首次 `pnpm dev` + 真实 HTTP 请求发现**全站 500**,app 此前根本无法渲染。tsc 绿 ≠ 能跑。
+- **R1** `db/client.ts` 顶层 `import "dotenv/config"` → Next 把 dotenv(依赖 node path/fs)打进 instrumentation 的 **edge** 编译 → 全站 500。删除(Next 自动加载 .env)。
+- **R2** `instrumentation.ts` 早返回守卫不足以让 webpack 从 edge 包剔除 pg/pg-boss(依赖 fs/path)→ edge 编译 `Can't resolve 'fs'` 全站 500。按 Next 官方模式拆 `instrumentation-node.ts`,仅 `NEXT_RUNTIME==='nodejs'` 分支 `await import`。
+- **R3** `(admin)/layout.tsx` 服务端组件用 `next/dynamic ssr:false`(Next 16 禁止)→ admin 全域 500。Sidebar/Topbar 本是 use client 且 SSR 安全,改直接 import。
+- 另:pg-boss v12 未先 `createQueue` 致 `refresh-analytics-mv` 每秒刷屏 + MV 刷新从未生效(7.4 标✅实则坏),补 `createQueue`。
+
+### D·四、✅ 验收口径（C·四）逐条核对——**真实运行栈实测**
+1. **每个页能看到 DB 真实数据**：✅ 真实 HTTP + GoTrue 登录巡检 13 页全部 200 且含 DB 数据(slots/onsite/bookings/blacklist/news/activities/knowledge/analytics×4/iot/parking/system)。
+2. **导出 xlsx 含真实行 + 403/200**：✅ no-cookie→401,OPERATOR→403,SUPER_ADMIN→200+真实 xlsx(magic 504b,6.8KB)。
+3. **tsc + lint-cn + eslint边界 全绿**：✅ tsc 0 / eslint 0 error(3 既有 warning)/ lint-cn 0。
+4. **E1-E5 各有验证记录**：✅ 见 D·一。
+5. **✅ 只在前端能看到真实数据后才打**：本轮所有 ✅ 均经真实 HTTP 巡检确认。
+
+### D·五、未尽事项（明确遗留，非"假完成"）
+- **B04 内容富文本编辑(TipTap)**：列表/发布/下线已通,但新建/编辑表单(TipTap 富文本 + 图片上传)未做——重客户端特性,留作独立迭代。各列表"编辑/新建"按钮暂禁用。
+- **B12 路况**：数据源为高德 REST API(不入库),保持地图页;停车场 B13 已附等价数据表(a11y)。地图为高德 JS API 注入(非 npm,需 key),仍为占位。
+- **2.9 红线 domain 单测**(assertDualElements/isCircuitBroken/isValidIdCard 纯函数)：未补(2.10 并发脚本已做)。
+- **X.2 设计系统英文黑名单断言测试 · X.3 a11y 走查**：未做(lint-cn 已覆盖中文红线扫描)。
