@@ -1,4 +1,5 @@
 import { bookingRepository } from "@/modules/booking";
+import { formatCnDate } from "@/shared/format";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ export default async function BookingSlotsPage() {
     <main className="p-8">
       <h1 className="text-2xl font-semibold mb-6">分时预约配额配置</h1>
       <p className="text-sm text-gray-500 mb-4">
-        日期:{today.toISOString().slice(0, 10)} · 共 {slots.length} 个时段
+        日期：{formatCnDate(today)} · 共 {slots.length} 个时段
       </p>
       <table className="w-full border-collapse">
         <thead>
