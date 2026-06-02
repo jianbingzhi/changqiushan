@@ -87,4 +87,26 @@ export const analyticsRepository = {
       ORDER BY q.dimension
     `);
   },
+
+  // 出行偏好:自驾比例 + 偏好入园时段(从 booking×slot 派生)
+  getTravelPreference(): Promise<ProfileOverviewRow[]> {
+    return db.$queryRaw<ProfileOverviewRow[]>(Prisma.sql`
+      WITH b AS (
+        SELECT bk.plate, EXTRACT(HOUR FROM s.start_time::time)::int AS hr
+        FROM booking bk JOIN booking_slot s ON s.id = bk.slot_id
+        WHERE bk.status <> 'CANCELLED'::"BookingStatus"
+      ),
+      total AS (SELECT COUNT(*)::numeric AS n FROM b)
+      SELECT q.dimension, q.value,
+             ROUND(q.value::numeric / NULLIF((SELECT n FROM total), 0) * 100, 2)::float AS percentage
+      FROM (
+        SELECT '出行·自驾' AS dimension, COUNT(*) FILTER (WHERE plate IS NOT NULL) AS value FROM b
+        UNION ALL SELECT '出行·非自驾', COUNT(*) FILTER (WHERE plate IS NULL) FROM b
+        UNION ALL SELECT '时段·上午(12时前)', COUNT(*) FILTER (WHERE hr < 12) FROM b
+        UNION ALL SELECT '时段·下午(12-16时)', COUNT(*) FILTER (WHERE hr >= 12 AND hr < 16) FROM b
+        UNION ALL SELECT '时段·傍晚(16时后)', COUNT(*) FILTER (WHERE hr >= 16) FROM b
+      ) q
+      ORDER BY q.dimension
+    `);
+  },
 };
