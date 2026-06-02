@@ -1,0 +1,52 @@
+// 风控模块 — 爽约计数、黑名单、申诉状态机
+// 表名前缀 risk_
+
+enum AppealStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model RiskNoshowCounter {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @unique @map("user_id") @db.Uuid
+  count        Int       @default(0)
+  lastNoShowAt DateTime? @map("last_no_show_at") @db.Timestamptz(3)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@map("risk_noshow_counter")
+}
+
+model RiskBlacklist {
+  id            String    @id @default(uuid()) @db.Uuid
+  userId        String    @unique @map("user_id") @db.Uuid
+  idCard        String    @map("id_card") @db.VarChar(32)
+  plate         String?   @db.VarChar(16)
+  reason        String?   @db.Text
+  blacklistedAt DateTime  @map("blacklisted_at") @db.Timestamptz(3)
+  reviewedBy    String?   @map("reviewed_by") @db.Uuid
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  appeals       RiskAppeal[]
+
+  @@index([idCard])
+  @@map("risk_blacklist")
+}
+
+model RiskAppeal {
+  id          String        @id @default(uuid()) @db.Uuid
+  blacklistId String        @map("blacklist_id") @db.Uuid
+  userId      String        @map("user_id") @db.Uuid
+  reason      String        @db.Text
+  status      AppealStatus  @default(PENDING)
+  reviewedBy  String?       @map("reviewed_by") @db.Uuid
+  reviewNote  String?       @map("review_note") @db.Text
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  blacklist   RiskBlacklist @relation(fields: [blacklistId], references: [id])
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
+  @@map("risk_appeal")
+}

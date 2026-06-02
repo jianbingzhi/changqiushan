@@ -22,4 +22,20 @@ export async function register() {
     console.error("[instrumentation] pg-boss failed to start", err);
   });
   setBoss(boss);
+
+  // 熔断事件监听: checkin_event → 在园达 90% 时自动暂停当日时段
+  const { bus } = await import("@/infrastructure/realtime/bus");
+  const { bookingService } = await import("@/modules/booking");
+  const { db } = await import("@/infrastructure/db/client");
+  bus.on("checkin_event", async (payload: { slotId: string; circuitBroken: boolean }) => {
+    if (!payload.circuitBroken) return;
+    const slot = await db.bookingSlot.findUnique({
+      where: { id: payload.slotId }, select: { date: true },
+    }).catch(() => null);
+    if (slot) {
+      await bookingService.pauseSlotsForCircuitBreak(slot.date).catch((e: unknown) => {
+        console.error("[instrumentation] circuit break pause failed", e);
+      });
+    }
+  });
 }
