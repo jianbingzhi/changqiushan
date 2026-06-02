@@ -1,8 +1,28 @@
 import { ok, err, ErrCode, type Result } from "@/shared/result";
 import { canPublish, canArchive } from "../domain/rules";
+import {
+  createIntroSchema, updateIntroSchema,
+  createNewsSchema, updateNewsSchema,
+  createActivitySchema, updateActivitySchema,
+  createKnowledgeSchema, updateKnowledgeSchema,
+} from "../domain/schema";
 import { contentRepository } from "../repository";
 
 type ContentModel = "intro" | "activity" | "knowledge" | "news";
+
+const CREATE_SCHEMAS = {
+  intro: createIntroSchema,
+  news: createNewsSchema,
+  activity: createActivitySchema,
+  knowledge: createKnowledgeSchema,
+} as const;
+
+const UPDATE_SCHEMAS = {
+  intro: updateIntroSchema,
+  news: updateNewsSchema,
+  activity: updateActivitySchema,
+  knowledge: updateKnowledgeSchema,
+} as const;
 
 async function getById(model: ContentModel, id: string) {
   switch (model) {
@@ -44,6 +64,31 @@ export const contentService = {
     if (!item) return err(ErrCode.NOT_FOUND, "内容不存在");
     if (!canArchive(item.status)) return err(ErrCode.INVALID_INPUT, "仅已发布状态可下线");
     await setStatus(model, id, { status: "ARCHIVED" });
+    return ok(undefined);
+  },
+
+  // B04: 新建内容(草稿)。各模型 zod 校验,正文为 TipTap 输出的 HTML 字符串。
+  async createContent(model: ContentModel, raw: unknown): Promise<Result<{ id: string }>> {
+    const parsed = CREATE_SCHEMAS[model].safeParse(raw);
+    if (!parsed.success) return err(ErrCode.INVALID_INPUT, parsed.error.issues[0].message);
+    const d = parsed.data;
+    let row: { id: string };
+    switch (model) {
+      case "intro":     row = await contentRepository.createIntro(d as never); break;
+      case "news":      row = await contentRepository.createNews(d as never); break;
+      case "activity":  row = await contentRepository.createActivity(d as never); break;
+      case "knowledge": row = await contentRepository.createKnowledge(d as never); break;
+    }
+    return ok({ id: row.id });
+  },
+
+  // B04: 编辑内容(部分更新)。
+  async updateContent(model: ContentModel, id: string, raw: unknown): Promise<Result<void>> {
+    const existing = await getById(model, id);
+    if (!existing) return err(ErrCode.NOT_FOUND, "内容不存在");
+    const parsed = UPDATE_SCHEMAS[model].safeParse(raw);
+    if (!parsed.success) return err(ErrCode.INVALID_INPUT, parsed.error.issues[0].message);
+    await setStatus(model, id, parsed.data);
     return ok(undefined);
   },
 };

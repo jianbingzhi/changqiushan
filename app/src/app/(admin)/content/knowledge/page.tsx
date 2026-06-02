@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { contentRepository } from "@/modules/content";
 import { PageHeader } from "@/lib/ui/page-header";
 import { Button } from "@/lib/ui/button";
@@ -26,7 +27,7 @@ export default async function ContentKnowledgePage({ searchParams }: { searchPar
   return (
     <>
       <PageHeader title="AI 问答知识库" description="维护景区 AI 问答知识条目"
-        actions={<Button className="bg-[#2D5A27] text-white" disabled title="content 模块建立后启用">新建条目</Button>}
+        actions={<Link href="/content/knowledge/new"><Button style={{ backgroundColor: "#2D5A27", color: "#fff" }}>新建条目</Button></Link>}
       />
       <form method="GET" className="flex flex-wrap items-end gap-3 mb-4">
         <div className="flex flex-col gap-1">
@@ -67,7 +68,7 @@ export default async function ContentKnowledgePage({ searchParams }: { searchPar
                 <TableCell><StatusChip status={item.status === "PUBLISHED" ? "ACTIVE" : "PAUSED"} /></TableCell>
                 <TableCell>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" className="text-[12px]" disabled>编辑</Button>
+                    <Link href={`/content/knowledge/${item.id}/edit`}><Button size="sm" variant="outline" className="text-[12px]">编辑</Button></Link>
                     <StatusToggle model="knowledge" id={item.id} status={item.status} revalidate="/content/knowledge" variant="toggle" />
                   </div>
                 </TableCell>

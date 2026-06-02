@@ -4,7 +4,7 @@ export const createIntroSchema = z.object({
   title:      z.string().min(1, "标题不能为空").max(80),
   body:       z.string().min(1, "正文不能为空"),
   coverImage: z.string().max(255).optional(),
-  sortOrder:  z.number().int().min(0).default(0),
+  sortOrder:  z.coerce.number().int().min(0).default(0),
 });
 export const updateIntroSchema = createIntroSchema.partial();
 
@@ -14,7 +14,7 @@ const activityBaseSchema = z.object({
   coverImage:      z.string().max(255).optional(),
   startDate:       z.coerce.date(),
   endDate:         z.coerce.date(),
-  maxParticipants: z.number().int().positive().optional(),
+  maxParticipants: z.coerce.number().int().positive().optional(),
   registrationFee: z.coerce.number().min(0).default(0),
 });
 export const createActivitySchema = activityBaseSchema.refine(
@@ -27,7 +27,7 @@ export const createKnowledgeSchema = z.object({
   title:     z.string().min(1, "标题不能为空").max(80),
   content:   z.string().min(1, "内容不能为空"),
   category:  z.string().max(40).optional(),
-  sortOrder: z.number().int().min(0).default(0),
+  sortOrder: z.coerce.number().int().min(0).default(0),
 });
 export const updateKnowledgeSchema = createKnowledgeSchema.partial();
 

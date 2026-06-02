@@ -24,7 +24,7 @@ export default async function ContentActivitiesPage() {
   return (
     <>
       <PageHeader title="活动运营管理" description="创建和管理景区活动，报名费由 C 端小程序处理"
-        actions={<Button className="bg-[#2D5A27] text-white" disabled title="content 模块建立后启用">新建活动</Button>}
+        actions={<Link href="/content/activities/new"><Button style={{ backgroundColor: "#2D5A27", color: "#fff" }}>新建活动</Button></Link>}
       />
       <div className="mb-6">
         <KpiRow>
@@ -60,6 +60,7 @@ export default async function ContentActivitiesPage() {
                 <TableCell className="text-[13px]">{item._count.signups} 人</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
+                    <Link href={`/content/activities/${item.id}/edit`}><Button size="sm" variant="outline" className="text-[12px]">编辑</Button></Link>
                     <StatusToggle model="activity" id={item.id} status={item.status} revalidate="/content/activities" />
                     <Link href={`/content/activities/${item.id}/signups`}><Button size="sm" variant="outline" className="text-[12px]">报名审核</Button></Link>
                     <Link href={`/content/activities/${item.id}/awards`}><Button size="sm" variant="outline" className="text-[12px]">获奖公示</Button></Link>

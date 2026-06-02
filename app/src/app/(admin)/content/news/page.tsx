@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { contentRepository } from "@/modules/content";
 import { PageHeader } from "@/lib/ui/page-header";
 import { Button } from "@/lib/ui/button";
@@ -16,7 +17,7 @@ export default async function ContentNewsPage() {
   return (
     <>
       <PageHeader title="资讯模块" description="管理景区公告、新闻、通知"
-        actions={<Button className="bg-[#2D5A27] text-white" disabled title="content 模块建立后启用">新建资讯</Button>}
+        actions={<Link href="/content/news/new"><Button style={{ backgroundColor: "#2D5A27", color: "#fff" }}>新建资讯</Button></Link>}
       />
       <div className="rounded-lg border border-[#E5E7EB] bg-white">
         <Table>
@@ -38,7 +39,7 @@ export default async function ContentNewsPage() {
                 <TableCell className="text-[13px] text-[#6B7280]">{item.publishedAt ? formatCnDate(item.publishedAt) : "—"}</TableCell>
                 <TableCell>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" className="text-[12px]" disabled>编辑</Button>
+                    <Link href={`/content/news/${item.id}/edit`}><Button size="sm" variant="outline" className="text-[12px]">编辑</Button></Link>
                     <StatusToggle model="news" id={item.id} status={item.status} revalidate="/content/news" />
                   </div>
                 </TableCell>
