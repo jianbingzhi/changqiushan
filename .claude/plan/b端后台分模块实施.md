@@ -206,19 +206,21 @@
 | 阶段 | 子步 | Done | Commit |
 |---|---|---|---|
 | 0 地基 | ✅0.1 shared 三件(311e624) · ✅0.2 globals/layout 中文化(907e95a) · ✅0.3 lib/ui 组件(2c9ab71) · ✅0.4 (admin)/layout壳(a8fff8b) · ✅0.5 (auth)壳(6f06714) · ✅0.6 空middleware(6f06714) · ✅0.7 GoTrue 起服务+bootstrap(同库,已验证) · ✅0.8 只读视图+auth基础设施(4c75ef1) · ✅0.9 instrumentation(4c75ef1) | ✅完成 | — |
-| 1 system | 1.1 sys_profile/role/permission/audit 模型(键=auth UUID) · 1.2 GoTrue admin client + getSession · 1.3 jose 验签 middleware + 角色门 · 1.4 B01 登录(走 GoTrue) · 1.5 createAdmin 两步事务+回滚 · 1.6 B25 系统管理 | [ ] | — |
-| 2 booking | 2.1a model 字段(noVehicle/渠道配额) · 2.1b 手写 CHECK migration · 2.2 domain(canBook/isCircuitBroken/canResume 分离) · 2.3 渠道乐观锁 repo · 2.4 service(+resumePausedSlots) · 2.5 B08(+手动恢复) · 2.6 B09 · 2.7 B10 · 2.8 B22 查单(核销按钮 disabled) · 2.9 红线单测 · 2.10 并发超约脚本 | [ ] | — |
-| 3 risk+checkin | 3.1 riskcontrol 模型/状态机 · 3.2 checkin(checked_in_count + qrCode 协议 + 幂等 UNIQUE) + 闸机 Route · 3.3 跨模块熔断/恢复/拦截 · 3.4 B11 · 3.5 接通 B22 核销 | [ ] | — |
-| 4 content | 4.1 模型 · 4.2 状态机+支付注入 · 4.3 B03-07 · 4.4 B23/B24 | [ ] | — |
-| 5 traffic | 5.1 lib/amap · 5.2 模型+trigger · 5.3 B12/B13 | [ ] | — |
-| 6 iot | 6.1 模型 · 6.2 trigger+pg-boss 扫描 · 6.3 B20/B21 | [ ] | — |
-| 7 analytics | 7.1 物化视图 · 7.2 lib/excel · 7.3 导出 Route · 7.4 pg-boss 刷新 · 7.5 B14-19 | [ ] | — |
-| 8 仪表盘 | 8.1 B02 跨模块聚合 + SSE | [ ] | — |
-| 横切 | X.1 中文红线 lint · X.2 黑名单断言 · X.3 a11y 走查 | [ ] | — |
+| 1 system | ✅1.1 系统模型(6872288) · ✅1.2 GoTrue admin client+getSession(4c75ef1) · ✅1.3 jose middleware(4c75ef1) · ✅1.4 B01登录GoTrue(6872288) · ✅1.5 createAdmin两步事务(6872288) · ✅1.6 B25系统管理(6872288) | ✅完成 | 6872288 |
+| 2 booking | ✅2.1a model字段(ee74099) · ✅2.1b CHECK migration(ee74099) · ✅2.2 domain rules(ee74099) · ✅2.3 乐观锁repo(ee74099) · ✅2.4 service(ee74099) · ✅2.5 B08(ee74099) · ✅2.6 B09(ee74099) · ✅2.7 B10(ee74099) · ✅2.8 B22(ee74099) · [ ]2.9 红线单测 · [ ]2.10 并发超约脚本 | [部分] | ee74099 |
+| 3 risk+checkin | ✅3.1 riskcontrol模型+状态机(363f122) · ✅3.2 checkin幂等+qrCode+闸机Route(363f122) · ✅3.3 熔断bus监听(363f122) · ✅3.4 B11(363f122) · [ ]3.5 接通B22核销 | [部分] | 363f122 |
+| 4 content | ✅4.1 模型(e23774b) · ✅4.2 状态机+支付边界(e23774b) · ✅4.3 B03-07(e23774b) · ✅4.4 B23/B24(e23774b) | ✅完成 | e23774b |
+| 5 traffic | ✅5.1 lib/amap stub(ba0271d) · ✅5.2 模型+service(ba0271d) · ✅5.3 B12/B13(ba0271d) | ✅完成 | ba0271d |
+| 6 iot | ✅6.1 模型(c018b07) · ✅6.2 service+pg-boss扫描stub(c018b07) · ✅6.3 B20/B21(c018b07) | ✅完成 | c018b07 |
+| 7 analytics | ✅7.1 物化视图(2a9fe41) · ✅7.2 lib/excel(2a9fe41) · ✅7.3 导出Route(2a9fe41) · [ ]7.4 pg-boss刷新 · ✅7.5 B14-19(2a9fe41) | [部分] | 2a9fe41 |
+| 8 仪表盘 | ✅8.1 B02 跨模块聚合+SSE(470afd1) | ✅完成 | 470afd1 |
+| 横切 | ✅X.1 中文红线lint(7ae657b) · [ ]X.2 黑名单断言 · [ ]X.3 a11y走查 | [部分] | 7ae657b |
 
 ---
 
-> **状态（2026-06-02）**：附录 A + 附录 B 的全部结论（A1–A5 / B1–B6 / R1–R3 / Y1–Y5 / N1–N5,N7,N8）**已逐条落实到上方正文对应阶段/决策/Key Files/风险/Checkpoint**；N6 经核验作废。两份附录保留作审计依据与变更理由，正文已自洽，执行时以正文为准。
+> **状态（2026-06-02，执行完成）**：全 8 阶段 + 横切 X.1 已执行完毕。tsc 0 错误，pnpm lint（含中文红线 lint）0 错误。末次 commit: `7ae657b`。
+>
+> 待补项（不阻断主体）：2.9 红线单测 · 2.10 并发超约脚本 · 3.5 B22核销接通 · 7.4 pg-boss刷新调度 · X.2 黑名单断言 · X.3 a11y走查
 >
 > **决策变更（2026-06-02，用户拍板）**：D3 由「自写 jose+argon2 混合认证」**改为 GoTrue 自托管（同库 auth schema + 共用 auth.users.id + 只读视图缝合）**。认证/密码/会话交 GoTrue，system 模块只做 RBAC/审计/账号编排；middleware 仍用 jose 验 GoTrue JWT。正文 D3、Pre-flight、阶段 0（新增 10–13）、阶段 1、Key Files、风险表、Checkpoint 0/1 均已同步。
 
