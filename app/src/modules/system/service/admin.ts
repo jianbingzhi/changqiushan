@@ -27,7 +27,8 @@ export const adminService = {
     }
 
     // 两步事务: GoTrue → public DB; DB 失败时回调 GoTrue 删用户(saga 补偿)
-    const authUser = await createAuthUser(phone, password);
+    // E2: roleCode 透传给 GoTrue 写入 app_metadata,角色随 JWT 走
+    const authUser = await createAuthUser(phone, password, roleCode);
 
     try {
       await systemRepository.createProfile({ id: authUser.id, name, workerId, roleId: role.id });

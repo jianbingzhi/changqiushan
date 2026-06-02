@@ -8,6 +8,9 @@ export const runtime  = "nodejs";
 const ALLOWED_MODULES = ["traffic", "heatmap", "source", "profile"] as const;
 type ExportModule = (typeof ALLOWED_MODULES)[number];
 
+// E1: 可导出报表的业务角色(app_metadata.role)
+const EXPORT_ROLES: readonly string[] = ["SUPER_ADMIN", "ADMIN"];
+
 const MODULE_NAMES: Record<ExportModule, string> = {
   traffic: "客流分析",
   heatmap: "热力图分析",
@@ -23,8 +26,9 @@ export async function GET(
   if (!session) {
     return Response.json({ message: "未授权" }, { status: 401 });
   }
-  // M3 Fix: 仅 admin/service_role 可导出数据
-  if (session.role === "authenticated") {
+  // E1: GoTrue 密码登录 JWT 顶层 role 恒为 "authenticated",业务角色在 app_metadata。
+  // 报表导出仅放行管理角色(超管/管理员),操作员等其他角色 403。
+  if (!session.appRole || !EXPORT_ROLES.includes(session.appRole)) {
     return Response.json({ message: "权限不足" }, { status: 403 });
   }
 

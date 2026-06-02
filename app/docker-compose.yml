@@ -40,6 +40,9 @@ services:
       GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${GOTRUE_DB_PASSWORD}@postgres:5432/changqiushan?search_path=auth
       GOTRUE_SITE_URL: http://localhost:3000
       GOTRUE_JWT_SECRET: ${GOTRUE_JWT_SECRET}
+      # E5/M1: 签发 iss 声明,与应用 session.ts/middleware.ts 的 issuer 校验对齐;
+      # 缺此项时 GoTrue 不写 iss,应用侧 issuer 校验会拒签所有真实登录 token。
+      GOTRUE_JWT_ISSUER: http://localhost:9999
       GOTRUE_JWT_EXP: "3600"
       GOTRUE_JWT_AUD: authenticated
       GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated

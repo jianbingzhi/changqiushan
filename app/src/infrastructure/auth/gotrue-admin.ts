@@ -38,10 +38,21 @@ export interface GoTrueUser {
   created_at: string;
 }
 
-export async function createAuthUser(phone: string, password: string): Promise<GoTrueUser> {
+// E2: 业务角色写入 GoTrue app_metadata,随签发的 JWT 一并下发(D3 架构)。
+// app_metadata 仅服务端可改,客户端不可篡改,适合承载角色。
+export async function createAuthUser(
+  phone: string,
+  password: string,
+  roleCode: string,
+): Promise<GoTrueUser> {
   return gotrueAdminFetch("/admin/users", {
     method: "POST",
-    body: JSON.stringify({ phone, password, phone_confirm: true }),
+    body: JSON.stringify({
+      phone,
+      password,
+      phone_confirm: true,
+      app_metadata: { role: roleCode },
+    }),
   });
 }
 
