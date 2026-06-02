@@ -1,0 +1,100 @@
+// content 模块 — 景区介绍、活动、知识库、资讯
+// 表名前缀 content_
+// R1: B 端不触发支付——content_activity_signup 仅存储/展示 C 端同步的支付状态
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  REFUNDED
+}
+
+model ContentIntro {
+  id          String        @id @default(uuid()) @db.Uuid
+  title       String        @db.VarChar(80)
+  body        String        @db.Text
+  coverImage  String?       @map("cover_image") @db.VarChar(255)
+  status      ContentStatus @default(DRAFT)
+  sortOrder   Int           @default(0) @map("sort_order")
+  publishedAt DateTime?     @map("published_at") @db.Timestamptz(3)
+  createdBy   String?       @map("created_by") @db.Uuid
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([status, sortOrder])
+  @@map("content_intro")
+}
+
+model ContentActivity {
+  id                String        @id @default(uuid()) @db.Uuid
+  title             String        @db.VarChar(80)
+  description       String?       @db.Text
+  coverImage        String?       @map("cover_image") @db.VarChar(255)
+  startDate         DateTime      @map("start_date") @db.Timestamptz(3)
+  endDate           DateTime      @map("end_date") @db.Timestamptz(3)
+  maxParticipants   Int?          @map("max_participants")
+  registrationFee   Decimal       @default(0) @map("registration_fee") @db.Decimal(10, 2)
+  status            ContentStatus @default(DRAFT)
+  publishedAt       DateTime?     @map("published_at") @db.Timestamptz(3)
+  createdBy         String?       @map("created_by") @db.Uuid
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  signups           ContentActivitySignup[]
+
+  @@index([status, startDate])
+  @@map("content_activity")
+}
+
+// R1: B 端不调起支付 — paymentStatus 由 C 端同步，B 端只读/展示
+model ContentActivitySignup {
+  id            String        @id @default(uuid()) @db.Uuid
+  activityId    String        @map("activity_id") @db.Uuid
+  userId        String        @map("user_id") @db.VarChar(32)
+  userName      String        @map("user_name") @db.VarChar(40)
+  phone         String        @db.VarChar(20)
+  paymentStatus PaymentStatus @default(UNPAID) @map("payment_status")
+  paidAt        DateTime?     @map("paid_at") @db.Timestamptz(3)
+  notes         String?       @db.Text
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  activity      ContentActivity @relation(fields: [activityId], references: [id])
+
+  @@index([activityId, paymentStatus])
+  @@map("content_activity_signup")
+}
+
+model ContentKnowledge {
+  id        String        @id @default(uuid()) @db.Uuid
+  title     String        @db.VarChar(80)
+  content   String        @db.Text
+  category  String?       @db.VarChar(40)
+  sortOrder Int           @default(0) @map("sort_order")
+  status    ContentStatus @default(DRAFT)
+  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([category, sortOrder])
+  @@map("content_knowledge")
+}
+
+model ContentNews {
+  id          String        @id @default(uuid()) @db.Uuid
+  title       String        @db.VarChar(80)
+  summary     String?       @db.Text
+  body        String        @db.Text
+  coverImage  String?       @map("cover_image") @db.VarChar(255)
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?     @map("published_at") @db.Timestamptz(3)
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([status, publishedAt(sort: Desc)])
+  @@map("content_news")
+}
