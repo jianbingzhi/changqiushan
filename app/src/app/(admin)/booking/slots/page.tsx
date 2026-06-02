@@ -21,9 +21,11 @@ export default async function BookingSlotsPage({ searchParams }: Props) {
   const nextDate = new Date(target);
   nextDate.setDate(nextDate.getDate() + 1);
 
-  const toDateParam = (d: Date) => d.toISOString().slice(0, 10);
+  // 使用本地日期(CST)避免 toISOString 返回 UTC 日期导致午前跨日错误
+  const toDateParam = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-  const hasPausedSlots = slots.some((s) => s.status === "PAUSED");
+  // 仅当在园人数真正达到 90% 时显示熔断警告(不依赖 PAUSED 状态以避免误报)
   const hasCircuitBreaker = slots.some((s) => s.capacity > 0 && s.checkedInCount / s.capacity >= 0.9);
 
   return (
@@ -50,7 +52,7 @@ export default async function BookingSlotsPage({ searchParams }: Props) {
         }
       />
 
-      {(hasPausedSlots || hasCircuitBreaker) && (
+      {hasCircuitBreaker && (
         <div className="mb-4 flex items-center justify-between rounded-lg border border-[#FECACA] bg-[#FEF2F2] px-4 py-3">
           <p className="text-sm font-medium text-[#DC2626]">
             承载量达 90%，入园预约已自动暂停

@@ -23,6 +23,17 @@ export async function register() {
   });
   setBoss(boss);
 
+  // pg-boss: 物化视图定时刷新(每 15 分钟)
+  await boss.schedule("refresh-analytics-mv", "*/15 * * * *", {}).catch(() => {});
+  await boss.work("refresh-analytics-mv", async () => {
+    const { db } = await import("@/infrastructure/db/client");
+    await db.$executeRaw`REFRESH MATERIALIZED VIEW CONCURRENTLY analytics_daily_traffic`.catch(() => {});
+    await db.$executeRaw`REFRESH MATERIALIZED VIEW CONCURRENTLY analytics_visitor_source`.catch(() => {});
+    await db.$executeRaw`REFRESH MATERIALIZED VIEW CONCURRENTLY analytics_hourly_peak`.catch(() => {});
+  }).catch((e: unknown) => {
+    console.error("[instrumentation] pg-boss analytics refresh register failed", e);
+  });
+
   // 熔断事件监听: checkin_event → 在园达 90% 时自动暂停当日时段
   const { bus } = await import("@/infrastructure/realtime/bus");
   const { bookingService } = await import("@/modules/booking");

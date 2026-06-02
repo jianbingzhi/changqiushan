@@ -43,7 +43,11 @@ export default async function ActivitySignupsPage({ params }: Props) {
                 <TableCell className="text-[13px] text-[#6B7280]">{item.phone}</TableCell>
                 <TableCell className="text-[13px] text-[#6B7280]">{formatCnDateTime(item.createdAt)}</TableCell>
                 <TableCell>
-                  <StatusChip status={item.paymentStatus === "PAID" ? "CONFIRMED" : item.paymentStatus === "REFUNDED" ? "CANCELLED" : "PENDING"} />
+                  {/* REFUNDED 在 B 端显示为「已撤销」(PRD 禁用"退款"字样) */}
+                {item.paymentStatus === "REFUNDED"
+                  ? <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border bg-[#F9FAFB] text-[#6B7280] border-[#E5E7EB]">已撤销</span>
+                  : <StatusChip status={item.paymentStatus === "PAID" ? "CONFIRMED" : "PENDING"} />
+                }
                 </TableCell>
                 <TableCell className="text-[13px] text-[#6B7280] max-w-[200px] truncate">{item.notes ?? "—"}</TableCell>
                 <TableCell>
