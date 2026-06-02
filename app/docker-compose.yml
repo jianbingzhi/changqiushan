@@ -20,5 +20,38 @@ services:
       timeout: 3s
       retries: 10
 
+  # GoTrue 自托管(D3):连同一 Postgres,独占 auth schema;签发/验 JWT、管密码与会话
+  # 应用以 auth.users.id(UUID) 为身份单源,public 侧经只读视图缝合
+  gotrue:
+    image: supabase/gotrue:v2.176.1   # 钉死版本(升级会改 auth.users 列,需复验视图)
+    container_name: changqiushan-gotrue
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:9999:9999"
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: http://localhost:9999
+      # 连库:用专用角色 supabase_auth_admin,GoTrue 默认 namespace=auth
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${GOTRUE_DB_PASSWORD}@postgres:5432/changqiushan?search_path=auth
+      GOTRUE_SITE_URL: http://localhost:3000
+      GOTRUE_JWT_SECRET: ${GOTRUE_JWT_SECRET}
+      GOTRUE_JWT_EXP: "3600"
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      # 后台账号由管理员开通,关闭公开注册;登录标识符=手机号(关 email、开 phone)
+      # 账号经 admin API 建并置 phone_confirm,登录走 手机号+密码,无需 SMS 网关
+      GOTRUE_DISABLE_SIGNUP: "true"
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "false"
+      GOTRUE_EXTERNAL_PHONE_ENABLED: "true"
+      GOTRUE_SMS_AUTOCONFIRM: "true"
+      GOTRUE_LOG_LEVEL: info
+      TZ: Asia/Shanghai
+
 volumes:
   postgres_data:

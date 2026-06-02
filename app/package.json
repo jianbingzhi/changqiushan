@@ -12,7 +12,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "db:auth:bootstrap": "docker exec -i changqiushan-postgres psql -U changqiushan -d changqiushan < docker/auth-bootstrap.sql"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
