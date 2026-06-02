@@ -1,21 +1,36 @@
-// 预约模块 — 分时配额、预约单、爽约风控
+// 预约模块 — 分时配额、预约单
 // 表名前缀 booking_ 做模块隔离;边界由 eslint-plugin-boundaries 在应用层保护
 
-// === 分时配额配置(B6 页面)===
 model BookingSlot {
-  id          String   @id @default(uuid()) @db.Uuid
-  name        String   @db.VarChar(80)
-  date        DateTime @db.Date
-  startTime   String   @map("start_time") @db.VarChar(5)
-  endTime     String   @map("end_time") @db.VarChar(5)
+  id          String            @id @default(uuid()) @db.Uuid
+  name        String            @db.VarChar(80)
+  date        DateTime          @db.Date
+  startTime   String            @map("start_time") @db.VarChar(5)
+  endTime     String            @map("end_time") @db.VarChar(5)
   capacity    Int
-  bookedCount Int      @default(0) @map("booked_count")
-  status      BookingSlotStatus @default(ACTIVE)
-  remark      String?  @db.Text
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  bookings    Booking[]
+  // 渠道配额(B1 方案α:各渠道独立,固定渠道不需独立表)
+  miniProgramQuota Int @default(0) @map("mini_program_quota")
+  onsiteQuota      Int @default(0) @map("onsite_quota")
+  otaQuota         Int @default(0) @map("ota_quota")
+  adminQuota       Int @default(0) @map("admin_quota")
+
+  // 渠道已用量(乐观锁原子更新,CHECK 约束在手写 migration 中)
+  miniProgramBooked Int @default(0) @map("mini_program_booked")
+  onsiteBooked      Int @default(0) @map("onsite_booked")
+  otaBooked         Int @default(0) @map("ota_booked")
+  adminBooked       Int @default(0) @map("admin_booked")
+  bookedCount       Int @default(0) @map("booked_count")
+
+  // 在园计数(A4:90% 熔断代理指标,随核销原子+1)
+  checkedInCount Int @default(0) @map("checked_in_count")
+
+  status    BookingSlotStatus @default(ACTIVE)
+  remark    String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  bookings  Booking[]
 
   @@index([date, startTime])
   @@map("booking_slot")
@@ -27,28 +42,29 @@ enum BookingSlotStatus {
   CLOSED
 }
 
-// === 预约单 ===
 model Booking {
-  id            String   @id @default(uuid()) @db.Uuid
-  slotId        String   @map("slot_id") @db.Uuid
-  visitorName   String   @map("visitor_name") @db.VarChar(40)
-  idCard        String   @map("id_card") @db.VarChar(32)
-  phone         String   @db.VarChar(20)
-  plate         String?  @db.VarChar(16)
-  channel       BookingChannel @default(MINI_PROGRAM)
-  status        BookingStatus  @default(CONFIRMED)
-  qrCode        String   @unique @map("qr_code") @db.VarChar(64)
-  checkedInAt   DateTime? @map("checked_in_at") @db.Timestamptz(3)
-  cancelledAt   DateTime? @map("cancelled_at") @db.Timestamptz(3)
-  noShowAt      DateTime? @map("no_show_at") @db.Timestamptz(3)
-  metadata      Json?     @db.JsonB
-  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id               String          @id @default(uuid()) @db.Uuid
+  slotId           String          @map("slot_id") @db.Uuid
+  visitorName      String          @map("visitor_name") @db.VarChar(40)
+  idCard           String          @map("id_card") @db.VarChar(32)
+  phone            String          @db.VarChar(20)
+  plate            String?         @db.VarChar(16)
+  noVehicleDeclared Boolean        @default(false) @map("no_vehicle_declared")
+  channel          BookingChannel  @default(MINI_PROGRAM)
+  status           BookingStatus   @default(CONFIRMED)
+  qrCode           String          @unique @map("qr_code") @db.VarChar(64)
+  checkedInAt      DateTime?       @map("checked_in_at") @db.Timestamptz(3)
+  cancelledAt      DateTime?       @map("cancelled_at") @db.Timestamptz(3)
+  noShowAt         DateTime?       @map("no_show_at") @db.Timestamptz(3)
+  metadata         Json?           @db.JsonB
+  createdAt        DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  slot          BookingSlot @relation(fields: [slotId], references: [id])
+  slot             BookingSlot     @relation(fields: [slotId], references: [id])
 
   @@index([phone])
   @@index([idCard])
+  @@index([idCard, createdAt(sort: Desc)])
   @@index([status, createdAt(sort: Desc)])
   @@map("booking")
 }
