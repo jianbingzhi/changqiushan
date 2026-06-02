@@ -1,4 +1,4 @@
-import { bookingRepository, SlotFullError } from "../repository";
+import { bookingRepository, SlotFullError, DuplicateBookingError } from "../repository";
 import { createBookingSchema } from "../domain/schema";
 import { assertDualElements, canBook, canCancel, isCircuitBroken } from "../domain/rules";
 import { ok, err, ErrCode, type Result } from "@/shared/result";
@@ -49,6 +49,9 @@ export const bookingService = {
     } catch (e) {
       if (e instanceof SlotFullError) {
         return err(ErrCode.SLOT_FULL, "并发冲突，名额已满，请重试");
+      }
+      if (e instanceof DuplicateBookingError) {
+        return err(ErrCode.DUPLICATE_BOOKING, "同一身份证当日已有预约");
       }
       throw e;
     }

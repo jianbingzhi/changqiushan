@@ -45,6 +45,8 @@ enum BookingSlotStatus {
 model Booking {
   id               String          @id @default(uuid()) @db.Uuid
   slotId           String          @map("slot_id") @db.Uuid
+  // E4: 反范式所属时段日期,由 DB 触发器从 booking_slot 同步;支撑"同证同日"部分唯一索引
+  slotDate         DateTime?       @map("slot_date") @db.Date
   visitorName      String          @map("visitor_name") @db.VarChar(40)
   idCard           String          @map("id_card") @db.VarChar(32)
   phone            String          @db.VarChar(20)

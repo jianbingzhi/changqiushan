@@ -28,6 +28,14 @@ export class SlotFullError extends Error {
   }
 }
 
+// E4: DB 部分唯一索引(同证同日)拦截到的并发重复预约
+export class DuplicateBookingError extends Error {
+  constructor() {
+    super("duplicate_booking");
+    this.name = "DuplicateBookingError";
+  }
+}
+
 export const bookingRepository = {
   listSlotsByDate(date: Date): Promise<BookingSlot[]> {
     return db.bookingSlot.findMany({
@@ -72,18 +80,26 @@ export const bookingRepository = {
 
       if (affected === 0) throw new SlotFullError();
 
-      return tx.booking.create({
-        data: {
-          slotId: data.slotId,
-          visitorName: data.visitorName,
-          idCard: data.idCard,
-          phone: data.phone,
-          plate: data.plate ?? null,
-          noVehicleDeclared: data.noVehicleDeclared,
-          channel: data.channel,
-          qrCode,
-        },
-      });
+      try {
+        return await tx.booking.create({
+          data: {
+            slotId: data.slotId,
+            visitorName: data.visitorName,
+            idCard: data.idCard,
+            phone: data.phone,
+            plate: data.plate ?? null,
+            noVehicleDeclared: data.noVehicleDeclared,
+            channel: data.channel,
+            qrCode,
+          },
+        });
+      } catch (e) {
+        // E4: 触发部分唯一索引 → P2002,事务回滚(已加的渠道计数一并回退)
+        if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+          throw new DuplicateBookingError();
+        }
+        throw e;
+      }
     });
   },
 
