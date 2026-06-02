@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { contentRepository } from "@/modules/content";
 import { PageHeader } from "@/lib/ui/page-header";
 import { Button } from "@/lib/ui/button";
 import { StatusChip } from "@/lib/ui/status-chip";
@@ -6,13 +7,19 @@ import { EmptyState } from "@/lib/ui/empty-state";
 import { StatCard, KpiRow } from "@/lib/ui/stat-card";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/lib/ui/table";
 import { formatCnDate } from "@/shared/format";
+import { StatusToggle } from "../_status-toggle";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "活动运营管理 · 长秋山管理后台" };
 
 export default async function ContentActivitiesPage() {
-  // TODO 阶段4: contentRepository.listActivities() + countActivities()
-  const items: { id: string; title: string; startDate: Date; endDate: Date; registrationFee: number; status: "PUBLISHED" | "DRAFT"; signupsCount: number }[] = [];
+  const items = await contentRepository.listActivitiesWithCounts();
+
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const ongoing = items.filter((a) => a.status === "PUBLISHED" && a.startDate <= now && a.endDate >= now).length;
+  const ended = items.filter((a) => a.endDate < now).length;
+  const newThisMonth = items.filter((a) => a.createdAt >= monthStart).length;
 
   return (
     <>
@@ -21,10 +28,10 @@ export default async function ContentActivitiesPage() {
       />
       <div className="mb-6">
         <KpiRow>
-          <StatCard label="活动总数" value={0} unit="个" />
-          <StatCard label="进行中" value={0} unit="个" />
-          <StatCard label="已结束" value={0} unit="个" />
-          <StatCard label="本月新增" value={0} unit="个" />
+          <StatCard label="活动总数" value={items.length} unit="个" />
+          <StatCard label="进行中" value={ongoing} unit="个" />
+          <StatCard label="已结束" value={ended} unit="个" />
+          <StatCard label="本月新增" value={newThisMonth} unit="个" />
         </KpiRow>
       </div>
       <div className="mb-4 flex items-center gap-3 rounded-lg border border-[#BFDBFE] bg-[#EFF6FF] px-4 py-3">
@@ -41,23 +48,25 @@ export default async function ContentActivitiesPage() {
           </TableHeader>
           <TableBody>
             {items.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="p-0"><EmptyState message="暂无活动数据（content 模块建立后展示）" /></TableCell></TableRow>
-            ) : items.map((item) => (
+              <TableRow><TableCell colSpan={6} className="p-0"><EmptyState message="暂无活动数据" /></TableCell></TableRow>
+            ) : items.map((item) => {
+              const fee = Number(item.registrationFee);
+              return (
               <TableRow key={item.id} className="hover:bg-[#F9FAFB]">
                 <TableCell className="font-medium text-[#1F2937]">{item.title}</TableCell>
                 <TableCell className="text-[13px] text-[#6B7280]">{formatCnDate(item.startDate)} ~ {formatCnDate(item.endDate)}</TableCell>
-                <TableCell className="text-[13px]">{item.registrationFee === 0 ? <span className="text-[#6B7280]">免费</span> : `¥${item.registrationFee}`}</TableCell>
+                <TableCell className="text-[13px]">{fee === 0 ? <span className="text-[#6B7280]">免费</span> : `¥${fee}`}</TableCell>
                 <TableCell><StatusChip status={item.status === "PUBLISHED" ? "ACTIVE" : "PAUSED"} /></TableCell>
-                <TableCell className="text-[13px]">{item.signupsCount} 人</TableCell>
+                <TableCell className="text-[13px]">{item._count.signups} 人</TableCell>
                 <TableCell>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline" className="text-[12px]" disabled>编辑</Button>
+                  <div className="flex items-center gap-2">
+                    <StatusToggle model="activity" id={item.id} status={item.status} revalidate="/content/activities" />
                     <Link href={`/content/activities/${item.id}/signups`}><Button size="sm" variant="outline" className="text-[12px]">报名审核</Button></Link>
                     <Link href={`/content/activities/${item.id}/awards`}><Button size="sm" variant="outline" className="text-[12px]">获奖公示</Button></Link>
                   </div>
                 </TableCell>
               </TableRow>
-            ))}
+            );})}
           </TableBody>
         </Table>
       </div>

@@ -167,6 +167,70 @@ async function main() {
       );
     }
 
+    // 内容:资讯 / 介绍 / 知识库 / 活动 + 报名(B03-B07/B23 验证用)
+    const news = [
+      { title: "长秋山森林公园 2026 年春季开园公告", summary: "即日起恢复全天预约入园，免费不售票。", status: "PUBLISHED" },
+      { title: "五一假期预约入园指南", summary: "请提前在小程序预约，携带身份证与车牌信息。", status: "PUBLISHED" },
+      { title: "园区步道临时维护通知（草稿）", summary: null, status: "DRAFT" },
+    ];
+    for (const n of news) {
+      await pool.query(
+        `INSERT INTO content_news (id,title,summary,body,status,published_at,created_at,updated_at)
+         VALUES (gen_random_uuid(),$1,$2,'正文内容（演示数据）。',$3::"ContentStatus",CASE WHEN $3='PUBLISHED' THEN NOW() ELSE NULL END,NOW(),NOW())`,
+        [n.title, n.summary, n.status],
+      );
+    }
+    const intros = [
+      { title: "公园概况", order: 1, status: "PUBLISHED" },
+      { title: "主要景点", order: 2, status: "PUBLISHED" },
+      { title: "游览路线建议", order: 3, status: "DRAFT" },
+    ];
+    for (const it of intros) {
+      await pool.query(
+        `INSERT INTO content_intro (id,title,body,status,sort_order,published_at,created_at,updated_at)
+         VALUES (gen_random_uuid(),$1,'介绍正文（演示数据）。',$2::"ContentStatus",$3,CASE WHEN $2='PUBLISHED' THEN NOW() ELSE NULL END,NOW(),NOW())`,
+        [it.title, it.status, it.order],
+      );
+    }
+    const knowledge = [
+      { title: "公园开放时间是几点？", category: "游览", status: "PUBLISHED" },
+      { title: "可以自驾进入吗？停车怎么收费？", category: "交通", status: "PUBLISHED" },
+      { title: "园区有哪些无障碍设施？", category: "设施", status: "PUBLISHED" },
+      { title: "近期有哪些活动？", category: "活动", status: "DRAFT" },
+    ];
+    for (const k of knowledge) {
+      await pool.query(
+        `INSERT INTO content_knowledge (id,title,content,category,sort_order,status,created_at,updated_at)
+         VALUES (gen_random_uuid(),$1,'答案正文（演示数据）。',$2,0,$3::"ContentStatus",NOW(),NOW())`,
+        [k.title, k.category, k.status],
+      );
+    }
+    const activities = [
+      { title: "长秋山观鸟节", fee: 0, status: "PUBLISHED", days: [-5, 10] },
+      { title: "森林徒步挑战赛", fee: 50, status: "PUBLISHED", days: [2, 3] },
+      { title: "自然研学夏令营", fee: 200, status: "DRAFT", days: [20, 25] },
+    ];
+    for (const a of activities) {
+      const sd = new Date(); sd.setDate(sd.getDate() + a.days[0]);
+      const ed = new Date(); ed.setDate(ed.getDate() + a.days[1]);
+      const { rows: ar } = await pool.query(
+        `INSERT INTO content_activity (id,title,description,start_date,end_date,max_participants,registration_fee,status,published_at,created_at,updated_at)
+         VALUES (gen_random_uuid(),$1,'活动详情（演示数据）。',$2,$3,100,$4,$5::"ContentStatus",CASE WHEN $5='PUBLISHED' THEN NOW() ELSE NULL END,NOW(),NOW())
+         RETURNING id`,
+        [a.title, sd.toISOString(), ed.toISOString(), a.fee, a.status],
+      );
+      // 每个活动几条报名(混合支付状态)
+      const actId = ar[0].id;
+      const pays = a.fee === 0 ? ["PAID", "PAID", "PAID"] : ["PAID", "PAID", "UNPAID", "REFUNDED"];
+      for (let i = 0; i < pays.length; i++) {
+        await pool.query(
+          `INSERT INTO content_activity_signup (id,activity_id,user_id,user_name,phone,payment_status,paid_at,created_at,updated_at)
+           VALUES (gen_random_uuid(),$1,$2,$3,$4,$5::"PaymentStatus",CASE WHEN $5='PAID' THEN NOW() ELSE NULL END,NOW(),NOW())`,
+          [actId, "u" + i, "报名游客" + i, "138" + String(10000000 + i).slice(0, 8), pays[i]],
+        );
+      }
+    }
+
     // 刷新物化视图(首刷非 CONCURRENTLY 即可)
     await pool.query(`REFRESH MATERIALIZED VIEW analytics_daily_traffic`);
     await pool.query(`REFRESH MATERIALIZED VIEW analytics_visitor_source`);

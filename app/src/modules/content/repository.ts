@@ -11,6 +11,13 @@ export const contentRepository = {
 
   // ── 活动 ─────────────────────────────────────────────────────────────────
   listActivities()  { return db.contentActivity.findMany({ orderBy: { startDate: "desc" } }); },
+  // B05: 活动列表 + 报名人数(_count)
+  listActivitiesWithCounts() {
+    return db.contentActivity.findMany({
+      orderBy: { startDate: "desc" },
+      include: { _count: { select: { signups: true } } },
+    });
+  },
   getActivity(id: string) { return db.contentActivity.findUnique({ where: { id } }); },
   createActivity(data: Prisma.ContentActivityCreateInput) { return db.contentActivity.create({ data }); },
   updateActivity(id: string, data: Prisma.ContentActivityUpdateInput) { return db.contentActivity.update({ where: { id }, data }); },

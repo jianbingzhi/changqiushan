@@ -1,8 +1,10 @@
+import { contentRepository } from "@/modules/content";
 import { PageHeader } from "@/lib/ui/page-header";
 import { Button } from "@/lib/ui/button";
 import { StatusChip } from "@/lib/ui/status-chip";
 import { EmptyState } from "@/lib/ui/empty-state";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/lib/ui/table";
+import { StatusToggle } from "../_status-toggle";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "AI 问答知识库 · 长秋山管理后台" };
@@ -14,8 +16,12 @@ export default async function ContentKnowledgePage({ searchParams }: { searchPar
   const q        = sp.q        ?? "";
   const category = sp.category ?? "";
 
-  // TODO 阶段4: contentRepository.listKnowledge({ q, category })
-  const items: { id: string; title: string; category: string | null; status: "PUBLISHED" | "DRAFT" }[] = [];
+  const all = await contentRepository.listKnowledge(category || undefined);
+  // 关键词在标题/内容中模糊匹配(低基数,运行时过滤即可)
+  const kw = q.trim().toLowerCase();
+  const items = kw
+    ? all.filter((k) => k.title.toLowerCase().includes(kw) || k.content.toLowerCase().includes(kw))
+    : all;
 
   return (
     <>
@@ -51,7 +57,7 @@ export default async function ContentKnowledgePage({ searchParams }: { searchPar
           </TableHeader>
           <TableBody>
             {items.length === 0 ? (
-              <TableRow><TableCell colSpan={4} className="p-0"><EmptyState message="暂无知识条目（content 模块建立后展示）" /></TableCell></TableRow>
+              <TableRow><TableCell colSpan={4} className="p-0"><EmptyState message="暂无知识条目" /></TableCell></TableRow>
             ) : items.map((item) => (
               <TableRow key={item.id} className="hover:bg-[#F9FAFB]">
                 <TableCell className="font-medium text-[#1F2937] max-w-[380px] truncate">{item.title}</TableCell>
@@ -62,7 +68,7 @@ export default async function ContentKnowledgePage({ searchParams }: { searchPar
                 <TableCell>
                   <div className="flex gap-2">
                     <Button size="sm" variant="outline" className="text-[12px]" disabled>编辑</Button>
-                    <Button size="sm" variant="outline" className="text-[12px] text-[#6B7280]" disabled>{item.status === "PUBLISHED" ? "停用" : "启用"}</Button>
+                    <StatusToggle model="knowledge" id={item.id} status={item.status} revalidate="/content/knowledge" variant="toggle" />
                   </div>
                 </TableCell>
               </TableRow>

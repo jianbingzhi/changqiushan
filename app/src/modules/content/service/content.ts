@@ -22,12 +22,20 @@ async function setStatus(model: ContentModel, id: string, data: object) {
   }
 }
 
+// 知识库无 published_at 列,发布时不可写该字段(否则 Prisma 报 Unknown arg)
+const HAS_PUBLISHED_AT: Record<ContentModel, boolean> = {
+  intro: true, activity: true, news: true, knowledge: false,
+};
+
 export const contentService = {
   async publishContent(model: ContentModel, id: string): Promise<Result<void>> {
     const item = await getById(model, id);
     if (!item) return err(ErrCode.NOT_FOUND, "内容不存在");
     if (!canPublish(item.status)) return err(ErrCode.INVALID_INPUT, "仅草稿状态可发布");
-    await setStatus(model, id, { status: "PUBLISHED", publishedAt: new Date() });
+    await setStatus(model, id, {
+      status: "PUBLISHED",
+      ...(HAS_PUBLISHED_AT[model] ? { publishedAt: new Date() } : {}),
+    });
     return ok(undefined);
   },
 

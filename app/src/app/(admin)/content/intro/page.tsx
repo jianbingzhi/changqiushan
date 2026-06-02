@@ -1,16 +1,17 @@
+import { contentRepository } from "@/modules/content";
 import { PageHeader } from "@/lib/ui/page-header";
 import { Button } from "@/lib/ui/button";
 import { StatusChip } from "@/lib/ui/status-chip";
 import { EmptyState } from "@/lib/ui/empty-state";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/lib/ui/table";
 import { formatCnDate } from "@/shared/format";
+import { StatusToggle } from "../_status-toggle";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "景区介绍维护 · 长秋山管理后台" };
 
 export default async function ContentIntroPage() {
-  // TODO 阶段4: import { contentRepository } from "@/modules/content"; contentRepository.listIntros()
-  const items: { id: string; title: string; status: "PUBLISHED" | "DRAFT"; sortOrder: number; publishedAt: Date | null }[] = [];
+  const items = await contentRepository.listIntros();
 
   return (
     <>
@@ -28,7 +29,7 @@ export default async function ContentIntroPage() {
           </TableHeader>
           <TableBody>
             {items.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="p-0"><EmptyState message="暂无景区介绍内容（content 模块建立后展示）" /></TableCell></TableRow>
+              <TableRow><TableCell colSpan={5} className="p-0"><EmptyState message="暂无景区介绍内容" /></TableCell></TableRow>
             ) : items.map((item) => (
               <TableRow key={item.id} className="hover:bg-[#F9FAFB]">
                 <TableCell className="font-medium text-[#1F2937]">{item.title}</TableCell>
@@ -38,9 +39,7 @@ export default async function ContentIntroPage() {
                 <TableCell>
                   <div className="flex gap-2">
                     <Button size="sm" variant="outline" className="text-[12px]" disabled>编辑</Button>
-                    <Button size="sm" className={`text-[12px] ${item.status === "DRAFT" ? "bg-[#2D5A27] text-white" : ""}`} variant={item.status === "DRAFT" ? "default" : "outline"} disabled>
-                      {item.status === "DRAFT" ? "发布" : "下线"}
-                    </Button>
+                    <StatusToggle model="intro" id={item.id} status={item.status} revalidate="/content/intro" />
                   </div>
                 </TableCell>
               </TableRow>
