@@ -11,6 +11,14 @@ type ExportModule = (typeof ALLOWED_MODULES)[number];
 // E1: 可导出报表的业务角色(app_metadata.role)
 const EXPORT_ROLES: readonly string[] = ["SUPER_ADMIN", "ADMIN"];
 
+// 渠道枚举 → 中文标签(导出列 100% 中文)
+const CHANNEL_LABELS: Record<string, string> = {
+  MINI_PROGRAM:  "微信小程序",
+  ONSITE_MAKEUP: "现场补录",
+  OTA:           "OTA 渠道",
+  ADMIN_MANUAL:  "后台手工",
+};
+
 const MODULE_NAMES: Record<ExportModule, string> = {
   traffic: "客流分析",
   heatmap: "热力图分析",
@@ -39,24 +47,45 @@ export async function GET(
 
   const exportModule = mod as ExportModule;
 
-  // TODO 阶段7: 接入 analyticsRepository 查询真实数据
-  // const { analyticsRepository } = await import("@/modules/analytics");
+  const { analyticsRepository } = await import("@/modules/analytics");
   let headers: string[] = [];
   let rows: (string | number | null)[][] = [];
 
   switch (exportModule) {
-    case "traffic":
+    case "traffic": {
       headers = ["日期", "游客总数", "已入园", "已取消", "爽约"];
+      // 近 30 天每日客流
+      const end = new Date();
+      const start = new Date();
+      start.setDate(start.getDate() - 30);
+      const data = await analyticsRepository.getDailyTraffic(start, end);
+      rows = data.map((r) => [
+        r.date,
+        Number(r.total_visitors),
+        Number(r.checked_in_count),
+        Number(r.cancelled_count),
+        Number(r.noshow_count),
+      ]);
       break;
-    case "heatmap":
+    }
+    case "heatmap": {
       headers = ["时段(时)", "平均游客数", "峰值游客数"];
+      const data = await analyticsRepository.getHourlyPeak();
+      rows = data.map((r) => [`${r.hour} 时`, r.avg_visitors, Number(r.max_visitors)]);
       break;
-    case "source":
+    }
+    case "source": {
       headers = ["来源渠道", "游客数量", "占比(%)"];
+      const data = await analyticsRepository.getVisitorSource();
+      rows = data.map((r) => [CHANNEL_LABELS[r.source_channel] ?? r.source_channel, Number(r.visitor_count), r.percentage]);
       break;
-    case "profile":
+    }
+    case "profile": {
       headers = ["维度", "数值", "占比(%)"];
+      const data = await analyticsRepository.getProfileOverview();
+      rows = data.map((r) => [r.dimension, Number(r.value), r.percentage]);
       break;
+    }
   }
 
   const sheetName = MODULE_NAMES[exportModule];
