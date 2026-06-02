@@ -3,16 +3,18 @@ import { Search } from "lucide-react";
 import { bookingRepository } from "@/modules/booking";
 import type { BookingStatus, BookingChannel } from "@/modules/booking";
 import { PageHeader } from "@/lib/ui/page-header";
-import { Button } from "@/lib/ui/button";
 import { StatusChip } from "@/lib/ui/status-chip";
 import { EmptyState } from "@/lib/ui/empty-state";
 import {
   Table, TableHeader, TableBody, TableHead, TableRow, TableCell,
 } from "@/lib/ui/table";
 import { formatCnDateTime } from "@/shared/format";
+import { CheckinButton } from "./_checkin-button";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "预约单查询 · 长秋山管理后台" };
+
+const VALID_STATUS = ["CONFIRMED", "CHECKED_IN", "CANCELLED", "NO_SHOW", "EXPIRED"] as const;
 
 const CHANNEL_LABELS: Record<BookingChannel, string> = {
   MINI_PROGRAM: "小程序", ONSITE_MAKEUP: "现场补录", OTA: "OTA", ADMIN_MANUAL: "后台",
@@ -35,9 +37,14 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
 
   const totalCount = await bookingRepository.countBookings();
 
-  // TODO 阶段3: 在 bookingRepository 添加 listBookings(filter) + countBookings(filter)
-  // 当前展示总数 + 空表格(等后续接入)
-  const items: never[] = [];
+  const statusFilter = (VALID_STATUS as readonly string[]).includes(status)
+    ? (status as BookingStatus)
+    : undefined;
+  const items = await bookingRepository.listBookings({
+    idCard: idCard || undefined,
+    phone: phone || undefined,
+    status: statusFilter,
+  });
 
   return (
     <>
@@ -108,16 +115,11 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
             {items.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={10} className="p-0">
-                  <EmptyState message="暂无预约数据（阶段 3 接入 listBookings 后展示）" />
+                  <EmptyState message="未查询到符合条件的预约记录" />
                 </TableCell>
               </TableRow>
             ) : (
-              items.map((booking: {
-                id: string; qrCode: string; visitorName: string; idCard: string; phone: string;
-                plate: string | null; noVehicleDeclared: boolean; channel: BookingChannel;
-                slot: { name: string; startTime: string; endTime: string };
-                status: BookingStatus; checkedInAt: Date | null;
-              }) => (
+              items.map((booking) => (
                 <TableRow key={booking.id} className="hover:bg-[#F9FAFB]">
                   <TableCell className="font-mono text-[12px] text-[#6B7280]">{booking.qrCode.slice(0, 10).toUpperCase()}</TableCell>
                   <TableCell className="text-sm font-medium text-[#1F2937]">{booking.visitorName}</TableCell>
@@ -143,9 +145,11 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
                     {booking.checkedInAt ? formatCnDateTime(booking.checkedInAt) : "—"}
                   </TableCell>
                   <TableCell>
-                    <Button size="sm" variant="outline" disabled title="核销功能阶段 3 启用" className="text-[12px] opacity-50 cursor-not-allowed">
-                      核销
-                    </Button>
+                    {booking.status === "CONFIRMED" ? (
+                      <CheckinButton qrCode={booking.qrCode} />
+                    ) : (
+                      <span className="text-[12px] text-[#9CA3AF]">—</span>
+                    )}
                   </TableCell>
                 </TableRow>
               ))

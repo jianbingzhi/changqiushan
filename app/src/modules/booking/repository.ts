@@ -1,5 +1,5 @@
 import { Prisma } from "@prisma/client";
-import type { BookingChannel, Booking, BookingSlot } from "@prisma/client";
+import type { BookingChannel, BookingStatus, Booking, BookingSlot } from "@prisma/client";
 import { db } from "@/infrastructure/db/client";
 import { randomBytes } from "crypto";
 
@@ -152,5 +152,19 @@ export const bookingRepository = {
 
   countBookings() {
     return db.booking.count();
+  },
+
+  // B22: 预约单查询 — 按身份证/手机号(模糊)+ 状态过滤,含时段,倒序,限 200
+  listBookings(filter: { idCard?: string; phone?: string; status?: BookingStatus }) {
+    return db.booking.findMany({
+      where: {
+        idCard: filter.idCard ? { contains: filter.idCard } : undefined,
+        phone: filter.phone ? { contains: filter.phone } : undefined,
+        status: filter.status,
+      },
+      include: { slot: true },
+      orderBy: { createdAt: "desc" },
+      take: 200,
+    });
   },
 };
