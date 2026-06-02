@@ -138,6 +138,35 @@ async function main() {
       }
     }
 
+    // 风控:几条黑名单 + 一条待审申诉(B11 验证用)
+    const blEntries = [
+      { idCard: "510107198803151230", plate: "川A99999", reason: "累计爽约 3 次,自动加入黑名单" },
+      { idCard: "330106197705204527", plate: null, reason: "现场违规,人工加入" },
+      { idCard: "500103199210083019", plate: "渝B12388", reason: "累计爽约 3 次,自动加入黑名单" },
+    ];
+    const userIds: string[] = [];
+    for (const e of blEntries) {
+      const { createHash } = await import("node:crypto");
+      const h = createHash("sha256").update(e.idCard).digest("hex");
+      const uid = `${h.slice(0,8)}-${h.slice(8,12)}-4${h.slice(13,16)}-${((parseInt(h[16],16)&0x3)|0x8).toString(16)}${h.slice(17,20)}-${h.slice(20,32)}`;
+      userIds.push(uid);
+      await pool.query(
+        `INSERT INTO risk_blacklist (id, user_id, id_card, plate, reason, blacklisted_at, created_at)
+         VALUES (gen_random_uuid(), $1::uuid, $2, $3, $4, NOW() - interval '2 days', NOW() - interval '2 days')
+         ON CONFLICT (user_id) DO NOTHING`,
+        [uid, e.idCard, e.plate, e.reason],
+      );
+    }
+    // 第一条黑名单提交一条待审申诉
+    const { rows: blRows } = await pool.query(`SELECT id FROM risk_blacklist WHERE user_id=$1::uuid`, [userIds[0]]);
+    if (blRows[0]) {
+      await pool.query(
+        `INSERT INTO risk_appeal (id, blacklist_id, user_id, reason, status, created_at, updated_at)
+         VALUES (gen_random_uuid(), $1::uuid, $2::uuid, $3, 'PENDING'::"AppealStatus", NOW(), NOW())`,
+        [blRows[0].id, userIds[0], "本人因临时急事未能到场,已知悉规则,恳请解除黑名单,后续必按时履约。"],
+      );
+    }
+
     // 刷新物化视图(首刷非 CONCURRENTLY 即可)
     await pool.query(`REFRESH MATERIALIZED VIEW analytics_daily_traffic`);
     await pool.query(`REFRESH MATERIALIZED VIEW analytics_visitor_source`);

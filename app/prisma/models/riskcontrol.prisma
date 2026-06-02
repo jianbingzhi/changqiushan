@@ -44,7 +44,8 @@ model RiskAppeal {
   createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt   DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  blacklist   RiskBlacklist @relation(fields: [blacklistId], references: [id])
+  // 申诉从属于黑名单记录:审核通过会移除黑名单,申诉随之级联删除(否则 RESTRICT 阻断移除)
+  blacklist   RiskBlacklist @relation(fields: [blacklistId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([status, createdAt(sort: Desc)])

@@ -86,4 +86,21 @@ export const riskcontrolService = {
   async isBlacklistedByIdCard(idCard: string): Promise<boolean> {
     return riskcontrolRepository.isBlacklisted(idCardToUserId(idCard));
   },
+
+  // B11: 黑名单只读列表 + 人工移除(申诉外的直接移除)
+  listBlacklisted() {
+    return riskcontrolRepository.findBlacklistAll();
+  },
+
+  listAppeals() {
+    return riskcontrolRepository.listAppeals();
+  },
+
+  async removeFromBlacklist(userId: string): Promise<Result<void>> {
+    const blacklisted = await riskcontrolRepository.isBlacklisted(userId);
+    if (!blacklisted) return err(ErrCode.NOT_FOUND, "该用户不在黑名单中");
+    await riskcontrolRepository.removeFromBlacklist(userId);
+    await riskcontrolRepository.resetNoShowCount(userId);
+    return ok(undefined);
+  },
 };

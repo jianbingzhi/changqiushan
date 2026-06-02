@@ -50,6 +50,14 @@ export const riskcontrolRepository = {
     return db.riskAppeal.findUnique({ where: { id }, include: { blacklist: true } });
   },
 
+  // B11: 申诉列表(含所属黑名单记录,取 idCard 展示),倒序
+  listAppeals() {
+    return db.riskAppeal.findMany({
+      include: { blacklist: true },
+      orderBy: { createdAt: "desc" },
+    });
+  },
+
   createAppeal(data: { blacklistId: string; userId: string; reason: string }): Promise<RiskAppeal> {
     return db.riskAppeal.create({ data });
   },

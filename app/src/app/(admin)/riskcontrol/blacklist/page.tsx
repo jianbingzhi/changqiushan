@@ -1,10 +1,11 @@
 import Link from "next/link";
+import { riskcontrolRepository } from "@/modules/riskcontrol";
 import { PageHeader } from "@/lib/ui/page-header";
 import { EmptyState } from "@/lib/ui/empty-state";
 import { StatusChip } from "@/lib/ui/status-chip";
-import { Button } from "@/lib/ui/button";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/lib/ui/table";
 import { formatCnDateTime } from "@/shared/format";
+import { RemoveBlacklistButton, ReviewAppealButtons } from "./_action-buttons";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "爽约风控与黑名单 · 长秋山管理后台" };
@@ -19,9 +20,10 @@ export default async function BlacklistPage({ searchParams }: { searchParams: Pr
   const sp = await searchParams;
   const activeTab = sp.tab === "appeals" ? "appeals" : "blacklist";
 
-  // TODO 阶段3: 接入 riskcontrolService.listBlacklisted() / listAppeals()
-  const blacklistItems: never[] = [];
-  const appealItems: never[] = [];
+  const [blacklistItems, appealItems] = await Promise.all([
+    riskcontrolRepository.findBlacklistAll(),
+    riskcontrolRepository.listAppeals(),
+  ]);
 
   return (
     <>
@@ -49,11 +51,11 @@ export default async function BlacklistPage({ searchParams }: { searchParams: Pr
               {blacklistItems.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="p-0">
-                    <EmptyState message="暂无黑名单记录（阶段 3 接入 riskcontrolService 后展示）" />
+                    <EmptyState message="暂无黑名单记录" />
                   </TableCell>
                 </TableRow>
               ) : (
-                blacklistItems.map((entry: { id: string; userId: string; idCard: string; plate: string | null; reason: string | null; createdAt: Date }) => (
+                blacklistItems.map((entry) => (
                   <TableRow key={entry.id} className="hover:bg-[#F9FAFB]">
                     <TableCell className="font-mono text-[12px] text-[#6B7280]">{entry.userId.slice(0, 8).toUpperCase()}…</TableCell>
                     <TableCell className="font-mono text-[13px] text-[#6B7280]">{maskIdCard(entry.idCard)}</TableCell>
@@ -61,7 +63,7 @@ export default async function BlacklistPage({ searchParams }: { searchParams: Pr
                     <TableCell className="text-[13px] text-[#1F2937] max-w-[240px] truncate">{entry.reason}</TableCell>
                     <TableCell className="text-[13px] text-[#6B7280]">{formatCnDateTime(entry.createdAt)}</TableCell>
                     <TableCell>
-                      <Button size="sm" variant="outline" className="text-[12px] text-[#DC2626] border-[#FECACA]" disabled title="阶段 3 启用">移除</Button>
+                      <RemoveBlacklistButton userId={entry.userId} />
                     </TableCell>
                   </TableRow>
                 ))
@@ -85,11 +87,11 @@ export default async function BlacklistPage({ searchParams }: { searchParams: Pr
               {appealItems.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="p-0">
-                    <EmptyState message="暂无申诉记录（阶段 3 接入后展示）" />
+                    <EmptyState message="暂无申诉记录" />
                   </TableCell>
                 </TableRow>
               ) : (
-                appealItems.map((appeal: { id: string; userId: string; blacklist: { idCard: string }; reason: string; status: "PENDING" | "APPROVED" | "REJECTED"; createdAt: Date }) => (
+                appealItems.map((appeal) => (
                   <TableRow key={appeal.id} className="hover:bg-[#F9FAFB]">
                     <TableCell className="font-mono text-[12px] text-[#6B7280]">{appeal.id.slice(0, 8).toUpperCase()}</TableCell>
                     <TableCell className="font-mono text-[13px] text-[#6B7280]">{maskIdCard(appeal.blacklist.idCard)}</TableCell>
@@ -99,7 +101,11 @@ export default async function BlacklistPage({ searchParams }: { searchParams: Pr
                     </TableCell>
                     <TableCell className="text-[13px] text-[#6B7280]">{formatCnDateTime(appeal.createdAt)}</TableCell>
                     <TableCell>
-                      <Button size="sm" variant="outline" className="text-[12px]" disabled title="阶段 3 启用">审核</Button>
+                      {appeal.status === "PENDING" ? (
+                        <ReviewAppealButtons appealId={appeal.id} />
+                      ) : (
+                        <span className="text-[12px] text-[#9CA3AF]">已处理</span>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))
