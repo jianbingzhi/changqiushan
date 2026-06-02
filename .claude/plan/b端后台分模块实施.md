@@ -453,7 +453,7 @@ M1 的 issuer 检查只补在 `session.ts`，`middleware.ts` 的 `jwtVerify(toke
 5. **✅ 只在前端能看到真实数据后才打**：本轮所有 ✅ 均经真实 HTTP 巡检确认。
 
 ### D·五、未尽事项（明确遗留，非"假完成"）
-- **B04 内容富文本编辑(TipTap)**：列表/发布/下线已通,但新建/编辑表单(TipTap 富文本 + 图片上传)未做——重客户端特性,留作独立迭代。各列表"编辑/新建"按钮暂禁用。
+- ~~**B04 内容富文本编辑(TipTap)**~~ ✅ **已完成(`2ff0435`)**:TipTap 3.24 富文本编辑器(粗体/标题/列表/引用/链接/图片URL/撤销)+ 4 类内容(介绍/资讯/活动/知识库)新建+编辑共 8 路由页;contentService.createContent/updateContent(zod);列表"新建/编辑"按钮已接通。正文内嵌图走 URL 插入(无存储后端,按用户确认);schema 的 sortOrder/maxParticipants 改 coerce。验证:服务层 tsx 实跑 4 类创建/编辑/校验全过,8 页 HTTP 200。**注**:本环境无可用浏览器(缺 libcups/无 sudo),编辑器浏览器内交互未现场实测。
 - **B12 路况**：数据源为高德 REST API(不入库),保持地图页;停车场 B13 已附等价数据表(a11y)。地图为高德 JS API 注入(非 npm,需 key),仍为占位。
 - **2.9 红线 domain 单测**(assertDualElements/isCircuitBroken/isValidIdCard 纯函数)：未补(2.10 并发脚本已做)。
 - **X.2 设计系统英文黑名单断言测试 · X.3 a11y 走查**：未做(lint-cn 已覆盖中文红线扫描)。
