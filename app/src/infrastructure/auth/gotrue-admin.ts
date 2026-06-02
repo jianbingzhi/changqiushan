@@ -60,6 +60,15 @@ export async function deleteAuthUser(userId: string): Promise<void> {
   await gotrueAdminFetch(`/admin/users/${userId}`, { method: "DELETE" });
 }
 
+// 停用账号时封禁 GoTrue 用户,使其已签发/可刷新的 JWT 失效(否则被停用者仍能操作)。
+// ban_duration 设为超长时段≈永久;恢复时传 "none"。
+export async function banAuthUser(userId: string, ban = true): Promise<void> {
+  await gotrueAdminFetch(`/admin/users/${userId}`, {
+    method: "PUT",
+    body: JSON.stringify({ ban_duration: ban ? "876000h" : "none" }),
+  });
+}
+
 export async function updateAuthUserPassword(userId: string, password: string): Promise<void> {
   await gotrueAdminFetch(`/admin/users/${userId}`, {
     method: "PUT",

@@ -53,7 +53,7 @@ export function CreateAdminForm() {
     <div className="mb-4 rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-4">
       <div className="grid grid-cols-2 gap-3 max-w-2xl">
         <div className="space-y-1"><label className="text-[12px] text-[#6B7280]">手机号</label><Input value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="11 位手机号" /></div>
-        <div className="space-y-1"><label className="text-[12px] text-[#6B7280]">初始密码</label><Input value={form.password} onChange={(e) => set("password", e.target.value)} placeholder="至少 8 位" /></div>
+        <div className="space-y-1"><label className="text-[12px] text-[#6B7280]">初始密码</label><Input type="password" value={form.password} onChange={(e) => set("password", e.target.value)} placeholder="至少 8 位" /></div>
         <div className="space-y-1"><label className="text-[12px] text-[#6B7280]">姓名</label><Input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="真实姓名" /></div>
         <div className="space-y-1"><label className="text-[12px] text-[#6B7280]">工号(选填)</label><Input value={form.workerId} onChange={(e) => set("workerId", e.target.value)} placeholder="如 OPS-001" /></div>
         <div className="space-y-1">

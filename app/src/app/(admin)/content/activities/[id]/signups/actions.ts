@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { contentRepository } from "@/modules/content";
+import { requireRole, ADMIN_UP } from "@/infrastructure/auth/guard";
 
 export type SignupReviewResult = { ok: boolean; message: string };
 
@@ -14,9 +15,15 @@ export async function reviewSignupAction(
   signupId: string,
   decision: "APPROVED" | "REJECTED",
 ): Promise<SignupReviewResult> {
-  await contentRepository.updateSignup(signupId, {
-    notes: decision === "APPROVED" ? "审核通过" : "审核驳回",
-  });
+  const auth = await requireRole(ADMIN_UP);
+  if (!auth.ok) return auth;
+  try {
+    await contentRepository.updateSignup(signupId, {
+      notes: decision === "APPROVED" ? "审核通过" : "审核驳回",
+    });
+  } catch {
+    return { ok: false, message: "审核失败,请重试" };
+  }
   revalidatePath(`/content/activities/${activityId}/signups`);
   return { ok: true, message: decision === "APPROVED" ? "已通过" : "已驳回" };
 }

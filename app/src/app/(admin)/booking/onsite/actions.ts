@@ -2,6 +2,7 @@
 
 import { bookingRepository, bookingService } from "@/modules/booking";
 import { riskcontrolService } from "@/modules/riskcontrol";
+import { requireRole, ANY_STAFF } from "@/infrastructure/auth/guard";
 
 export interface OnsiteSlotOption {
   id: string;
@@ -44,6 +45,9 @@ export type OnsiteBookingResult =
 export async function submitOnsiteBooking(
   input: OnsiteBookingInput,
 ): Promise<OnsiteBookingResult> {
+  const auth = await requireRole(ANY_STAFF);
+  if (!auth.ok) return { ok: false, message: auth.message };
+
   // 3.6 / Y5:下单前黑名单拦截(B 端唯一下单口)
   if (await riskcontrolService.isBlacklistedByIdCard(input.idCard)) {
     return { ok: false, message: "该身份证已被列入黑名单，暂无法预约，请引导游客走申诉流程" };

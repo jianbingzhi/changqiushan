@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { adminService } from "@/modules/system";
-import { getSession } from "@/infrastructure/auth/session";
+import { requireRole, SUPER_ONLY } from "@/infrastructure/auth/guard";
 
 export type SystemActionResult = { ok: boolean; message: string };
 
@@ -14,8 +14,8 @@ export async function createAdminAction(input: {
   workerId?: string;
   roleCode: string;
 }): Promise<SystemActionResult> {
-  const session = await getSession();
-  if (!session) return { ok: false, message: "未登录" };
+  const auth = await requireRole(SUPER_ONLY);
+  if (!auth.ok) return auth;
   const r = await adminService.createAdmin(input);
   if (!r.ok) return { ok: false, message: r.message };
   revalidatePath("/system");
@@ -24,9 +24,9 @@ export async function createAdminAction(input: {
 
 /** B25: 停用账号 */
 export async function disableAdminAction(targetId: string): Promise<SystemActionResult> {
-  const session = await getSession();
-  if (!session) return { ok: false, message: "未登录" };
-  const r = await adminService.disableAdmin(session.userId, targetId);
+  const auth = await requireRole(SUPER_ONLY);
+  if (!auth.ok) return auth;
+  const r = await adminService.disableAdmin(auth.session.userId, targetId);
   if (!r.ok) return { ok: false, message: r.message };
   revalidatePath("/system");
   return { ok: true, message: "账号已停用" };
@@ -34,8 +34,8 @@ export async function disableAdminAction(targetId: string): Promise<SystemAction
 
 /** B25: 重置密码 */
 export async function resetPasswordAction(targetId: string, newPassword: string): Promise<SystemActionResult> {
-  const session = await getSession();
-  if (!session) return { ok: false, message: "未登录" };
+  const auth = await requireRole(SUPER_ONLY);
+  if (!auth.ok) return auth;
   const r = await adminService.resetPassword(targetId, newPassword);
   if (!r.ok) return { ok: false, message: r.message };
   return { ok: true, message: "密码已重置" };

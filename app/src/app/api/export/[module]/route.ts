@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { getSession } from "@/infrastructure/auth/session";
 import { exportToExcel } from "@/lib/excel";
+import { formatCnDate } from "@/shared/format";
 
 export const dynamic = "force-dynamic";
 export const runtime  = "nodejs";
@@ -60,7 +61,7 @@ export async function GET(
       start.setDate(start.getDate() - 30);
       const data = await analyticsRepository.getDailyTraffic(start, end);
       rows = data.map((r) => [
-        r.date,
+        formatCnDate(r.date),
         Number(r.total_visitors),
         Number(r.checked_in_count),
         Number(r.cancelled_count),

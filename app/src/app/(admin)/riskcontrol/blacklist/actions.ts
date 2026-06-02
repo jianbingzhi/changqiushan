@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { riskcontrolService } from "@/modules/riskcontrol";
-import { getSession } from "@/infrastructure/auth/session";
+import { requireRole, ADMIN_UP } from "@/infrastructure/auth/guard";
 
 export type RiskActionResult = { ok: boolean; message: string };
 
@@ -11,12 +11,12 @@ export async function reviewAppealAction(
   appealId: string,
   decision: "APPROVED" | "REJECTED",
 ): Promise<RiskActionResult> {
-  const session = await getSession();
-  if (!session) return { ok: false, message: "未登录" };
+  const auth = await requireRole(ADMIN_UP);
+  if (!auth.ok) return auth;
   const r = await riskcontrolService.reviewAppeal({
     appealId,
     status: decision,
-    reviewedBy: session.userId,
+    reviewedBy: auth.session.userId,
   });
   if (!r.ok) return { ok: false, message: r.message };
   revalidatePath("/riskcontrol/blacklist");
@@ -25,8 +25,8 @@ export async function reviewAppealAction(
 
 /** B11: 直接移除黑名单 */
 export async function removeBlacklistAction(userId: string): Promise<RiskActionResult> {
-  const session = await getSession();
-  if (!session) return { ok: false, message: "未登录" };
+  const auth = await requireRole(ADMIN_UP);
+  if (!auth.ok) return auth;
   const r = await riskcontrolService.removeFromBlacklist(userId);
   if (!r.ok) return { ok: false, message: r.message };
   revalidatePath("/riskcontrol/blacklist");

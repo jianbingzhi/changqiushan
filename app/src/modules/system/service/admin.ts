@@ -2,6 +2,7 @@ import {
   createAuthUser,
   deleteAuthUser,
   updateAuthUserPassword,
+  banAuthUser,
 } from "@/infrastructure/auth/gotrue-admin";
 import { ok, err, type Result, ErrCode } from "@/shared/result";
 import { createAdminSchema, type CreateAdminInput } from "../domain/schema";
@@ -55,6 +56,10 @@ export const adminService = {
       return err(ErrCode.NOT_FOUND, "管理员不存在");
     }
     await systemRepository.updateProfile(targetId, { status: "DISABLED" });
+    // 封禁 GoTrue 用户,撤销其在用/可刷新 JWT(否则停用仅改 profile 状态,令牌仍有效)
+    await banAuthUser(targetId).catch((e: unknown) => {
+      console.error(`[system] 停用后封禁 GoTrue 失败: ${targetId}`, e);
+    });
     await systemRepository.writeAudit({
       actorId,
       action: "DISABLE_ADMIN",

@@ -1,4 +1,5 @@
 import { analyticsRepository } from "@/modules/analytics";
+import { formatCnDate } from "@/shared/format";
 import { PageHeader } from "@/lib/ui/page-header";
 import { StatCard, KpiRow } from "@/lib/ui/stat-card";
 import { EmptyState } from "@/lib/ui/empty-state";
@@ -63,7 +64,7 @@ export default async function AnalyticsTrafficPage({ searchParams }: Props) {
       </div>
       <div className="mb-5 rounded-lg border border-[#E5E7EB] bg-white p-4">
         <p className="mb-3 text-[13px] font-medium text-[#1F2937]">客流趋势（每日游客总数）</p>
-        <BarList height={300} emptyText="所选区间暂无客流数据" data={rows.map((r) => ({ label: r.date, value: r.total, hint: `${r.total} 人` }))} />
+        <BarList height={300} emptyText="所选区间暂无客流数据" data={rows.map((r) => ({ label: formatCnDate(r.date), value: r.total, hint: `${r.total} 人` }))} />
       </div>
       <div className="rounded-lg border border-[#E5E7EB] bg-white">
         <div className="border-b border-[#E5E7EB] px-4 py-3"><p className="text-[13px] font-medium text-[#1F2937]">客流明细</p></div>
@@ -80,7 +81,7 @@ export default async function AnalyticsTrafficPage({ searchParams }: Props) {
               <TableRow><TableCell colSpan={5} className="p-0"><EmptyState message="所选区间暂无客流数据" /></TableCell></TableRow>
             ) : rows.map((r) => (
               <TableRow key={r.date} className="hover:bg-[#F9FAFB]">
-                <TableCell className="text-[13px] text-[#1F2937]">{r.date}</TableCell>
+                <TableCell className="text-[13px] text-[#1F2937]">{formatCnDate(r.date)}</TableCell>
                 <TableCell className="text-[13px]">{r.total}</TableCell>
                 <TableCell className="text-[13px] text-[#2D5A27]">{r.checkedIn}</TableCell>
                 <TableCell className="text-[13px] text-[#6B7280]">{r.cancelled}</TableCell>
