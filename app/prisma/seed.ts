@@ -231,6 +231,54 @@ async function main() {
       }
     }
 
+    // IoT 设备 + 近 24h 心跳(B20 列表 / B21 详情验证用)
+    const devices = [
+      { name: "东门闸机-01", type: "闸机", location: "东门入口", status: "ONLINE" },
+      { name: "西门闸机-02", type: "闸机", location: "西门入口", status: "ONLINE" },
+      { name: "观景台摄像头-01", type: "摄像头", location: "主峰观景台", status: "ALERT" },
+      { name: "停车场地磁-A区", type: "地磁传感器", location: "A 区停车场", status: "ONLINE" },
+      { name: "气象站-主峰", type: "气象站", location: "主峰", status: "OFFLINE" },
+    ];
+    for (const dv of devices) {
+      const online = dv.status === "ONLINE" || dv.status === "ALERT";
+      const { rows: dr } = await pool.query(
+        `INSERT INTO iot_device (id,name,type,location,status,last_seen,created_at,updated_at)
+         VALUES (gen_random_uuid(),$1,$2,$3,$4::"DeviceStatus",$5,NOW(),NOW())
+         ON CONFLICT (name) DO UPDATE SET status=EXCLUDED.status RETURNING id`,
+        [dv.name, dv.type, dv.location, dv.status, online ? new Date() : new Date(Date.now() - 3600_000 * 6)],
+      );
+      const devId = dr[0].id;
+      // 近 24h 每 30 分钟一条心跳(共 48 条)
+      for (let i = 0; i < 48; i++) {
+        const ts = new Date(Date.now() - i * 30 * 60_000);
+        const alert = dv.status === "ALERT";
+        const latency = Math.round(40 + rnd() * (alert ? 400 : 120));
+        const loss = (rnd() * (alert ? 8 : 1.5)).toFixed(2);
+        const sig = -1 * Math.round(50 + rnd() * 40);
+        await pool.query(
+          `INSERT INTO iot_heartbeat (id,device_id,latency,packet_loss,signal_strength,recorded_at,created_at)
+           VALUES (gen_random_uuid(),$1,$2,$3,$4,$5,NOW())`,
+          [devId, latency, loss, sig, ts.toISOString()],
+        );
+      }
+    }
+
+    // 停车场(B13 验证用)
+    const lots = [
+      { name: "东门生态停车场", capacity: 300, occupied: 180, status: "OPEN" },
+      { name: "西门停车场", capacity: 200, occupied: 200, status: "FULL" },
+      { name: "主峰临时停车场", capacity: 120, occupied: 45, status: "OPEN" },
+      { name: "游客中心地下车库", capacity: 150, occupied: 0, status: "CLOSED" },
+    ];
+    for (const lot of lots) {
+      await pool.query(
+        `INSERT INTO traffic_parking_lot (id,name,capacity,occupied,status,location,updated_at,created_at)
+         VALUES (gen_random_uuid(),$1,$2,$3,$4::"ParkingStatus",$5,NOW(),NOW())
+         ON CONFLICT (name) DO UPDATE SET occupied=EXCLUDED.occupied, status=EXCLUDED.status`,
+        [lot.name, lot.capacity, lot.occupied, lot.status, lot.name],
+      );
+    }
+
     // 刷新物化视图(首刷非 CONCURRENTLY 即可)
     await pool.query(`REFRESH MATERIALIZED VIEW analytics_daily_traffic`);
     await pool.query(`REFRESH MATERIALIZED VIEW analytics_visitor_source`);
