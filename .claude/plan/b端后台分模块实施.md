@@ -457,3 +457,16 @@ M1 的 issuer 检查只补在 `session.ts`，`middleware.ts` 的 `jwtVerify(toke
 - **B12 路况**：数据源为高德 REST API(不入库),保持地图页;停车场 B13 已附等价数据表(a11y)。地图为高德 JS API 注入(非 npm,需 key),仍为占位。
 - **2.9 红线 domain 单测**(assertDualElements/isCircuitBroken/isValidIdCard 纯函数)：未补(2.10 并发脚本已做)。
 - **X.2 设计系统英文黑名单断言测试 · X.3 a11y 走查**：未做(lint-cn 已覆盖中文红线扫描)。
+
+### D·六、多智能体审计整改（`79615b3`，后端+前端并行 review）
+**已修(P0 + 关键 P1)**：
+- 🔴 **越权(后端 P0)**：E2 把 appRole 入会话但无 action 消费——任何登录者可执行管理写操作。新增 `infrastructure/auth/guard.ts:requireRole`,逐 action 加门(系统=SUPER_ONLY / 风控·内容·报名审核=ADMIN_UP / 现场补录·核销=ANY_STAFF)。
+- 🔴 **ISO 日期(前端 P0,红线6)**：traffic 页表格/条形图 + 导出 xlsx 日期列原样渲染 `2026-05-27`→改 `formatCnDate`。实测页 0 裸 ISO、xlsx 中文日期。
+- 🟡 **disableAdmin 不撤销 GoTrue 访问**：补 `banAuthUser` 封禁,使停用者 JWT 失效。
+- 🟡 初始密码 `type=password` 掩码;报名审核 action 加 try/catch。
+
+**已记录待办(P1/P2,非阻断)**：
+- 路由级 RBAC 门(middleware 仍只校 cookie 存在性,未按角色拦路由)——action 层已是强制点,路由级为纵深防御,沿用 middleware TODO。
+- `resetPassword`/`createAdmin` 审计日志补全(P2);角色变更路径(future)。
+- a11y 细项:`window.prompt` 改内联表单、`<label htmlFor>` 关联、BarList 每页 data-meaningful `aria-label`。
+- `getTravelPreference` 已用于 B18 出行偏好页,导出 profile 仅含总览(可选扩展)。
