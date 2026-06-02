@@ -1,13 +1,8 @@
-import dynamic from "next/dynamic";
 import type { ReactNode } from "react";
-
-const Sidebar = dynamic(() => import("@/lib/ui/sidebar").then((m) => ({ default: m.Sidebar })), {
-  ssr: false,
-});
-
-const Topbar = dynamic(() => import("@/lib/ui/topbar").then((m) => ({ default: m.Topbar })), {
-  ssr: false,
-});
+// Sidebar/Topbar 是 "use client" 组件且 SSR 安全(usePathname;document 仅在事件处理内)。
+// Next 16 禁止在服务端组件里用 next/dynamic 的 ssr:false,直接 import 即可(SSR+水合)。
+import { Sidebar } from "@/lib/ui/sidebar";
+import { Topbar } from "@/lib/ui/topbar";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (

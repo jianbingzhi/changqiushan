@@ -1,4 +1,6 @@
-import "dotenv/config";
+// 注意:不要在此 import "dotenv/config" —— Next 会把 dotenv(依赖 node path/fs)打进
+// instrumentation 的 edge 编译导致全站 500。Next 运行时自动加载 .env;tsx 脚本各自在
+// 入口 import "dotenv/config" 先于本模块求值,故运行时 process.env 均已就绪。
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 
