@@ -1,0 +1,80 @@
+// system 模块 — 授权(RBAC)、账号编排、操作审计
+// 认证/密码/会话由 GoTrue 管; sys_profile.id = GoTrue auth.users.id (UUID)
+
+model SysProfile {
+  id        String            @id @db.Uuid
+  name      String            @db.VarChar(40)
+  workerId  String?           @map("worker_id") @db.VarChar(32)
+  status    SysProfileStatus  @default(ACTIVE)
+  createdAt DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  roles     SysProfileRole[]
+
+  @@map("sys_profile")
+}
+
+enum SysProfileStatus {
+  ACTIVE
+  DISABLED
+}
+
+model SysRole {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @db.VarChar(40)
+  code        String   @unique @db.VarChar(40)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  profiles    SysProfileRole[]
+  permissions SysRolePermission[]
+
+  @@map("sys_role")
+}
+
+model SysPermission {
+  id       String  @id @default(uuid()) @db.Uuid
+  name     String  @db.VarChar(80)
+  code     String  @unique @db.VarChar(80)
+  resource String  @db.VarChar(40)
+  action   String  @db.VarChar(20)
+
+  roles    SysRolePermission[]
+
+  @@index([resource, action])
+  @@map("sys_permission")
+}
+
+model SysProfileRole {
+  profileId String     @map("profile_id") @db.Uuid
+  roleId    String     @map("role_id") @db.Uuid
+  profile   SysProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  role      SysRole    @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([profileId, roleId])
+  @@map("sys_profile_role")
+}
+
+model SysRolePermission {
+  roleId       String        @map("role_id") @db.Uuid
+  permissionId String        @map("permission_id") @db.Uuid
+  role         SysRole       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   SysPermission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("sys_role_permission")
+}
+
+// 无 FK 到 sys_profile — 日志在账号删除后仍存活,且可记录无账号的系统操作
+model SysAuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  actorId   String   @map("actor_id") @db.Uuid
+  action    String   @db.VarChar(60)
+  resource  String   @db.VarChar(40)
+  detail    Json?    @db.JsonB
+  ip        String?  @db.VarChar(45)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([actorId, createdAt(sort: Desc)])
+  @@index([resource, action, createdAt(sort: Desc)])
+  @@map("sys_audit_log")
+}

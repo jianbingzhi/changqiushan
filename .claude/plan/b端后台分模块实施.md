@@ -205,7 +205,7 @@
 
 | 阶段 | 子步 | Done | Commit |
 |---|---|---|---|
-| 0 地基 | 0.1 shared 三件 · 0.2 globals/layout 中文化 · 0.3 lib/ui 组件 · 0.4 (admin)/layout 壳 · 0.5 (auth) 壳 · 0.6 空 middleware · ✅0.7 GoTrue 起服务+bootstrap(同库,已验证) · 0.8 只读视图 app_user + multiSchema 圈 public · 0.9 instrumentation | [部分] | — |
+| 0 地基 | ✅0.1 shared 三件(311e624) · ✅0.2 globals/layout 中文化(907e95a) · ✅0.3 lib/ui 组件(2c9ab71) · ✅0.4 (admin)/layout壳(a8fff8b) · ✅0.5 (auth)壳(6f06714) · ✅0.6 空middleware(6f06714) · ✅0.7 GoTrue 起服务+bootstrap(同库,已验证) · ✅0.8 只读视图+auth基础设施(4c75ef1) · ✅0.9 instrumentation(4c75ef1) | ✅完成 | — |
 | 1 system | 1.1 sys_profile/role/permission/audit 模型(键=auth UUID) · 1.2 GoTrue admin client + getSession · 1.3 jose 验签 middleware + 角色门 · 1.4 B01 登录(走 GoTrue) · 1.5 createAdmin 两步事务+回滚 · 1.6 B25 系统管理 | [ ] | — |
 | 2 booking | 2.1a model 字段(noVehicle/渠道配额) · 2.1b 手写 CHECK migration · 2.2 domain(canBook/isCircuitBroken/canResume 分离) · 2.3 渠道乐观锁 repo · 2.4 service(+resumePausedSlots) · 2.5 B08(+手动恢复) · 2.6 B09 · 2.7 B10 · 2.8 B22 查单(核销按钮 disabled) · 2.9 红线单测 · 2.10 并发超约脚本 | [ ] | — |
 | 3 risk+checkin | 3.1 riskcontrol 模型/状态机 · 3.2 checkin(checked_in_count + qrCode 协议 + 幂等 UNIQUE) + 闸机 Route · 3.3 跨模块熔断/恢复/拦截 · 3.4 B11 · 3.5 接通 B22 核销 | [ ] | — |
