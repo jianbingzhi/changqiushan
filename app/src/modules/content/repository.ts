@@ -39,6 +39,13 @@ export const contentRepository = {
   createKnowledge(data: Prisma.ContentKnowledgeCreateInput) { return db.contentKnowledge.create({ data }); },
   updateKnowledge(id: string, data: Prisma.ContentKnowledgeUpdateInput) { return db.contentKnowledge.update({ where: { id }, data }); },
 
+  // ── 获奖公示 ──────────────────────────────────────────────────────────────
+  listAwards(activityId: string) {
+    return db.contentAward.findMany({ where: { activityId }, orderBy: { announcedAt: "desc" } });
+  },
+  createAward(data: Prisma.ContentAwardCreateInput) { return db.contentAward.create({ data }); },
+  deleteAward(id: string) { return db.contentAward.delete({ where: { id } }); },
+
   // ── 资讯 ─────────────────────────────────────────────────────────────────
   listNews()  { return db.contentNews.findMany({ orderBy: { publishedAt: "desc" } }); },
   getNews(id: string) { return db.contentNews.findUnique({ where: { id } }); },

@@ -229,6 +229,21 @@ async function main() {
           [actId, "u" + i, "报名游客" + i, "138" + String(10000000 + i).slice(0, 8), pays[i]],
         );
       }
+      // 观鸟节公示获奖名单(B24 验证用)
+      if (a.title === "长秋山观鸟节") {
+        const awards = [
+          { name: "陈伟", phone: "13811112222", title: "一等奖·最佳观鸟记录" },
+          { name: "林芳", phone: "13933334444", title: "二等奖·优秀摄影" },
+          { name: "赵敏", phone: "13755556666", title: "三等奖·人气之星" },
+        ];
+        for (const aw of awards) {
+          await pool.query(
+            `INSERT INTO content_award (id,activity_id,winner_name,phone,award_title,announced_at,created_at)
+             VALUES (gen_random_uuid(),$1,$2,$3,$4,NOW() - interval '1 day',NOW())`,
+            [actId, aw.name, aw.phone, aw.title],
+          );
+        }
+      }
     }
 
     // IoT 设备 + 近 24h 心跳(B20 列表 / B21 详情验证用)

@@ -46,9 +46,26 @@ model ContentActivity {
   updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   signups           ContentActivitySignup[]
+  awards            ContentAward[]
 
   @@index([status, startDate])
   @@map("content_activity")
+}
+
+// B24 获奖公示 — 活动获奖名单(只读公示)
+model ContentAward {
+  id          String          @id @default(uuid()) @db.Uuid
+  activityId  String          @map("activity_id") @db.Uuid
+  winnerName  String          @map("winner_name") @db.VarChar(40)
+  phone       String          @db.VarChar(20)
+  awardTitle  String          @map("award_title") @db.VarChar(80)
+  announcedAt DateTime        @map("announced_at") @db.Timestamptz(3)
+  createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  activity    ContentActivity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@index([activityId, announcedAt(sort: Desc)])
+  @@map("content_award")
 }
 
 // R1: B 端不调起支付 — paymentStatus 由 C 端同步，B 端只读/展示

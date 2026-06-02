@@ -1,3 +1,4 @@
+import { contentRepository } from "@/modules/content";
 import { PageHeader } from "@/lib/ui/page-header";
 import { Button } from "@/lib/ui/button";
 import { EmptyState } from "@/lib/ui/empty-state";
@@ -8,15 +9,15 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  return { title: `获奖公示（${id.slice(0, 8).toUpperCase()}） · 长秋山管理后台` };
+  const activity = await contentRepository.getActivity(id).catch(() => null);
+  return { title: `获奖公示（${activity?.title ?? id.slice(0, 8).toUpperCase()}） · 长秋山管理后台` };
 }
 
 type Props = { params: Promise<{ id: string }> };
 
 export default async function ActivityAwardsPage({ params }: Props) {
-  await params;
-  // TODO 阶段4: contentRepository.listAwards(id)
-  const items: { id: string; winnerName: string; phone: string; awardTitle: string; announcedAt: Date }[] = [];
+  const { id } = await params;
+  const items = await contentRepository.listAwards(id).catch(() => []);
 
   function maskPhone(p: string) {
     return p.length === 11 ? `${p.slice(0, 3)}****${p.slice(-4)}` : p;
