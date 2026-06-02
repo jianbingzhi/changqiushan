@@ -23,6 +23,8 @@ export async function registerNode() {
   setBoss(boss);
 
   // pg-boss: 物化视图定时刷新(每 15 分钟)
+  // pg-boss v10+ 必须先 createQueue 再 schedule/work,否则反复抛 "Queue ... does not exist"
+  await boss.createQueue("refresh-analytics-mv").catch(() => {});
   await boss.schedule("refresh-analytics-mv", "*/15 * * * *", {}).catch(() => {});
   await boss.work("refresh-analytics-mv", async () => {
     const { db } = await import("@/infrastructure/db/client");
