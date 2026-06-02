@@ -1,0 +1,41 @@
+// IoT 设备监控模块
+// 表名前缀 iot_
+// iot_heartbeat 为追加型时序数据,无 updatedAt
+
+enum DeviceStatus {
+  ONLINE
+  OFFLINE
+  ALERT
+}
+
+model IotDevice {
+  id         String       @id @default(uuid()) @db.Uuid
+  name       String       @unique @db.VarChar(80)
+  type       String       @db.VarChar(40)
+  location   String?      @db.VarChar(255)
+  status     DeviceStatus @default(OFFLINE)
+  lastSeen   DateTime?    @map("last_seen") @db.Timestamptz(3)
+  metadata   Json?        @db.JsonB
+  createdAt  DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  heartbeats IotHeartbeat[]
+
+  @@index([status, lastSeen])
+  @@map("iot_device")
+}
+
+model IotHeartbeat {
+  id             String    @id @default(uuid()) @db.Uuid
+  deviceId       String    @map("device_id") @db.Uuid
+  latency        Int
+  packetLoss     Decimal   @map("packet_loss") @db.Decimal(5, 2)
+  signalStrength Int?      @map("signal_strength")
+  recordedAt     DateTime  @map("recorded_at") @db.Timestamptz(3)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  device         IotDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([deviceId, recordedAt(sort: Desc)])
+  @@map("iot_heartbeat")
+}

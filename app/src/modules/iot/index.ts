@@ -1,3 +1,5 @@
-// iot 模块对外公共 API — 占位
-// 待 schema 与 service 就位后,在此 re-export 公共函数与类型
-export {};
+export { iotService } from "./service/iot";
+export { iotRepository } from "./repository";
+export { IOT_EVENT_CHANNEL } from "./events";
+export type { IotEventPayload } from "./events";
+export type { IotDevice, IotHeartbeat, DeviceStatus } from "@prisma/client";
