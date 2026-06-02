@@ -1,0 +1,24 @@
+"APP 使用偏好分析"页面里出现了 Material 图标的 ligature 名称作为可见文字,需要全部清理掉。具体位置:
+
+1. 顶栏右上出现了"search notifications settings"三个英文单词作为可见 label —— 这是图标 ligature。要么换成真实图标(放大镜/铃铛/齿轮 SVG),要么直接隐藏掉文字只保留图标。这些不能出现为文字。
+
+2. KPI 4 张卡片左上角图标位置出现了"schedule"、"bolt"、"stars"、"apps"四个英文 ligature 名作为可见文本,在图标位置 —— 这些是图标的内部 ligature name。要替换成中文标签或者用真实图标 SVG 显示,不能保留英文文字。
+
+3. KPI 卡片底部"+较上月 +0.2"那一行前面出现了"arrow_upward"、"trending_up"等 ligature 名作为文字 —— 也要清掉,改成箭头图标或者删掉。
+
+4. 顶部"导出 Excel" 按钮前出现了"download"作为文字 —— 改成下载图标。
+   "刷新数据"按钮前出现了"refresh"作为文字 —— 改成刷新图标。
+
+5. 主区右侧"App 安装热度 TOP 20"表格"类型"列出现了"trending_app"作为文字 —— 删掉,改成中文 chip(社交/工具/出行/购物/视频/支付/外卖等)。
+
+6. 左侧栏底部出现了"forest"作为文字、出现了"help"作为文字 —— 全部清理为中文或图标。
+
+7. 标题"长秋山森林公园智慧景区"左边的 logo 旁边出现了"forest"作为 ligature 文字 —— 清掉。
+
+【整体原则】这是一个全中文的 B 端管理页面,严禁出现任何 Material Symbols ligature 名称作为可见文本(包括但不限于 search / notifications / settings / schedule / bolt / stars / apps / arrow_upward / trending_up / trending_down / download / refresh / forest / help / settings / dashboard / category / sell / delete / edit / auto_fix_high 等所有图标 ligature)。这些都应该用真实的 SVG 图标渲染,或者用中文替换说明性文字。
+
+主区的所有 KPI 数字(3.8 小时 / 14 次 / 微信 98.4% / 23 个 P50)、柱状图(0-1h, 1-2h, ... 5h+)、TOP 20 表格内容、环形图 7 类分布(社交互动 32% / 短视频娱乐 22% / 地图出行 14% / 购物消费 12% / 效率工具 8% / 其他 6%)— 保持不变。
+
+【顶栏面包屑】要"首页 · 数据可视化与分析 · 用户画像 · APP 使用偏好"中文格式。
+
+【左侧栏】保持现在的 5 分组结构不动,只清掉里面 ligature 文字即可。
