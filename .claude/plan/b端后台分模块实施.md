@@ -64,24 +64,26 @@
 8. `src/middleware.ts` 空守卫（先只判 cookie 存在 → 重定向 login，RBAC 待阶段 1）。
 9. `src/instrumentation.ts`（Next 16 `register()` hook，仅 Node runtime）——**统一启动 pg-listen + pg-boss**（`boss.start()`）。阶段 4/7 的定时任务依赖此地基，缺则定时刷新/异步导出静默不触发。
 
-**GoTrue 地基（D3）**
-10. `docker-compose.yml` 加 **GoTrue 服务**（连同一 Postgres，独占 `auth` schema；`GOTRUE_DISABLE_SIGNUP=true`、配 `GOTRUE_JWT_SECRET`、无 SMTP 则关邮件流）。钉死镜像版本。
-11. **Prisma 圈地（头号地雷）**：`multiSchema` 只声明 `public`；GoTrue 的 `auth.*` 与下面的视图**绝不让 Prisma 迁移**——视图用手写 SQL migration 建，对应 Prisma 模型用 `view` 类型或 `@@ignore` 标记为外部托管，确保 `prisma migrate` 永不 drop/recreate 它们。
-12. **只读视图 + 授权**（手写 SQL migration，仿 `20260527160000_realtime_triggers`）：授应用 DB 角色 `USAGE ON SCHEMA auth` + `SELECT ON auth.users`；建 `public.app_user` 视图只选稳定列（`id,email,created_at,last_sign_in_at`）。
-13. `src/infrastructure/auth/`：GoTrue admin client（service_role，供阶段 1 建账号/改密）+ `getSession()`（验 cookie/JWT）。middleware 只用 jose，不引 GoTrue client（保边界）。
+**GoTrue 地基（D3）** — 标 ✅ 的为「搭建开发环境」时已落地并验证（2026-06-02）
+10. ✅ `docker-compose.yml` 加 **GoTrue 服务**（`supabase/gotrue:v2.176.1` 钉死；连同一 Postgres、独占 `auth`；`GOTRUE_DISABLE_SIGNUP=true`、`${GOTRUE_JWT_SECRET}`；登录标识符=手机号 → 关 email/开 phone/`SMS_AUTOCONFIRM=true`）。**实测坑**：① 连接串须 `?search_path=auth`+`ALTER ROLE supabase_auth_admin SET search_path=auth`，否则迁移在 public 建表无权(PG15+)；② 去掉已废弃的 `GOTRUE_JWT_DEFAULT_GROUP_NAME`。
+11. ✅ `docker/auth-bootstrap.sql`（幂等，`pnpm db:auth:bootstrap` 执行）：建角色 `supabase_auth_admin`(连库)/`anon`/`authenticated`/`service_role`/**`postgres`**（Supabase RLS 迁移会 GRANT 到 `postgres`，本库超管是 changqiushan，缺则迁移失败）+ `auth` schema + `pgcrypto`/`uuid-ossp` + 授 changqiushan 读 auth。
+12. ⬜ **Prisma 圈地（头号地雷）**：**实测**——Prisma 单 schema 默认**已忽略 `auth`**（`migrate status` 干净，无需特殊配置）；仅当为读视图建 Prisma 模型时才开 `multiSchema=[public]`，并把视图模型用 `view`/`@@ignore` 标外部托管，确保 `prisma migrate` 永不碰 `auth.*` 与视图。
+13. ⬜ **只读视图 + 授权**（手写 SQL migration，仿 `20260527160000_realtime_triggers`）：建 `public.app_user` 视图选稳定列（`id, phone, email, created_at, last_sign_in_at`，**手机号制以 phone 为主**）；授权已在 bootstrap 完成。
+14. ⬜ `src/infrastructure/auth/`：GoTrue admin client（**用共享密钥 `GOTRUE_JWT_SECRET` 签 `role:service_role` 的 HS256 JWT 调 `/admin/users`**，已冒烟验证）+ `getSession()`。middleware 只用 jose，不引 GoTrue client（保边界）。
 
 **交付物**：`pnpm lint`+`tsc` 通过；现有 booking 页有壳可看；ISO 日期已替换（仅 UI 展示处；`seed.ts` 的 `::date` ISO 值不算违规）；GoTrue 起得来、视图可读、Prisma 不碰 auth schema。
+**环境复现**（新克隆）：`docker compose up -d postgres` → `pnpm db:auth:bootstrap` → `docker compose up -d gotrue`（自动迁移）→ `pnpm db:migrate && pnpm db:seed`。改 GoTrue env 后须 `docker compose up -d --force-recreate gotrue`（`start` 复用旧 env）。
 
 ### 阶段 1 · system（认证地基）
 **后端**：新建 `src/modules/system/`，删 `src/modules/profile/`。**认证/密码/会话交给 GoTrue（D3），本模块只做授权(RBAC)+审计+账号编排。**
 - prisma `models/system.prisma`：`sys_profile`(**PK=`auth.users.id` UUID**，存姓名/工号/状态)/`sys_role`/`sys_permission`(+role-permission 关联)/`sys_audit_log`(操作人=auth UUID)。**无密码/会话表**（GoTrue 管）。
 - domain：菜单权限映射、审计写入助手。service：
-  - `createAdmin`（**两步事务**：先调 GoTrue admin API 建 auth user 拿 UUID → 写 `sys_profile`+角色；public 失败则回调 admin API 删 auth user，防孤儿）、`resetPassword`（走 GoTrue admin API）、`disableAdmin`。
+  - `createAdmin`（**两步事务**：先调 GoTrue admin API 建 auth user（**`phone` + `password` + `phone_confirm:true`**，登录标识符=手机号）拿 UUID → 写 `sys_profile`+角色；public 失败则回调 admin API 删 auth user，防孤儿）、`resetPassword`（走 GoTrue admin API）、`disableAdmin`。
   - `checkPermission/writeAudit`（公共面暴露，供 app 层注入其他模块审计）。
 - role 写入 GoTrue `app_metadata` 随 JWT 走；`middleware.ts` 用 jose 验 GoTrue JWT + 粗粒度角色门；`(admin)/layout.tsx` 接 `getSession` + `filterMenuByPerm`（细粒度查 `sys_*`）。
-- ⚠️ **登录标识符口径**：GoTrue 以 email/phone 为登录名，工号账号需给内部邮箱（如 `工号@changqiushan.local`）或用 phone——**动手前与业务确认**。
+- ✅ **登录标识符口径已定（2026-06-02）：手机号**。compose 已配 `GOTRUE_EXTERNAL_PHONE_ENABLED=true`+`GOTRUE_SMS_AUTOCONFIRM=true`、关 email；登录 = 手机号+密码（`grant_type=password` 传 `phone`），无需 SMS 网关。
 
-**前端**：B01 登录（模式 E，提交到 GoTrue 登录接口/Server Action 包装）；B25 系统管理（模式 A，左 Tab：账号(经 createAdmin/resetPassword)/角色权限矩阵/审计只读表；入口走 Topbar 头像下拉，**不进侧栏**）。
+**前端**：B01 登录（模式 E，**手机号+密码**，提交到 GoTrue `token?grant_type=password` / Server Action 包装）；B25 系统管理（模式 A，左 Tab：账号(经 createAdmin/resetPassword)/角色权限矩阵/审计只读表；入口走 Topbar 头像下拉，**不进侧栏**）。
 
 **交付物**：登录可用、后台被守卫、审计可写、菜单按权限渲染；建账号两步事务有回滚、无孤儿用户；Prisma 不触碰 auth schema。
 
@@ -178,10 +180,10 @@
 | 风险 | 缓解 |
 |---|---|
 | webpack dev 内存（禁 turbopack）| 重依赖 `dynamic({ssr:false})`；最大化 RSC、client 收为岛；prisma 保持 `prisma-client-js` 单文件版 |
-| **Prisma 误迁移 GoTrue 的 auth schema**（头号 GoTrue 地雷）| `multiSchema` 只声明 `public`；视图/auth 模型 `view`/`@@ignore` 标外部托管；`prisma migrate` 永不碰 `auth.*` |
+| **Prisma 误迁移 GoTrue 的 auth schema**（头号 GoTrue 地雷）| **实测**:单 schema 默认已忽略 auth(`migrate status` 干净);风险仅在为视图开 `multiSchema=[public]` 时——届时视图/auth 模型 `view`/`@@ignore` 标外部托管,`prisma migrate` 永不碰 `auth.*` |
 | **建账号跨系统两步（GoTrue admin API + public）部分失败留孤儿** | 先 auth 后 public，public 失败回调 admin API 删 auth；加定期对账 |
 | **GoTrue 升级改 `auth.users` 列致视图破裂** | 钉死 GoTrue 版本；视图只选稳定列；升级后复验视图 |
-| **登录标识符：GoTrue 要 email/phone，工号账号无邮箱** | 内部邮箱 `工号@changqiushan.local` 或 phone；动手前定业务口径 |
+| ~~登录标识符待定~~ **已定:手机号** | compose 关 email/开 phone + SMS 自动确认;登录=手机号+密码,无需 SMS 网关 |
 | **GoTrue JWT secret 与应用不同步致验签失败** | `GOTRUE_JWT_SECRET` 统一管理（同 .env 源）；或用 JWKS 非对称，轮换走灰度 |
 | 截图头衔/菜单含英文且自相矛盾 | 以 B-design-system.md 文字为唯一权威，菜单/头衔硬编码逐字校对 |
 | 每页 .md 是 boilerplate 主题（蓝/Inter）| 丢弃其 color/typography，仅取 8px 栅格参考 |
@@ -203,7 +205,7 @@
 
 | 阶段 | 子步 | Done | Commit |
 |---|---|---|---|
-| 0 地基 | 0.1 shared 三件 · 0.2 globals/layout 中文化 · 0.3 lib/ui 组件 · 0.4 (admin)/layout 壳 · 0.5 (auth) 壳 · 0.6 空 middleware · 0.7 GoTrue 起服务(同库) · 0.8 Prisma 圈 public + 只读视图 + 隔离 auth · 0.9 instrumentation | [ ] | — |
+| 0 地基 | 0.1 shared 三件 · 0.2 globals/layout 中文化 · 0.3 lib/ui 组件 · 0.4 (admin)/layout 壳 · 0.5 (auth) 壳 · 0.6 空 middleware · ✅0.7 GoTrue 起服务+bootstrap(同库,已验证) · 0.8 只读视图 app_user + multiSchema 圈 public · 0.9 instrumentation | [部分] | — |
 | 1 system | 1.1 sys_profile/role/permission/audit 模型(键=auth UUID) · 1.2 GoTrue admin client + getSession · 1.3 jose 验签 middleware + 角色门 · 1.4 B01 登录(走 GoTrue) · 1.5 createAdmin 两步事务+回滚 · 1.6 B25 系统管理 | [ ] | — |
 | 2 booking | 2.1a model 字段(noVehicle/渠道配额) · 2.1b 手写 CHECK migration · 2.2 domain(canBook/isCircuitBroken/canResume 分离) · 2.3 渠道乐观锁 repo · 2.4 service(+resumePausedSlots) · 2.5 B08(+手动恢复) · 2.6 B09 · 2.7 B10 · 2.8 B22 查单(核销按钮 disabled) · 2.9 红线单测 · 2.10 并发超约脚本 | [ ] | — |
 | 3 risk+checkin | 3.1 riskcontrol 模型/状态机 · 3.2 checkin(checked_in_count + qrCode 协议 + 幂等 UNIQUE) + 闸机 Route · 3.3 跨模块熔断/恢复/拦截 · 3.4 B11 · 3.5 接通 B22 核销 | [ ] | — |
