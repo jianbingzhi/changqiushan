@@ -279,6 +279,85 @@ async function main() {
       );
     }
 
+    // 系统:角色 + 权限矩阵 + 展示用账号 + 审计日志(B25 验证用)
+    const roleDefs = [
+      { code: "SUPER_ADMIN", name: "超级管理员" },
+      { code: "ADMIN", name: "管理员" },
+      { code: "OPERATOR", name: "操作员" },
+    ];
+    const roleIds: Record<string, string> = {};
+    for (const r of roleDefs) {
+      const { rows } = await pool.query(
+        `INSERT INTO sys_role (id,name,code,created_at) VALUES (gen_random_uuid(),$1,$2,NOW())
+         ON CONFLICT (code) DO UPDATE SET name=EXCLUDED.name RETURNING id`,
+        [r.name, r.code],
+      );
+      roleIds[r.code] = rows[0].id;
+    }
+    const permDefs = [
+      { code: "booking:read", name: "预约查看", resource: "booking", action: "read" },
+      { code: "booking:write", name: "预约管理", resource: "booking", action: "write" },
+      { code: "checkin:write", name: "核销操作", resource: "checkin", action: "write" },
+      { code: "content:write", name: "内容管理", resource: "content", action: "write" },
+      { code: "riskcontrol:write", name: "风控管理", resource: "riskcontrol", action: "write" },
+      { code: "analytics:read", name: "数据查看", resource: "analytics", action: "read" },
+      { code: "export:data", name: "报表导出", resource: "export", action: "data" },
+      { code: "system:manage", name: "系统管理", resource: "system", action: "manage" },
+    ];
+    const permIds: Record<string, string> = {};
+    for (const p of permDefs) {
+      const { rows } = await pool.query(
+        `INSERT INTO sys_permission (id,name,code,resource,action) VALUES (gen_random_uuid(),$1,$2,$3,$4)
+         ON CONFLICT (code) DO UPDATE SET name=EXCLUDED.name RETURNING id`,
+        [p.name, p.code, p.resource, p.action],
+      );
+      permIds[p.code] = rows[0].id;
+    }
+    const matrix: Record<string, string[]> = {
+      SUPER_ADMIN: permDefs.map((p) => p.code),
+      ADMIN: ["booking:read", "booking:write", "checkin:write", "content:write", "riskcontrol:write", "analytics:read", "export:data"],
+      OPERATOR: ["booking:read", "checkin:write"],
+    };
+    for (const [code, perms] of Object.entries(matrix)) {
+      for (const pc of perms) {
+        await pool.query(
+          `INSERT INTO sys_role_permission (role_id,permission_id) VALUES ($1::uuid,$2::uuid) ON CONFLICT DO NOTHING`,
+          [roleIds[code], permIds[pc]],
+        );
+      }
+    }
+    // 展示用账号(随机 UUID,非真实 GoTrue 用户;真实登录账号见 scripts/seed-admin.ts)
+    const profiles = [
+      { name: "园区管理员", worker: "ADM-001", role: "SUPER_ADMIN", status: "ACTIVE" },
+      { name: "运营专员", worker: "OPS-007", role: "ADMIN", status: "ACTIVE" },
+      { name: "闸机操作员", worker: "GATE-012", role: "OPERATOR", status: "ACTIVE" },
+      { name: "离职员工", worker: "OPS-003", role: "OPERATOR", status: "DISABLED" },
+    ];
+    const actorIds: string[] = [];
+    for (const p of profiles) {
+      const { rows } = await pool.query(
+        `INSERT INTO sys_profile (id,name,worker_id,status,created_at,updated_at)
+         VALUES (gen_random_uuid(),$1,$2,$3::"SysProfileStatus",NOW(),NOW()) RETURNING id`,
+        [p.name, p.worker, p.status],
+      );
+      actorIds.push(rows[0].id);
+      await pool.query(`INSERT INTO sys_profile_role (profile_id,role_id) VALUES ($1::uuid,$2::uuid) ON CONFLICT DO NOTHING`, [rows[0].id, roleIds[p.role]]);
+    }
+    const audits = [
+      { action: "CREATE_ADMIN", resource: "sys_profile", detail: { name: "运营专员" } },
+      { action: "DISABLE_ADMIN", resource: "sys_profile", detail: { name: "离职员工" } },
+      { action: "REVIEW_APPEAL", resource: "risk_appeal", detail: { decision: "APPROVED" } },
+      { action: "EXPORT_REPORT", resource: "export", detail: { module: "traffic" } },
+    ];
+    for (let i = 0; i < audits.length; i++) {
+      const a = audits[i];
+      await pool.query(
+        `INSERT INTO sys_audit_log (id,actor_id,action,resource,detail,created_at)
+         VALUES (gen_random_uuid(),$1::uuid,$2,$3,$4::jsonb,NOW() - ($5 || ' hours')::interval)`,
+        [actorIds[0], a.action, a.resource, JSON.stringify(a.detail), String(i * 3)],
+      );
+    }
+
     // 刷新物化视图(首刷非 CONCURRENTLY 即可)
     await pool.query(`REFRESH MATERIALIZED VIEW analytics_daily_traffic`);
     await pool.query(`REFRESH MATERIALIZED VIEW analytics_visitor_source`);
