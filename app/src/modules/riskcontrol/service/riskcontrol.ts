@@ -81,4 +81,9 @@ export const riskcontrolService = {
   async isBlacklisted(userId: string): Promise<boolean> {
     return riskcontrolRepository.isBlacklisted(userId);
   },
+
+  // 现场补录等"仅有身份证"场景:复用 idCard→userId 的稳定映射(与黑名单建档同源)
+  async isBlacklistedByIdCard(idCard: string): Promise<boolean> {
+    return riskcontrolRepository.isBlacklisted(idCardToUserId(idCard));
+  },
 };

@@ -1,14 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Check, ChevronRight } from "lucide-react";
 import { PageHeader } from "@/lib/ui/page-header";
 import { Button } from "@/lib/ui/button";
 import { Input } from "@/lib/ui/input";
 import { cn } from "@/lib/ui/utils";
+import { getOnsiteSlots, submitOnsiteBooking, type OnsiteSlotOption } from "./actions";
 
 interface FormState {
   date: string;
+  slotId: string;
   slotLabel: string;
   visitorName: string;
   phone: string;
@@ -20,6 +22,7 @@ interface FormState {
 
 const INITIAL: FormState = {
   date: new Date().toISOString().slice(0, 10),
+  slotId: "",
   slotLabel: "",
   visitorName: "",
   phone: "",
@@ -68,7 +71,7 @@ function validate(step: number, form: FormState): Partial<Record<string, string>
   const errors: Partial<Record<string, string>> = {};
   if (step === 0) {
     if (!form.date) errors.date = "请选择日期";
-    if (!form.slotLabel) errors.slotLabel = "请选择时段";
+    if (!form.slotId) errors.slotLabel = "请选择时段";
   }
   if (step === 1) {
     if (!form.visitorName.trim()) errors.visitorName = "请填写姓名";
@@ -92,6 +95,27 @@ export default function OnsitePage() {
   const [form, setForm] = useState<FormState>(INITIAL);
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [slots, setSlots] = useState<OnsiteSlotOption[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // 日期变化即拉取当日时段(联动选择器)
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      if (!form.date) { setSlots([]); return; }
+      setLoadingSlots(true);
+      try {
+        const list = await getOnsiteSlots(form.date);
+        if (!cancelled) setSlots(list);
+      } finally {
+        if (!cancelled) setLoadingSlots(false);
+      }
+    };
+    void load();
+    return () => { cancelled = true; };
+  }, [form.date]);
 
   function next() {
     const errs = validate(step, form);
@@ -105,9 +129,22 @@ export default function OnsitePage() {
     setStep((s) => s - 1);
   }
 
-  function submit() {
-    // TODO 阶段3: 调用 Server Action — bookingService.createBooking({..., channel: "ONSITE_MAKEUP"})
-    setSubmitted(true);
+  async function submit() {
+    if (submitting) return;
+    setSubmitting(true);
+    setSubmitError(null);
+    const res = await submitOnsiteBooking({
+      slotId: form.slotId,
+      visitorName: form.visitorName,
+      phone: form.phone,
+      idCard: form.idCard,
+      hasVehicle: form.hasVehicle === true,
+      plate: form.plate,
+      noVehicleDeclared: form.noVehicleDeclared,
+    });
+    setSubmitting(false);
+    if (res.ok) setSubmitted(true);
+    else setSubmitError(res.message);
   }
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
@@ -123,7 +160,7 @@ export default function OnsitePage() {
           </div>
           <p className="text-[#1F2937] font-semibold text-lg">预约单已提交</p>
           <p className="text-[13px] text-[#6B7280]">游客 {form.visitorName} 的预约信息已成功录入系统</p>
-          <Button onClick={() => { setForm(INITIAL); setStep(0); setSubmitted(false); }} style={{ backgroundColor: "#2D5A27", color: "#fff" }}>
+          <Button onClick={() => { setForm(INITIAL); setStep(0); setSubmitted(false); setSubmitError(null); }} style={{ backgroundColor: "#2D5A27", color: "#fff" }}>
             继续录入
           </Button>
         </div>
@@ -147,13 +184,34 @@ export default function OnsitePage() {
           <div className="space-y-4">
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-[#1F2937]">预约日期</label>
-              <Input type="date" value={form.date} onChange={(e) => set("date", e.target.value)} className="max-w-xs" />
+              <Input
+                type="date"
+                value={form.date}
+                onChange={(e) => setForm((f) => ({ ...f, date: e.target.value, slotId: "", slotLabel: "" }))}
+                className="max-w-xs"
+              />
               {errors.date && <p className="text-[12px] text-[#DC2626]">{errors.date}</p>}
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-[#1F2937]">时段</label>
-              <Input placeholder="如：上午场 08:00–12:00" value={form.slotLabel} onChange={(e) => set("slotLabel", e.target.value)} className="max-w-xs" />
-              <p className="text-[12px] text-[#9CA3AF]">TODO 阶段3: 替换为联动时段选择器</p>
+              <select
+                value={form.slotId}
+                onChange={(e) => {
+                  const opt = slots.find((s) => s.id === e.target.value);
+                  setForm((f) => ({ ...f, slotId: e.target.value, slotLabel: opt?.label ?? "" }));
+                }}
+                disabled={loadingSlots || slots.length === 0}
+                className="max-w-xs w-full rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-sm text-[#1F2937] disabled:bg-[#F9FAFB] disabled:text-[#9CA3AF]"
+              >
+                <option value="">
+                  {loadingSlots ? "加载时段中…" : slots.length === 0 ? "当日暂无可预约时段" : "请选择时段"}
+                </option>
+                {slots.map((s) => (
+                  <option key={s.id} value={s.id} disabled={s.soldOut}>
+                    {s.label}{s.soldOut ? "（已满）" : ""}
+                  </option>
+                ))}
+              </select>
               {errors.slotLabel && <p className="text-[12px] text-[#DC2626]">{errors.slotLabel}</p>}
             </div>
           </div>
@@ -249,14 +307,22 @@ export default function OnsitePage() {
           </div>
         )}
 
+        {submitError && step === STEPS.length - 1 && (
+          <p className="rounded-lg border border-[#FECACA] bg-[#FEF2F2] px-3 py-2 text-[13px] text-[#DC2626]">
+            {submitError}
+          </p>
+        )}
+
         <div className="flex items-center justify-between pt-2">
-          <Button variant="outline" onClick={back} disabled={step === 0}>上一步</Button>
+          <Button variant="outline" onClick={back} disabled={step === 0 || submitting}>上一步</Button>
           {step < STEPS.length - 1 ? (
             <Button onClick={next} style={{ backgroundColor: "#2D5A27", color: "#fff" }} className="gap-1">
               下一步 <ChevronRight className="h-4 w-4" />
             </Button>
           ) : (
-            <Button onClick={submit} style={{ backgroundColor: "#2D5A27", color: "#fff" }}>确认提交</Button>
+            <Button onClick={submit} disabled={submitting} style={{ backgroundColor: "#2D5A27", color: "#fff" }}>
+              {submitting ? "提交中…" : "确认提交"}
+            </Button>
           )}
         </div>
       </div>
