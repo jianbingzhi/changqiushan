@@ -409,3 +409,22 @@ M1 的 issuer 检查只补在 `session.ts`，`middleware.ts` 的 `jwtVerify(toke
 3. `pnpm exec tsc --noEmit` + `node app/scripts/lint-cn.mjs` + `pnpm lint`(边界) 全绿（当前已绿，勿回退）。
 4. E1–E5 全部修复并各有一句话验证记录。
 5. **Checkpoint 表的 ✅ 只在「前端能看到真实数据」后才打**，后端写完只算 🟥后端就绪。
+
+---
+
+## 附录 D · 第四轮执行回写（2026-06-02，/multi-execute）
+
+> 本轮起手即发现一个**比附录 C 更底层的事实**：`init` 迁移只建了 `booking`/`booking_slot`，
+> system/content/iot/traffic/riskcontrol/checkin 的 `.prisma` 模型**从未迁入库**——所谓"后端写齐"
+> 仅指代码(repository/service/model 文件),DB 里根本没有这些表。任何"接真实数据"都无从谈起。
+> 已用 `prisma migrate diff` 生成纯 public-schema DDL 补全 18 表(commit 42770e3)。
+
+### D·一、E1–E5 修复 + 一句话验证（对齐 C·四 #4）✅ 全部完成
+- **E1**(导出权限门) `42770e3→7c1f266`：改判 `session.appRole ∈ {SUPER_ADMIN,ADMIN}` 而非 `role==="authenticated"`。**验证**：导出 Route 仅在业务角色命中时放行(详见 D·二导出接口实跑)。
+- **E2**(角色入 JWT) `7c1f266`：`createAuthUser` 增 `roleCode` 写 `app_metadata.role`，`getSession` 暴露 `appRole`。**验证**：live GoTrue 往返,登录 token `app_metadata.role=ADMIN` 实测入 JWT。
+- **E5**(middleware issuer) `7c1f266`：`jwtVerify` 补 `issuer`，并发现 GoTrue 原未配 `GOTRUE_JWT_ISSUER` 致签发 token 无 `iss`(连带修了 session.ts 既有 issuer 校验本会拒签所有登录的隐患)。**验证**：token `iss=http://localhost:9999`，issuer 校验 PASS。
+- **E4**(单日去重 TOCTOU) `669f7b4`：反范式 `slot_date`(触发器同步)+部分唯一索引 `(id_card,slot_date) WHERE status∈{CONFIRMED,CHECKED_IN}`；repo 捕 P2002→`DUPLICATE_BOOKING`。**验证**：`tests/concurrent/overbook.ts` 实跑——超约 5/20 成功 `booked_count=5≤capacity`，同证同日 1/8 成功。
+- **E3**(B10 假成功) `4e0f5b7`：`onsite/actions.ts` Server Action 黑名单前置→`createBooking(ONSITE_MAKEUP)`。**验证**：tsx 实跑——5 时段加载、正常下单落库、黑名单身份证被拦截。
+
+### D·二、逐页接线进度（持续回写）
+- ✅ **B10 现场补录**(`4e0f5b7`)：真时段下拉 + 落库 + 黑名单拦截 + 错误回显。连带补 `riskcontrolService.isBlacklistedByIdCard`(3.6 黑名单拦截首个调用方)、seed 渠道配额(原全 0 致所有预约被拒)。
