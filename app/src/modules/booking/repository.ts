@@ -92,10 +92,17 @@ export const bookingRepository = {
     const col = CHANNEL_COL[booking.channel];
 
     await db.$transaction(async (tx) => {
-      await tx.booking.update({
-        where: { id: bookingId },
-        data: { status: "CANCELLED", cancelledAt: new Date() },
-      });
+      // H2 Fix: WHERE status='CONFIRMED' 防止并发取消双重扣减
+      const affected = await tx.$executeRaw(Prisma.sql`
+        UPDATE booking
+        SET    status       = 'CANCELLED'::"BookingStatus",
+               cancelled_at = NOW(),
+               updated_at   = NOW()
+        WHERE  id     = ${bookingId}::uuid
+          AND  status = 'CONFIRMED'::"BookingStatus"
+      `);
+      if (affected === 0) return; // 已取消或状态变更,幂等退出
+
       await tx.$executeRaw(Prisma.sql`
         UPDATE booking_slot
         SET ${Prisma.raw(`"${col}_booked"`)} = GREATEST(0, ${Prisma.raw(`"${col}_booked"`)} - 1),

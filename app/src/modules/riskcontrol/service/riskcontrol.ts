@@ -17,23 +17,21 @@ function idCardToUserId(idCard: string): string {
 
 export const riskcontrolService = {
   async scanNoShow(slotId: string, _date: Date): Promise<ScanNoShowResult> {
-    const affected = await db.$executeRaw(Prisma.sql`
-      UPDATE booking
-      SET    status      = 'NO_SHOW'::"BookingStatus",
-             no_show_at  = NOW(),
-             updated_at  = NOW()
-      WHERE  slot_id     = ${slotId}::uuid
-        AND  status      = 'CONFIRMED'::"BookingStatus"
-    `);
-
-    if (affected === 0) return { processed: 0, blacklisted: 0 };
-
+    // H3 Fix: 用 CTE RETURNING 原子取回更新行,消除10秒时间窗口竞态
     const noShows = await db.$queryRaw<Array<{ id_card: string; plate: string | null }>>(Prisma.sql`
-      SELECT id_card, plate FROM booking
-      WHERE  slot_id   = ${slotId}::uuid
-        AND  status    = 'NO_SHOW'::"BookingStatus"
-        AND  no_show_at >= NOW() - INTERVAL '10 seconds'
+      WITH updated AS (
+        UPDATE booking
+        SET    status      = 'NO_SHOW'::"BookingStatus",
+               no_show_at  = NOW(),
+               updated_at  = NOW()
+        WHERE  slot_id     = ${slotId}::uuid
+          AND  status      = 'CONFIRMED'::"BookingStatus"
+        RETURNING id_card, plate
+      )
+      SELECT id_card, plate FROM updated
     `);
+
+    if (noShows.length === 0) return { processed: 0, blacklisted: 0 };
 
     let blacklisted = 0;
     for (const row of noShows) {

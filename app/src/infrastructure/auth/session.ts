@@ -17,7 +17,9 @@ export async function getSession(): Promise<Session | null> {
     if (!token) return null;
 
     const secret = new TextEncoder().encode(JWT_SECRET);
-    const { payload } = await jwtVerify(token, secret);
+    const { payload } = await jwtVerify(token, secret, {
+      issuer: process.env.GOTRUE_JWT_ISSUER ?? process.env.GOTRUE_URL ?? "http://localhost:9999",
+    });
 
     const sub = payload.sub;
     const role = (payload.role as string | undefined) ?? "authenticated";

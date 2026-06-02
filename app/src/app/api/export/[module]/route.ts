@@ -23,6 +23,10 @@ export async function GET(
   if (!session) {
     return Response.json({ message: "未授权" }, { status: 401 });
   }
+  // M3 Fix: 仅 admin/service_role 可导出数据
+  if (session.role === "authenticated") {
+    return Response.json({ message: "权限不足" }, { status: 403 });
+  }
 
   const { module: mod } = await params;
   if (!ALLOWED_MODULES.includes(mod as ExportModule)) {
