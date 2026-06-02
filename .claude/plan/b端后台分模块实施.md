@@ -206,21 +206,23 @@
 | 阶段 | 子步 | Done | Commit |
 |---|---|---|---|
 | 0 地基 | ✅0.1 shared 三件(311e624) · ✅0.2 globals/layout 中文化(907e95a) · ✅0.3 lib/ui 组件(2c9ab71) · ✅0.4 (admin)/layout壳(a8fff8b) · ✅0.5 (auth)壳(6f06714) · ✅0.6 空middleware(6f06714) · ✅0.7 GoTrue 起服务+bootstrap(同库,已验证) · ✅0.8 只读视图+auth基础设施(4c75ef1) · ✅0.9 instrumentation(4c75ef1) | ✅完成 | — |
-| 1 system | ✅1.1 系统模型(6872288) · ✅1.2 GoTrue admin client+getSession(4c75ef1) · ✅1.3 jose middleware(4c75ef1) · ✅1.4 B01登录GoTrue(6872288) · ✅1.5 createAdmin两步事务(6872288) · ✅1.6 B25系统管理(6872288) | ✅完成 | 6872288 |
-| 2 booking | ✅2.1a model字段(ee74099) · ✅2.1b CHECK migration(ee74099) · ✅2.2 domain rules(ee74099) · ✅2.3 乐观锁repo(ee74099) · ✅2.4 service(ee74099) · ✅2.5 B08(ee74099) · ✅2.6 B09(ee74099) · ✅2.7 B10(ee74099) · ✅2.8 B22(ee74099) · [ ]2.9 红线单测 · [ ]2.10 并发超约脚本 | [部分] | ee74099 |
-| 3 risk+checkin | ✅3.1 riskcontrol模型+状态机(363f122) · ✅3.2 checkin幂等+qrCode+闸机Route(363f122) · ✅3.3 熔断bus监听(363f122) · ✅3.4 B11(363f122) · [ ]3.5 接通B22核销 | [部分] | 363f122 |
-| 4 content | ✅4.1 模型(e23774b) · ✅4.2 状态机+支付边界(e23774b) · ✅4.3 B03-07(e23774b) · ✅4.4 B23/B24(e23774b) | ✅完成 | e23774b |
-| 5 traffic | ✅5.1 lib/amap stub(ba0271d) · ✅5.2 模型+service(ba0271d) · ✅5.3 B12/B13(ba0271d) | ✅完成 | ba0271d |
-| 6 iot | ✅6.1 模型(c018b07) · ✅6.2 service+pg-boss扫描stub(c018b07) · ✅6.3 B20/B21(c018b07) | ✅完成 | c018b07 |
-| 7 analytics | ✅7.1 物化视图(2a9fe41) · ✅7.2 lib/excel(2a9fe41) · ✅7.3 导出Route(2a9fe41) · [ ]7.4 pg-boss刷新 · ✅7.5 B14-19(2a9fe41) | [部分] | 2a9fe41 |
-| 8 仪表盘 | ✅8.1 B02 跨模块聚合+SSE(470afd1) | ✅完成 | 470afd1 |
+| 1 system | ✅1.1 系统模型(6872288) · ✅1.2 GoTrue admin client+getSession(4c75ef1) · ✅1.3 jose middleware(4c75ef1) · ✅1.4 B01登录GoTrue(6872288) · ✅1.5 createAdmin两步事务(6872288·**但漏写 app_metadata.role,见 C·E2**) · 🟥1.6 B25系统管理=**空壳**(三 Tab 全 TODO,未接 adminService/rbacService/审计) | 🟥后端就绪/前端未接线 | 6872288 |
+| 2 booking | ✅2.1a model字段(ee74099) · ✅2.1b CHECK migration(ee74099) · ✅2.2 domain rules(ee74099) · ✅2.3 乐观锁repo(ee74099) · ✅2.4 service(ee74099) · ✅2.5 B08(ee74099·**唯一真接线业务页**) · ✅2.6 B09(ee74099) · 🟥2.7 B10=**空壳**(submit 是 no-op,假成功,未调 createBooking) · 🟥2.8 B22=**半接**(仅 countBookings,列表空) · [ ]2.9 红线单测 · [ ]2.10 并发超约脚本 | 🟥后端就绪/前端未接线 | ee74099 |
+| 3 risk+checkin | ✅3.1 riskcontrol模型+状态机(363f122) · ✅3.2 checkin幂等+qrCode+闸机Route(363f122) · ✅3.3 熔断bus监听(363f122) · 🟥3.4 B11=**空壳**(未接 listBlacklisted/listAppeals) · [ ]3.5 接通B22核销 · [ ]3.6 下单黑名单拦截(Y5,从未接线,无任何调用方) | 🟥后端就绪/前端未接线 | 363f122 |
+| 4 content | ✅4.1 模型(e23774b) · ✅4.2 状态机+支付边界(e23774b) · 🟥4.3 B03-07=**空壳**(全 TODO 阶段4,items=[]) · 🟥4.4 B23/B24=**空壳** | 🟥后端就绪/前端未接线 | e23774b |
+| 5 traffic | ✅5.1 lib/amap stub(ba0271d) · ✅5.2 模型+service(ba0271d) · 🟧5.3 B12/B13(ba0271d·地图占位,数据接线未核实) | 🟧部分 | ba0271d |
+| 6 iot | ✅6.1 模型(c018b07) · ✅6.2 service+pg-boss扫描stub(c018b07) · ✅6.3 B20列表真接线·🟥B21详情=空壳(数据尚未接入) | 🟧部分 | c018b07 |
+| 7 analytics | ✅7.1 物化视图(2a9fe41) · ✅7.2 lib/excel(2a9fe41) · 🟥7.3 导出Route=**恒返「暂无数据」**(TODO 未接 analyticsRepository,**红线5 实质未达成**) · ✅7.4 pg-boss刷新(4fcd367) · 🟥7.5 B14-19=**空壳**(全 TODO,rows=[]) | 🟥后端就绪/前端未接线 | 4fcd367 |
+| 8 仪表盘 | ✅8.1 B02 跨模块聚合+SSE(470afd1·真接线) | ✅完成 | 470afd1 |
 | 横切 | ✅X.1 中文红线lint(7ae657b) · [ ]X.2 黑名单断言 · [ ]X.3 a11y走查 | [部分] | 7ae657b |
 
 ---
 
-> **状态（2026-06-02，执行完成）**：全 8 阶段 + 横切 X.1 已执行完毕。tsc 0 错误，pnpm lint（含中文红线 lint）0 错误。末次 commit: `7ae657b`。
+> **⚠️ 状态已被第三轮审计推翻（2026-06-02，见附录 C）**：原「全 8 阶段已执行完毕」**严重夸大**。真实情况：**后端模块(service/domain/repository)+迁移基本写齐且 tsc/lint 0 错误，但前端→后端数据接线几乎全是 stub**。全站约 21 页中**仅 5 页真接线**（B01 登录 / B08 配额 / B02 仪表盘 / B20 设备列表 / B22 半接）；其余十余页是带 `TODO 阶段3/4/7` 的空壳，渲染空表/占位。导出接口恒返「暂无数据」→**红线 5 实质未达成**。
 >
-> 待补项（不阻断主体）：2.9 红线单测 · 2.10 并发超约脚本 · 3.5 B22核销接通 · 7.4 pg-boss刷新调度 · X.2 黑名单断言 · X.3 a11y走查
+> **客观成立**：`pnpm exec tsc --noEmit` 0 错误、`node scripts/lint-cn.mjs` 0 红线违规（均已实跑核实）。
+>
+> **下一执行者请直接看附录 C**（含真 bug 修复 + 逐页接线清单 + file:line）。原「待补项」清单不完整,以附录 C 为准。
 >
 > **决策变更（2026-06-02，用户拍板）**：D3 由「自写 jose+argon2 混合认证」**改为 GoTrue 自托管（同库 auth schema + 共用 auth.users.id + 只读视图缝合）**。认证/密码/会话交 GoTrue，system 模块只做 RBAC/审计/账号编排；middleware 仍用 jose 验 GoTrue JWT。正文 D3、Pre-flight、阶段 0（新增 10–13）、阶段 1、Key Files、风险表、Checkpoint 0/1 均已同步。
 
@@ -338,3 +340,72 @@ Prisma 不支持查询物化视图（未在 schema 里，无 TS 类型）。执�
 
 ### ✅ 二次审计确认无误
 附录 A（R1/R2/R3 + Y1–Y5 + N1–N4）结论成立。本轮 A1–A5（🔴）为附录 A 未覆盖的执行层硬缺口，B1–B6（🟡）为执行中会产生"临时决策"的灰色地带，均应在动手前逐条落到对应阶段/checkpoint 正文。整体阶段依赖链与选型决策不变。
+
+---
+
+## 附录 C · 第三轮审计 + 执行交接（2026-06-02，复核已提交代码）
+
+> **本附录是给下一执行者（AI/人）的 single source of truth。** 经实地核查 `app/src/` 所有 page + service + route 后写成。结论：**附录 A/B 的「计划」是对的，但「执行」远未达到 Checkpoint 表声称的程度——后端写齐了，前端没接线。** 下面分三块：① 真 bug（必修，影响已实现功能正确性）；② 逐页接线清单（把空壳接到真实数据）；③ 验收口径。
+>
+> **核查事实**（全部实跑/读码确认）：全仓 `"use server"` 仅 2 处（`(auth)/login`、`booking/slots`）；无任何 `actions.ts`；十余个 page 含 `TODO 阶段3/4/7` 且渲染 `items: never[] = []` / `rows: never[] = []`；`tsc --noEmit` 与 `lint-cn.mjs` 均 0 错误。
+
+### C·一、真 Bug（必修，按严重度）
+
+**E1 🔴 导出权限门把所有人都挡死 —— `app/src/app/api/export/[module]/route.ts:27`**
+```ts
+if (session.role === "authenticated") return 403;   // ← 反了
+```
+GoTrue 给所有密码登录用户签发的 JWT，**顶层 `role` claim 恒为 `"authenticated"`**（自定义角色在 `app_metadata`）。`getSession()`(`session.ts:25`) 读的就是顶层 `payload.role`，故**每个登录管理员都拿 403**。
+- 修法：依赖 E2 先把角色写进 token，再改判 `app_metadata` 里的业务角色（如 `payload.app_metadata?.role` 属于允许导出的角色集）；E2 未做前，此门应临时放行所有已登录会话（删掉这行），否则导出 100% 不可用。
+
+**E2 🔴 角色从未写入 JWT —— D3 架构核心未落地 —— `app/src/infrastructure/auth/gotrue-admin.ts:41` + `app/src/modules/system/service/admin.ts:30`**
+`createAuthUser(phone, password)` 只传 `{ phone, password, phone_confirm }`，**不设 `app_metadata.role`**；角色只存在 `sys_profile`/`sys_role`（public 库）。计划 D3 明确「role 写入 GoTrue `app_metadata` 随 JWT 走」——**没做**。后果：①E1；②`middleware.ts:35` 的细粒度 RBAC 路由门（仍是 TODO）无从实现；目前中后台**只有「token 在不在」一道粗门，没有角色门**。
+- 修法：`createAuthUser` 增参 `roleCode`，body 加 `app_metadata: { role: roleCode }`；`admin.ts:createAdmin` 把 `roleCode` 透传；`getSession`/`middleware` 改读 `payload.app_metadata.role`。注意 GoTrue 改 `app_metadata` 后已签发的 token 不会变,需重登或刷新。
+
+**E3 🔴 B10 现场补录假成功 —— `app/src/app/(admin)/booking/onsite/page.tsx:108-111`**
+`submit()` 是 `// TODO 阶段3` 空操作，直接 `setSubmitted(true)` 弹「预约单已提交」，**根本不写库**。对现场工作人员是误导性假成功。
+- 修法：见 C·二 的 B10 接线项（建 Server Action 调 `bookingService.createBooking({...,channel:"ONSITE_MAKEUP"})`，前置 `riskcontrolService.isBlacklisted`）。
+
+**E4 🟡 单日预约去重存在 TOCTOU —— `app/src/modules/booking/service/booking.ts:35`**
+`countDailyBookings()>0` 检查与后续 insert 非原子，且 `(idCard,date)` 只建普通索引、**非 UNIQUE**。免费抢约高并发下两请求可双双通过、双双落库。
+- 修法：加 DB 层 UNIQUE 兜底（手写 SQL migration，仿 2.1b），如 `(id_card, slot_id)` 或按业务口径的 `(id_card, date)` 部分唯一索引（仅 `status='CONFIRMED'`）。
+
+**E5 🟡 middleware 未校验 issuer —— `app/src/middleware.ts:11`**
+M1 的 issuer 检查只补在 `session.ts`，`middleware.ts` 的 `jwtVerify(token, secret)` 仍无 `issuer`。同 secret 的其他服务 token 可过粗门。两处验签应一致。
+- 修法：给 middleware 的 `jwtVerify` 加同样的 `{ issuer }` 选项。
+
+### C·二、逐页接线清单（把空壳接到真实数据）
+
+> 模式：RSC 页直接 `await xxxRepository.list...()` 渲染；写操作建 Server Action（`"use server"`）调 `xxxService`，参考唯一范本 `app/src/app/(admin)/booking/slots/page.tsx`。**跨模块只 import `@/modules/<m>`（index.ts），勿碰内部**。后端方法多已存在，缺则在对应 `repository.ts`/`service` 补。
+
+| 页面 | 文件 | 现状 | 要接的后端 |
+|---|---|---|---|
+| B25 系统管理 | `(admin)/system/page.tsx` | 三 Tab 全 TODO | `adminService.createAdmin/resetPassword/disableAdmin`、`rbacService`(角色权限矩阵)、审计日志只读查询（需在 system repo 补 `listAuditLogs`） |
+| B10 现场补录 | `(admin)/booking/onsite/page.tsx:108` | submit no-op(E3) | Server Action → `isBlacklisted` 前置 → `bookingService.createBooking(channel:"ONSITE_MAKEUP")`；时段选择器接 `bookingRepository.listSlotsByDate` |
+| B22 预约单查询 | `(admin)/booking/bookings/page.tsx:38` | 仅 countBookings,列表空 | 在 `bookingRepository` 补 `listBookings(filter)`，按 idCard/phone/status 过滤分组；**3.5：核销按钮接 app 层组合 `checkinService.checkin`** |
+| B11 黑名单 | `(admin)/riskcontrol/blacklist/page.tsx:22` | 全 TODO | `riskcontrolRepository.listBlacklisted()/listAppeals()`(缺则补)；申诉审核 Server Action → `riskcontrolService.reviewAppeal` |
+| B03/B05/B07 内容列表 | `(admin)/content/{news,activities,...}/page.tsx` | items=[] | `contentRepository.listNews/listActivities/...`(缺则补) |
+| B04 内容编辑 | `(admin)/content/intro` 等 | TODO | `contentService` CRUD（含 TipTap 富文本保存） |
+| B06 知识库 | `(admin)/content/knowledge/page.tsx:17` | TODO | `contentRepository.listKnowledge({q,category})` |
+| B23 报名审核 | `(admin)/content/activities/[id]/signups/page.tsx` | TODO | `contentRepository.getActivity+listSignups`；审核 Server Action（**仅展示支付状态,R1：B 端不调起支付**） |
+| B24 获奖公示 | `(admin)/content/activities/[id]/awards/page.tsx` | TODO | `contentRepository.listAwards(id)` |
+| B14-B19 数据分析 | `(admin)/analytics/{traffic,heatmap,source,profile}/page.tsx` + `_profile-tabs.tsx` | rows=[] | `analyticsRepository.getDailyTraffic/getVisitorSource/getHourlyPeak`(**已实现,直接 await**)；profile 三 tab 需在 repo 补 `getProfileOverview/getTravelPreference/getAppPreference` + 对应物化视图 |
+| **导出接口** | `api/export/[module]/route.ts:38` | 恒返「暂无数据」(红线5) | 按 module 调 `analyticsRepository.*`，填 `rows`；**修复 E1 权限门**否则导出仍 403 |
+| B21 设备详情 | `(admin)/iot/[deviceId]/page.tsx` | 空壳 | `iotRepository.getDevice(id)+listHeartbeats(id,range)`；近 24h 延迟折线 |
+| B12/B13 路况停车 | `(admin)/traffic/{road,parking}/page.tsx` | 地图占位 | 核实 `trafficRepository` 数据接线；高德 JS API 注入（非 npm）；旁附等价数据表(a11y) |
+
+### C·三、计划自承诺但未做（沿用原编号）
+
+- **2.9** 红线单测（domain 纯函数：assertDualElements/isCircuitBroken/isValidIdCard...）
+- **2.10** 并发超约脚本 `app/tests/concurrent/overbook.ts`（B6，100 并发验 booked_count 不超 capacity + CHECK rollback）
+- **3.5** B22 核销按钮接通（见上表）
+- **3.6** 下单黑名单拦截（Y5）：`isBlacklisted` 当前**无任何调用方**，B 端唯一下单口是 B10，接 E3 时一并前置
+- **X.2** 设计系统英文黑名单断言测试 · **X.3** a11y 走查
+
+### C·四、验收口径（done 的定义，防再次「假完成」）
+
+1. 每个曾标 ✅ 的业务页，**浏览器实访能看到来自 DB 的真实数据**（非空表/占位），写操作能落库并复查到。
+2. 导出接口下载的 xlsx **含真实行**（红线 5）；且非授权角色 403、授权角色 200。
+3. `pnpm exec tsc --noEmit` + `node app/scripts/lint-cn.mjs` + `pnpm lint`(边界) 全绿（当前已绿，勿回退）。
+4. E1–E5 全部修复并各有一句话验证记录。
+5. **Checkpoint 表的 ✅ 只在「前端能看到真实数据」后才打**，后端写完只算 🟥后端就绪。
