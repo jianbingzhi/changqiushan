@@ -466,8 +466,42 @@ M1 的 issuer 检查只补在 `session.ts`，`middleware.ts` 的 `jwtVerify(toke
 - 🟡 **disableAdmin 不撤销 GoTrue 访问**：补 `banAuthUser` 封禁,使停用者 JWT 失效。
 - 🟡 初始密码 `type=password` 掩码;报名审核 action 加 try/catch。
 
+**第五轮复核补修(2026-06-03)**：
+- 🔴 **熔断「手动恢复」无门特权写** `slots/page.tsx:63`：D·六「逐 action 加门」只覆盖 6 个 `actions.ts` 文件,**漏了 B08 配额页内联 `"use server"` 闭包**——任何登录员工(含 OPERATOR)可点「手动恢复」解除 90% 承载力熔断的自动停约(触红线4)。已补 `requireRole(ADMIN_UP)`(解熔断属管理动作)。**验证**:tsc 0 / lint-cn 0;全仓内联+文件 server action 已无无门特权写。
+
 **已记录待办(P1/P2,非阻断)**：
 - 路由级 RBAC 门(middleware 仍只校 cookie 存在性,未按角色拦路由)——action 层已是强制点,路由级为纵深防御,沿用 middleware TODO。
 - `resetPassword`/`createAdmin` 审计日志补全(P2);角色变更路径(future)。
 - a11y 细项:`window.prompt` 改内联表单、`<label htmlFor>` 关联、BarList 每页 data-meaningful `aria-label`。
 - `getTravelPreference` 已用于 B18 出行偏好页,导出 profile 仅含总览(可选扩展)。
+
+---
+
+## 附录 E · 第五轮独立复核审计（2026-06-03）
+
+> 目标:不信附录 D 的「自报完成」,按 C·四验收口径**独立读码 + 实跑**核验。结论:**附录 D 的回写基本属实**——与附录 C 时代「后端写齐、前端全空壳」截然不同,本轮已实质达到「浏览器见 DB 真实数据 + 写操作落库 + 红线5 导出真实行」。仅发现 1 处文档未承认的鉴权缺口(已当场修复,见 D·六第五轮补修)。
+
+### E·一、独立验证为真(核查方式已注明,非信文档)
+| 验收项 | 核查方式 | 结果 |
+|---|---|---|
+| 三绿 | 实跑 | `tsc --noEmit` 0 错 · `lint-cn` 0 红线 · `eslint` 0 error(3 既有 warning:`_area/_lotIds/_date` 未用形参) |
+| 无残留空壳 | grep `TODO 阶段`/`never[]=[]` | 0 命中(十余页 TODO 已清) |
+| E1 导出权限门 | 读码 `route.ts:40` | 改判 `appRole∈{SUPER_ADMIN,ADMIN}` ✓ |
+| E2 角色入 JWT | 读码 `session.ts:31` | 暴露 `appRole`(读 `app_metadata.role`) ✓ |
+| E3 B10 假成功 | 读码 `onsite/actions.ts` | requireRole + `isBlacklistedByIdCard` 前置 + `createBooking(ONSITE_MAKEUP)` ✓ |
+| E4 单日 TOCTOU | 读码 `repository.ts` | 捕 P2002→`DuplicateBookingError`(部分唯一索引兜底) ✓ |
+| E5 middleware issuer | 读码 `middleware.ts:14` | `jwtVerify(...,{issuer})` ✓ |
+| 越权整改 P0 | grep | 6 个 `actions.ts` 全部 import+调用 `requireRole`(system=SUPER_ONLY/风控·内容·报名=ADMIN_UP/补录·核销=ANY_STAFF) ✓ |
+| TipTap | package.json | `@tiptap/* 3.24`(react/starter-kit/link/image/pm) 真已装 ✓ |
+
+### E·二、发现并修复的缺口(1 处)
+- 🔴 **熔断「手动恢复」无门特权写** `slots/page.tsx:63`:见 D·六「第五轮复核补修」。已补 `requireRole(ADMIN_UP)`。这是本轮唯一确认的鉴权漏点(全仓 server action 已逐一核查,其余皆带门)。
+
+### E·三、确认的诚实遗留(D·五已列,非「假完成」)
+- **2.9** 红线 domain 单测(`assertDualElements`/`isCircuitBroken`/`isValidIdCard` 纯函数)——未补(2.10 并发脚本已做)。
+- **X.2** 设计系统英文黑名单断言测试 · **X.3** a11y 走查——未做(lint-cn 已覆盖中文红线扫描)。
+- **B12 路况地图**——高德 JS API 占位(需 key,非 npm);停车场 B13 已附等价数据表(a11y)。
+- **路由级 RBAC**——middleware 仍只校 cookie 存在性;action 层是强制点,路由级为纵深防御,沿用 TODO。
+
+### E·四、审计意见
+计划已实质执行到验收口径 1–5 的程度,可信。下一执行者若继续,优先级:① 补 2.9 红线 domain 单测(最廉价的回归保险,纯函数易测);② 路由级 RBAC(纵深防御);③ X.3 a11y。B12 高德地图依赖外部 key,按需推进。**Checkpoint/附录 D 的 ✅ 经本轮抽样实跑核验,可作为后续工作基线。**

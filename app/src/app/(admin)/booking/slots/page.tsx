@@ -1,4 +1,5 @@
 import { bookingRepository } from "@/modules/booking";
+import { requireRole, ADMIN_UP } from "@/infrastructure/auth/guard";
 import { PageHeader } from "@/lib/ui/page-header";
 import { StatusChip } from "@/lib/ui/status-chip";
 import { formatCnDate } from "@/shared/format";
@@ -61,6 +62,9 @@ export default async function BookingSlotsPage({ searchParams }: Props) {
             <button
               formAction={async () => {
                 "use server";
+                // 解除承载力熔断属管理动作,OPERATOR 无权(PRD 红线4)
+                const auth = await requireRole(ADMIN_UP);
+                if (!auth.ok) return;
                 const { bookingService } = await import("@/modules/booking");
                 await bookingService.resumePausedSlots(target);
               }}
