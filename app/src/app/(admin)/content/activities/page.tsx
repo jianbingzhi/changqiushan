@@ -24,7 +24,7 @@ export default async function ContentActivitiesPage() {
   return (
     <>
       <PageHeader title="活动运营管理" description="创建和管理景区活动，报名费由 C 端小程序处理"
-        actions={<Link href="/content/activities/new"><Button style={{ backgroundColor: "#2D5A27", color: "#fff" }}>新建活动</Button></Link>}
+        actions={<Link href="/content/activities/new"><Button>新建活动</Button></Link>}
       />
       <div className="mb-6">
         <KpiRow>

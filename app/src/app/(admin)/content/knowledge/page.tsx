@@ -27,7 +27,7 @@ export default async function ContentKnowledgePage({ searchParams }: { searchPar
   return (
     <>
       <PageHeader title="AI 问答知识库" description="维护景区 AI 问答知识条目"
-        actions={<Link href="/content/knowledge/new"><Button style={{ backgroundColor: "#2D5A27", color: "#fff" }}>新建条目</Button></Link>}
+        actions={<Link href="/content/knowledge/new"><Button>新建条目</Button></Link>}
       />
       <form method="GET" className="flex flex-wrap items-end gap-3 mb-4">
         <div className="flex flex-col gap-1">
@@ -63,7 +63,7 @@ export default async function ContentKnowledgePage({ searchParams }: { searchPar
               <TableRow key={item.id} className="hover:bg-[#F9FAFB]">
                 <TableCell className="font-medium text-[#1F2937] max-w-[380px] truncate">{item.title}</TableCell>
                 <TableCell>
-                  {item.category ? <span className="inline-flex items-center rounded-full border border-[#E5E7EB] bg-[#F9FAFB] px-2.5 py-0.5 text-[11px] text-[#6B7280]">{item.category}</span> : "—"}
+                  {item.category ? <span className="inline-flex items-center rounded-full border border-[#E5E7EB] bg-[#F9FAFB] px-2.5 py-0.5 text-xs text-[#6B7280]">{item.category}</span> : "—"}
                 </TableCell>
                 <TableCell><StatusChip status={item.status === "PUBLISHED" ? "ACTIVE" : "PAUSED"} /></TableCell>
                 <TableCell>

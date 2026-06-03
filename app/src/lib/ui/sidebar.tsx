@@ -24,6 +24,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { MENU_GROUPS } from "@/lib/ui/nav/menu";
+import { cn } from "@/lib/ui/utils";
 
 const ICON_MAP: Record<string, LucideIcon> = {
   MapPin,
@@ -48,26 +49,20 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside
-      className="flex flex-col shrink-0 h-full overflow-y-auto"
-      style={{ width: 240, backgroundColor: "#1F3F1A" }}
-    >
+    <aside className="flex h-full w-60 shrink-0 flex-col overflow-y-auto bg-sidebar">
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 pt-6 pb-5">
         <span
-          className="flex items-center justify-center rounded-full shrink-0"
-          style={{ width: 32, height: 32, backgroundColor: "#2D5A27" }}
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary"
           aria-hidden="true"
         >
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
             <path d="M2 14l4.5-7L10 11l2.5-4L16 14H2Z" fill="white" fillOpacity="0.9" />
           </svg>
         </span>
-        <div className="leading-tight min-w-0">
-          <p className="font-semibold truncate" style={{ fontSize: 14, color: "#E8EFE3" }}>
-            长秋山森林公园智慧景区
-          </p>
-          <p style={{ fontSize: 11, color: "#A8C09A" }}>管理后台</p>
+        <div className="min-w-0 leading-tight">
+          <p className="truncate text-sm font-semibold text-sidebar-text">长秋山森林公园智慧景区</p>
+          <p className="text-xs text-sidebar-section">管理后台</p>
         </div>
       </div>
 
@@ -75,12 +70,7 @@ export function Sidebar() {
       <nav className="flex-1 px-2">
         {MENU_GROUPS.map((group) => (
           <div key={group.title} className="mb-4">
-            <p
-              className="px-2 mb-1"
-              style={{ fontSize: 11, color: "#A8C09A", paddingTop: 8, paddingBottom: 4 }}
-            >
-              {group.title}
-            </p>
+            <p className="px-2 pt-2 pb-1 text-xs text-sidebar-section">{group.title}</p>
             {group.items.map((item) => {
               const isActive =
                 pathname === item.href || pathname.startsWith(item.href + "/");
@@ -89,24 +79,18 @@ export function Sidebar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="flex items-center gap-3 rounded-md mb-0.5 transition-colors"
-                  style={{
-                    paddingLeft: 12,
-                    paddingRight: 12,
-                    paddingTop: 8,
-                    paddingBottom: 8,
-                    backgroundColor: isActive ? "#2D5A27" : "transparent",
-                    borderLeft: isActive ? "3px solid #4a8f42" : "3px solid transparent",
-                    color: isActive ? "#FFFFFF" : "#E8EFE3",
-                    fontWeight: isActive ? 600 : 400,
-                    fontSize: 14,
-                  }}
+                  className={cn(
+                    "mb-0.5 flex items-center gap-3 rounded-md border-l-[3px] px-3 py-2 text-sm transition-colors",
+                    isActive
+                      ? "border-[#4a8f42] bg-sidebar-active font-semibold text-white"
+                      : "border-transparent font-normal text-sidebar-text",
+                  )}
                 >
                   {Icon && (
                     <Icon
                       size={20}
                       strokeWidth={1.5}
-                      style={{ color: isActive ? "#FFFFFF" : "#A8C09A", flexShrink: 0 }}
+                      className={cn("shrink-0", isActive ? "text-white" : "text-sidebar-section")}
                     />
                   )}
                   {item.label}
@@ -118,27 +102,16 @@ export function Sidebar() {
       </nav>
 
       {/* Bottom */}
-      <div className="px-2 pb-4 pt-2" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+      <div className="border-t border-white/10 px-2 pt-2 pb-4">
         {[
           { label: "帮助支持", Icon: HelpCircle },
           { label: "退出登录", Icon: LogOut },
         ].map(({ label, Icon }) => (
           <button
             key={label}
-            className="flex w-full items-center gap-3 rounded-md mb-0.5 transition-colors hover:bg-white/10"
-            style={{
-              paddingLeft: 12,
-              paddingRight: 12,
-              paddingTop: 8,
-              paddingBottom: 8,
-              fontSize: 14,
-              color: "#A8C09A",
-              background: "transparent",
-              border: "none",
-              cursor: "pointer",
-            }}
+            className="mb-0.5 flex w-full cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm text-sidebar-section transition-colors hover:bg-white/10"
           >
-            <Icon size={20} strokeWidth={1.5} style={{ flexShrink: 0 }} />
+            <Icon size={20} strokeWidth={1.5} className="shrink-0" />
             {label}
           </button>
         ))}

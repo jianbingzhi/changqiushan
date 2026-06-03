@@ -53,7 +53,7 @@ function StepIndicator({ current }: { current: number }) {
               >
                 {done ? <Check className="h-4 w-4" /> : i + 1}
               </div>
-              <span className={cn("mt-1.5 text-[11px] whitespace-nowrap", active ? "text-[#2D5A27] font-semibold" : "text-[#9CA3AF]")}>
+              <span className={cn("mt-1.5 text-xs whitespace-nowrap", active ? "text-[#2D5A27] font-semibold" : "text-[#9CA3AF]")}>
                 {label}
               </span>
             </div>
@@ -160,7 +160,7 @@ export default function OnsitePage() {
           </div>
           <p className="text-[#1F2937] font-semibold text-lg">预约单已提交</p>
           <p className="text-[13px] text-[#6B7280]">游客 {form.visitorName} 的预约信息已成功录入系统</p>
-          <Button onClick={() => { setForm(INITIAL); setStep(0); setSubmitted(false); setSubmitError(null); }} style={{ backgroundColor: "#2D5A27", color: "#fff" }}>
+          <Button onClick={() => { setForm(INITIAL); setStep(0); setSubmitted(false); setSubmitError(null); }}>
             继续录入
           </Button>
         </div>
@@ -316,11 +316,11 @@ export default function OnsitePage() {
         <div className="flex items-center justify-between pt-2">
           <Button variant="outline" onClick={back} disabled={step === 0 || submitting}>上一步</Button>
           {step < STEPS.length - 1 ? (
-            <Button onClick={next} style={{ backgroundColor: "#2D5A27", color: "#fff" }} className="gap-1">
+            <Button onClick={next} className="gap-1">
               下一步 <ChevronRight className="h-4 w-4" />
             </Button>
           ) : (
-            <Button onClick={submit} disabled={submitting} style={{ backgroundColor: "#2D5A27", color: "#fff" }}>
+            <Button onClick={submit} disabled={submitting}>
               {submitting ? "提交中…" : "确认提交"}
             </Button>
           )}

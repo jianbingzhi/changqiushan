@@ -17,7 +17,7 @@ export default async function ContentNewsPage() {
   return (
     <>
       <PageHeader title="资讯模块" description="管理景区公告、新闻、通知"
-        actions={<Link href="/content/news/new"><Button style={{ backgroundColor: "#2D5A27", color: "#fff" }}>新建资讯</Button></Link>}
+        actions={<Link href="/content/news/new"><Button>新建资讯</Button></Link>}
       />
       <div className="rounded-lg border border-[#E5E7EB] bg-white">
         <Table>

@@ -20,46 +20,30 @@ export function Topbar() {
   const crumb = useBreadcrumb(pathname);
 
   return (
-    <header
-      className="relative flex shrink-0 items-center justify-between"
-      style={{
-        height: 64,
-        backgroundColor: "#FFFFFF",
-        borderBottom: "1px solid #EEEEEE",
-        paddingLeft: 24,
-        paddingRight: 24,
-      }}
-    >
+    <header className="relative flex h-16 shrink-0 items-center justify-between border-b border-[#EEEEEE] bg-white px-6">
       {/* Left */}
       <div className="flex items-center gap-3">
         <span
-          className="flex items-center justify-center rounded-full shrink-0"
-          style={{ width: 32, height: 32, backgroundColor: "#2D5A27" }}
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary"
           aria-hidden="true"
         >
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
             <path d="M2 14l4.5-7L10 11l2.5-4L16 14H2Z" fill="white" fillOpacity="0.9" />
           </svg>
         </span>
-        <span className="font-bold" style={{ fontSize: 16, color: "#2D5A27" }}>
-          长秋山森林公园智慧景区
-        </span>
+        <span className="text-base font-bold text-primary">长秋山森林公园智慧景区</span>
       </div>
 
       {/* Center: breadcrumb */}
-      <div
-        className="absolute left-1/2 -translate-x-1/2 select-none"
-        style={{ fontSize: 13, color: "#6B7280" }}
-      >
-        {crumb ? <>首页 · {crumb.group} · <span style={{ color: "#2D5A27" }}>{crumb.page}</span></> : "首页"}
+      <div className="absolute left-1/2 -translate-x-1/2 select-none text-[13px] text-[#6B7280]">
+        {crumb ? <>首页 · {crumb.group} · <span className="text-primary">{crumb.page}</span></> : "首页"}
       </div>
 
       {/* Right */}
       <div className="flex items-center gap-2">
         <button
           aria-label="全屏"
-          className="flex items-center justify-center w-8 h-8 rounded-md text-[#6B7280] hover:bg-gray-100 transition-colors"
-          style={{ background: "transparent", border: "none", cursor: "pointer" }}
+          className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-[#6B7280] transition-colors hover:bg-gray-100"
           onClick={() => {
             if (!document.fullscreenElement) document.documentElement.requestFullscreen();
             else document.exitFullscreen();
@@ -70,44 +54,29 @@ export function Topbar() {
 
         <button
           aria-label="通知"
-          className="relative flex items-center justify-center w-8 h-8 rounded-md text-[#6B7280] hover:bg-gray-100 transition-colors"
-          style={{ background: "transparent", border: "none", cursor: "pointer" }}
+          className="relative flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-[#6B7280] transition-colors hover:bg-gray-100"
         >
           <Bell size={16} />
-          <span
-            className="absolute top-1 right-1 flex items-center justify-center rounded-full text-white"
-            style={{ width: 14, height: 14, fontSize: 9, fontWeight: 600, backgroundColor: "#DC2626" }}
-          >
+          <span className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-danger px-1 text-xs font-semibold text-white">
             3
           </span>
         </button>
 
         <button
           aria-label="帮助"
-          className="flex items-center justify-center w-8 h-8 rounded-md text-[#6B7280] hover:bg-gray-100 transition-colors"
-          style={{ background: "transparent", border: "none", cursor: "pointer" }}
+          className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-[#6B7280] transition-colors hover:bg-gray-100"
         >
           <HelpCircle size={16} />
         </button>
 
-        <span
-          aria-hidden="true"
-          className="inline-block"
-          style={{ width: 1, height: 20, backgroundColor: "#E5E7EB" }}
-        />
+        <span aria-hidden="true" className="inline-block h-5 w-px bg-[#E5E7EB]" />
 
-        <button
-          className="flex items-center gap-2 rounded-md px-2 py-1 hover:bg-gray-100 transition-colors"
-          style={{ background: "transparent", border: "none", cursor: "pointer" }}
-        >
-          <span
-            className="flex items-center justify-center rounded-full font-semibold text-white shrink-0"
-            style={{ width: 32, height: 32, fontSize: 13, backgroundColor: "#2D5A27" }}
-          >
+        <button className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-gray-100">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-[13px] font-semibold text-white">
             管
           </span>
-          <span style={{ fontSize: 13, color: "#1F2937" }}>系统管理员</span>
-          <ChevronDown size={14} style={{ color: "#6B7280" }} />
+          <span className="text-[13px] text-[#1F2937]">系统管理员</span>
+          <ChevronDown size={14} className="text-[#6B7280]" />
         </button>
       </div>
     </header>

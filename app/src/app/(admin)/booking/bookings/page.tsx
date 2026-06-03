@@ -127,18 +127,18 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
                   <TableCell className="text-[13px] text-[#6B7280]">{booking.phone}</TableCell>
                   <TableCell className="text-[13px] text-[#6B7280]">{booking.plate ?? (booking.noVehicleDeclared ? "无车辆" : "—")}</TableCell>
                   <TableCell>
-                    <span className="inline-flex items-center rounded-full border border-[#E5E7EB] bg-[#F9FAFB] px-2 py-0.5 text-[11px] text-[#6B7280]">
+                    <span className="inline-flex items-center rounded-full border border-[#E5E7EB] bg-[#F9FAFB] px-2 py-0.5 text-xs text-[#6B7280]">
                       {CHANNEL_LABELS[booking.channel]}
                     </span>
                   </TableCell>
                   <TableCell className="text-[13px] text-[#6B7280]">
                     {booking.slot.name}
-                    <span className="ml-1 text-[11px] text-[#9CA3AF]">{booking.slot.startTime}–{booking.slot.endTime}</span>
+                    <span className="ml-1 text-xs text-[#9CA3AF]">{booking.slot.startTime}–{booking.slot.endTime}</span>
                   </TableCell>
                   <TableCell>
                     <StatusChip status={booking.status === "CONFIRMED" ? "CONFIRMED" : booking.status === "CHECKED_IN" ? "CHECKED_IN" : "CANCELLED"} />
                     {(booking.status === "NO_SHOW" || booking.status === "EXPIRED") && (
-                      <span className="ml-1 text-[11px] text-[#6B7280]">{STATUS_LABEL[booking.status]}</span>
+                      <span className="ml-1 text-xs text-[#6B7280]">{STATUS_LABEL[booking.status]}</span>
                     )}
                   </TableCell>
                   <TableCell className="text-[13px] text-[#6B7280]">

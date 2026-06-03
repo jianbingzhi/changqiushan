@@ -101,7 +101,7 @@ export default async function DashboardPage() {
               <div key={d.id} className="flex items-center gap-2 px-4 py-3">
                 <LiveDot alive={d.status === "ONLINE"} />
                 <span className="text-[13px] font-medium text-[#1F2937] truncate">{d.name}</span>
-                <span className="ml-auto text-[11px] text-[#6B7280]">{d.type}</span>
+                <span className="ml-auto text-xs text-[#6B7280]">{d.type}</span>
               </div>
             ))}
           </div>

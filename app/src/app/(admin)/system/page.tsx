@@ -72,7 +72,7 @@ export default async function SystemPage() {
               <div key={role.id} className="rounded-lg border border-[#E5E7EB] bg-white p-5">
                 <div className="mb-3 flex items-center gap-2">
                   <span className="text-[14px] font-semibold text-[#1F2937]">{ROLE_LABELS[role.code] ?? role.name}</span>
-                  <span className="rounded-full bg-[#F3F4F6] px-2 py-0.5 text-[11px] text-[#6B7280]">{role.code}</span>
+                  <span className="rounded-full bg-[#F3F4F6] px-2 py-0.5 text-xs text-[#6B7280]">{role.code}</span>
                   <span className="text-[12px] text-[#9CA3AF]">{role.permissions.length} 项权限</span>
                 </div>
                 <div className="flex flex-wrap gap-2">

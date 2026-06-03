@@ -26,13 +26,24 @@
   --color-warning: #D97706;
   --color-danger: #DC2626;
   --color-info: #2563EB;
+
+  /* 字体:西文优先(数字/英文用更清爽的西文字形)+ 中文(苹方/鸿蒙/雅黑/思源)兜底 */
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial,
+    "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei UI", "Microsoft YaHei",
+    "Source Han Sans SC", "Noto Sans CJK SC", "WenQuanYi Micro Hei",
+    sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
 }
 
 body {
   background-color: var(--color-background);
   color: var(--color-text-primary);
-  font-family: -apple-system, "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei",
-    "Hiragino Sans GB", "WenQuanYi Micro Hei", sans-serif;
+  font-family: var(--font-sans);
+  /* 中文细腻度:抗锯齿 + 行高加大(中文比西文密) + 数字表格等宽 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  line-height: 1.6;
+  font-feature-settings: "tnum" 1;
 }
 
 /* 富文本编辑器 + 渲染内容(.richtext-content 编辑态 / .richtext-view 展示态)

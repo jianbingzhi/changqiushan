@@ -52,11 +52,11 @@ export function StatusToggle({ model, id, status, revalidate, variant = "default
           )
         }
         className="text-[12px]"
-        style={isDraft ? { backgroundColor: "#2D5A27", color: "#fff" } : undefined}
+       
       >
         {pending ? "处理中…" : isDraft ? publishLabel : archiveLabel}
       </Button>
-      {error && <span className="text-[11px] text-[#DC2626]">{error}</span>}
+      {error && <span className="text-xs text-[#DC2626]">{error}</span>}
     </div>
   );
 }

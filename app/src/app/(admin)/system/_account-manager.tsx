@@ -43,7 +43,7 @@ export function CreateAdminForm() {
   if (!open) {
     return (
       <div className="mb-4">
-        <Button onClick={() => setOpen(true)} style={{ backgroundColor: "#2D5A27", color: "#fff" }}>新建账号</Button>
+        <Button onClick={() => setOpen(true)}>新建账号</Button>
         {msg && <span className={`ml-3 text-[12px] ${msg.ok ? "text-[#2D5A27]" : "text-[#DC2626]"}`}>{msg.text}</span>}
       </div>
     );
@@ -64,7 +64,7 @@ export function CreateAdminForm() {
         </div>
       </div>
       <div className="mt-3 flex items-center gap-2">
-        <Button onClick={submit} disabled={pending} style={{ backgroundColor: "#2D5A27", color: "#fff" }}>{pending ? "创建中…" : "确认创建"}</Button>
+        <Button onClick={submit} disabled={pending}>{pending ? "创建中…" : "确认创建"}</Button>
         <Button variant="outline" onClick={() => { setOpen(false); setMsg(null); }} disabled={pending}>取消</Button>
         {msg && <span className={`text-[12px] ${msg.ok ? "text-[#2D5A27]" : "text-[#DC2626]"}`}>{msg.text}</span>}
       </div>
@@ -100,7 +100,7 @@ export function AccountRowActions({ profileId, disabled }: { profileId: string; 
           <Button size="sm" variant="outline" className="text-[12px] text-[#DC2626] border-[#FECACA]" disabled={pending} onClick={() => run(() => disableAdminAction(profileId))}>停用</Button>
         )}
       </div>
-      {msg && <span className="text-[11px] text-[#6B7280]">{msg}</span>}
+      {msg && <span className="text-xs text-[#6B7280]">{msg}</span>}
     </div>
   );
 }

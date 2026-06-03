@@ -17,7 +17,7 @@ export default async function ContentIntroPage() {
   return (
     <>
       <PageHeader title="景区介绍维护" description="管理景区文字/图片介绍内容"
-        actions={<Link href="/content/intro/new"><Button style={{ backgroundColor: "#2D5A27", color: "#fff" }}>新建介绍</Button></Link>}
+        actions={<Link href="/content/intro/new"><Button>新建介绍</Button></Link>}
       />
       <div className="rounded-lg border border-[#E5E7EB] bg-white">
         <Table>

@@ -150,7 +150,7 @@ export function ContentForm({
         {error && <p className="rounded-lg border border-[#FECACA] bg-[#FEF2F2] px-3 py-2 text-[13px] text-[#DC2626]">{error}</p>}
 
         <div className="flex items-center gap-2 pt-1">
-          <Button onClick={submit} disabled={pending} style={{ backgroundColor: "#2D5A27", color: "#fff" }}>
+          <Button onClick={submit} disabled={pending}>
             {pending ? "保存中…" : "保存"}
           </Button>
           <Button variant="outline" onClick={() => router.back()} disabled={pending}>取消</Button>
