@@ -3,12 +3,34 @@ services:
     image: postgres:18-alpine
     container_name: changqiushan-postgres
     restart: unless-stopped
+    # 资源有限:硬上限 CPU/内存(docker compose up 直接生效),软预留用于调度
+    cpus: 1.0
+    mem_limit: 512m
+    mem_reservation: 256m
+    shm_size: 128m          # PG 并行/哈希用 /dev/shm,默认 64m 偏小
     environment:
       POSTGRES_USER: changqiushan
       POSTGRES_PASSWORD: changqiushan_dev
       POSTGRES_DB: changqiushan
       TZ: Asia/Shanghai
       PGTZ: Asia/Shanghai
+    # 把 PG 内存吃用调到与 512m 容器匹配(默认 shared_buffers/连接数会超)
+    command:
+      - postgres
+      - -c
+      - shared_buffers=128MB
+      - -c
+      - effective_cache_size=384MB
+      - -c
+      - work_mem=4MB
+      - -c
+      - maintenance_work_mem=48MB
+      - -c
+      - max_connections=40
+      - -c
+      - max_parallel_workers_per_gather=1
+      - -c
+      - max_worker_processes=4
     ports:
       - "127.0.0.1:5433:5432"
     volumes:
@@ -26,6 +48,10 @@ services:
     image: supabase/gotrue:v2.176.1   # 钉死版本(升级会改 auth.users 列,需复验视图)
     container_name: changqiushan-gotrue
     restart: unless-stopped
+    # GoTrue(Go,常驻内存小):给足量但封顶,避免异常时占满
+    cpus: 0.5
+    mem_limit: 128m
+    mem_reservation: 64m
     depends_on:
       postgres:
         condition: service_healthy
