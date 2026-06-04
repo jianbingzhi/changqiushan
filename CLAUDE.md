@@ -40,6 +40,7 @@ pnpm lint             # eslint-boundaries 是架构卡口,报错=架构违例
 ```
 - **Postgres**：`docker compose up -d`(在 `app/`)，PG18，映射到 **localhost:5433**。
 - 连接串在 `app/.env`（`DATABASE_URL`，gitignore），模板见 `app/.env.example`。
+- **媒体存储 MinIO**(S3 兼容)：compose 内 `minio` 服务，S3 API `:9000`、控制台 `127.0.0.1:9001`，桶 `changqiushan-media`(公共读，`minio-init` 自动建)。抽象成 S3 driver，上线可切**腾讯 COS/阿里 OSS**(改 endpoint+key 即可)。详见 `docs/B端PRD需求覆盖对照.md` R-storage。
 
 ### ⚠️ 编译/打包纪律（服务器资源紧张，违反会假死）
 本机内存/CPU 有限，`next build` 是最吃资源的动作，**与 dev / docker 同时跑会把服务器拖到假死**。打包按固定顺序来：

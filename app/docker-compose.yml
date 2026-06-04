@@ -119,5 +119,46 @@ services:
       GOTRUE_LOG_LEVEL: info
       TZ: Asia/Shanghai
 
+  # 媒体对象存储(S3 兼容)。富文本/封面图/视频上传落这里。
+  # 选 MinIO 是因其走标准 S3 协议 → 上线可无缝切 腾讯云 COS / 阿里云 OSS(均兼容 S3),
+  # 应用侧只需换 endpoint + access/secret key + bucket,driver(S3)不变。详见 docs R-storage。
+  minio:
+    image: minio/minio:latest   # TODO 上线前钉死 RELEASE 版本(对齐 pg/gotrue 钉版约定)
+    container_name: changqiushan-minio
+    restart: unless-stopped
+    cpus: 0.5
+    mem_limit: 512m
+    mem_reservation: 128m
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-changqiushan}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-changqiushan_minio_dev}
+      TZ: Asia/Shanghai
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"            # S3 API:绑 0.0.0.0,媒体经 VPN(10.7.0.1:9000)可访问
+      - "127.0.0.1:9001:9001"  # 控制台:仅本机
+    volumes:
+      - minio_data:/data
+
+  # 一次性:等 MinIO 起来 → 建 media 桶 → 设公共读(图片 URL 可直接嵌内容)
+  minio-init:
+    image: minio/mc:latest
+    container_name: changqiushan-minio-init
+    depends_on:
+      minio:
+        condition: service_started
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-changqiushan}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-changqiushan_minio_dev}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >
+        until mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"; do echo 'waiting minio...'; sleep 2; done;
+        mc mb -p local/changqiushan-media || true;
+        mc anonymous set download local/changqiushan-media || true;
+        echo 'minio bucket changqiushan-media ready';
+    restart: "no"
+
 volumes:
   postgres_data:
+  minio_data:

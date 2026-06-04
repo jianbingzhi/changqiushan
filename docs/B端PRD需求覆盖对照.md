@@ -74,3 +74,53 @@
 - **承载力熔断(B4)/中文红线(U1)** 两条已踩红线，见上。
 
 > 说明：UI/样式类问题统一汇入 `docs/B端联调BUG清单.md` 顶部「设计系统统一策略」，最后一次性调 theme，不在本表展开。
+
+---
+
+## R-editor · 内容编辑器选型 + 小程序预览〔用户决策 2026-06-04〕
+
+**背景**：用户希望内容编辑达到"最新版 WordPress 那种好用"，但硬约束是**生成内容必须能在微信小程序正常显示 + 高度可定制**，且**编辑时要能预览小程序里的效果**。
+
+**关键事实**：微信小程序**渲染不了任意 HTML**（无 DOM、不能 `dangerouslySetInnerHTML`）。WordPress/古腾堡产出的带 class/内联样式/自定义区块标记的 HTML 到小程序直接废。可选：原生 `rich-text`（白名单子集，定制极低）／`mp-html` 解析库（覆盖大部分图文，定制中）／结构化 JSON + 自写渲染器（定制极高、成本最高）。
+
+**已定方向（据用户答复：内容文章型为主 + 小程序同团队做）**：
+- 采用 **A 档·经典版**：B 端**保留 TipTap**（已在栈），输出**受限 HTML 白名单子集**（标题/段落/粗斜/列表/引用/图片/视频/链接，无任意 class/自定义区块标记）。
+- **HTML 当内容真源**（现模型即如此）→ **零数据迁移**；不上区块 JSON（文章型不需要，且会逼两端重做渲染 + 迁移）。
+- **C 端小程序用 `mp-html` 渲染同一套 HTML**；同团队做 → 编辑器白名单对齐 mp-html 支持范围，渲染保真，定制走"标签→样式"小映射表（内部约定，非跨团队契约）。
+
+**小程序预览（用户新增要求）**：
+- B 端编辑器加**手机框预览面板**：用与 mp-html **同一套标签样式映射**把当前 HTML 渲染进模拟小程序外壳 → 所见即小程序所得。保真度靠"预览样式 == mp-html 样式"这一份共享映射维持。难度低-中（约 1–2 天）。
+- 真机预览（WeChat 开发者工具扫码）属 C 端工作流，需小程序工程 + 微信 CLI，**本期 B 端先做模拟预览**，真机预览待 C 端推进。
+
+**难度/工作量（具体）**：
+| 活儿 | 难度 | 备注 |
+|---|---|---|
+| 媒体上传+存储（真长杆，现为零） | 中 ~2–3 天 | 先定存储:联调期本地盘挂卷最省、上线换 OSS;写上传路由 + 编辑器接传图/传视频 |
+| TipTap 补全到经典版 + 输出白名单 | 中 ~2–4 天 | 加上传入口/对齐/封面图选择器/发布侧栏 |
+| 修 B1 编辑器挂载 | 低 ~0.5–1 天 | 先决条件,prod 容器待复测 |
+| 小程序模拟预览面板 | 低-中 ~1–2 天 | 共享标签样式映射 |
+| C 端 mp-html 渲染 | 中 ~2–3 天 | 做小程序时一并 |
+
+> B 端侧合计约 1 周;比古腾堡(多周+持续维护)省一个量级,且满足"像最新 WP + 小程序兼容 + 高度定制 + 可预览"四诉求。
+
+### R-storage · 媒体对象存储〔用户决策 2026-06-04，已落地基建〕
+**决策**：媒体（富文本配图/封面/视频）用 **MinIO（S3 兼容）**，应用侧抽象成 **S3 driver**，上线可无缝切 **腾讯云 COS / 阿里云 OSS**（均兼容 S3 协议）——只换 endpoint + key + bucket，driver 不变。
+
+**已落地（docker compose）**：
+- `minio` 服务：`server /data`，S3 API 绑 `0.0.0.0:9000`（媒体经 VPN `10.7.0.1:9000` 可访问）、控制台 `127.0.0.1:9001`；资源封顶 cpus0.5/512m；卷 `minio_data`。
+- `minio-init` 一次性：建桶 **`changqiushan-media`** + 设公共读（图片 URL 可直接嵌内容）。已实测桶就绪、`/minio/health/live`=200。
+- 默认凭据 `MINIO_ROOT_USER/PASSWORD`（compose 默认 `changqiushan` / `changqiushan_minio_dev`，prod 应在 `.env` 覆盖）。
+
+**待 upload 代码读取的存储 env 契约（建议）**：
+```
+STORAGE_DRIVER=s3
+STORAGE_ENDPOINT=http://minio:9000          # 容器内网名;prod 换 COS/OSS 域名
+STORAGE_REGION=us-east-1                     # MinIO 任意;COS/OSS 填真实 region
+STORAGE_BUCKET=changqiushan-media
+STORAGE_ACCESS_KEY=...                       # MinIO root 或子账号;prod=云厂商 AK
+STORAGE_SECRET_KEY=...
+STORAGE_FORCE_PATH_STYLE=true               # MinIO 必须;COS/OSS 视情况(多用虚拟主机式)
+STORAGE_PUBLIC_BASE=http://10.7.0.1:9000/changqiushan-media   # 拼可访问 URL;prod=CDN/桶域名
+```
+**实现提示**：用 `@aws-sdk/client-s3`(+ `lib-storage` 分片、`s3-request-presigner` 签名)；一套代码通吃 MinIO/COS/OSS。COS S3 端点 `cos.<region>.myqcloud.com`、OSS S3 端点 `oss-<region>.aliyuncs.com`（OSS 的 S3 兼容个别能力有差，必要时退回原生 SDK）。
+**注**：当前仅基建就绪，应用 upload 路由/编辑器接入仍是后续 dev 工作（见上表工作量）。
