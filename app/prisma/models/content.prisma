@@ -101,6 +101,24 @@ model ContentKnowledge {
   @@map("content_knowledge")
 }
 
+// 导览 POI(景点/餐饮/卫生间/观景台等);经纬度供小程序地图标注
+model ContentPoi {
+  id          String        @id @default(uuid()) @db.Uuid
+  name        String        @db.VarChar(80)
+  category    String        @db.VarChar(40)
+  latitude    Decimal       @db.Decimal(10, 7)
+  longitude   Decimal       @db.Decimal(10, 7)
+  description String?       @db.Text
+  coverImage  String?       @map("cover_image") @db.VarChar(255)
+  sortOrder   Int           @default(0) @map("sort_order")
+  status      ContentStatus @default(DRAFT)
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([status, category])
+  @@map("content_poi")
+}
+
 model ContentNews {
   id          String        @id @default(uuid()) @db.Uuid
   title       String        @db.VarChar(80)

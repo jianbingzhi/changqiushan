@@ -84,6 +84,17 @@ export interface PublicKnowledge {
   sortOrder: number
 }
 
+export interface PublicPoi {
+  id: string
+  name: string
+  category: string
+  latitude: number
+  longitude: number
+  description: string | null
+  coverImage: string | null
+  sortOrder: number
+}
+
 export interface PublicParkingLot {
   id: string
   name: string

@@ -1,7 +1,7 @@
 // C 端响应序列化 — 统一裁剪敏感/内部字段(红线#5/#7:不下发 qrCode/qrSecret/*Key)
 // 仅做字段投影,不含业务逻辑
 import type { Booking, BookingSlot } from "@/modules/booking";
-import type { ContentActivity, ContentIntro, ContentKnowledge, ContentNews } from "@/modules/content";
+import type { ContentActivity, ContentIntro, ContentKnowledge, ContentNews, ContentPoi } from "@/modules/content";
 import type { TrafficParkingLot } from "@/modules/traffic";
 
 function maskIdCard(idCard: string): string {
@@ -100,6 +100,19 @@ export function publicKnowledge(k: ContentKnowledge) {
     content: k.content,
     category: k.category,
     sortOrder: k.sortOrder,
+  };
+}
+
+export function publicPoi(p: ContentPoi) {
+  return {
+    id: p.id,
+    name: p.name,
+    category: p.category,
+    latitude: Number(p.latitude.toString()),
+    longitude: Number(p.longitude.toString()),
+    description: p.description,
+    coverImage: p.coverImage,
+    sortOrder: p.sortOrder,
   };
 }
 

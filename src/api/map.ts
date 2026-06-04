@@ -1,8 +1,10 @@
 import { request } from './client'
-import type { PublicParkingLot } from './types'
+import type { PublicParkingLot, PublicPoi } from './types'
 
 export function listParking() {
   return request<PublicParkingLot[]>('/parking')
 }
 
-// 导览 POI 接口待 c-07 接入(GET /api/c/poi)
+export function listPoi(category?: string) {
+  return request<PublicPoi[]>(category ? `/poi?category=${encodeURIComponent(category)}` : '/poi')
+}

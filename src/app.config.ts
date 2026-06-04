@@ -16,6 +16,10 @@ export default defineAppConfig({
     {
       root: 'subpkg-ai',
       pages: ['chat/index']
+    },
+    {
+      root: 'subpkg-map',
+      pages: ['index/index']
     }
   ],
   preloadRule: {
@@ -24,6 +28,12 @@ export default defineAppConfig({
       packages: ['subpkg-activity']
     }
   },
+  permission: {
+    'scope.userLocation': {
+      desc: '用于在园区导览地图上展示您的位置与就近停车场'
+    }
+  },
+  requiredPrivateInfos: ['getLocation', 'openLocation'],
   window: {
     backgroundTextStyle: 'light',
     navigationBarBackgroundColor: '#2D5A27',
