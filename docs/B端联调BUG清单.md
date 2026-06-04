@@ -212,3 +212,11 @@
 - **次要**：① 页面 `date` 默认用 `new Date().toISOString()`（**UTC** 日期），与 slots 页特意用的 CST 本地日期不一致，跨时区临界会再偏一天；② 预约日期用**原生 date 控件、英文格式 `06/04/2026`**（违红线6，U1）。
 - **建议**：① 加**时段排期/每日自动生成**（按规则滚动生成未来 N 天 slot；配 R-cfg 的"按日期类型建规则"一起做）；② 配额配置页提供手动建时段入口（R-cfg）；③ 日期统一走 CST 本地日期；④ 原生 date 控件换中文格式或自定义日期选择器。
 - **证据**：`/tmp/onsite-now.jpg`；DB `booking_slot` max(date)=2026-06-03、`date='2026-06-04'` count=0；`onsite/actions.ts getOnsiteSlots`、`page.tsx` 的 `toISOString()`。
+
+## B24 · 侧边栏底部留白——内容超屏时深绿背景不满高〔用户发现·UI〕
+- **严重度** 🟡 中（观感）　**状态** 🆕 新登记　**页面** 全站（`src/lib/ui/sidebar.tsx` + `(admin)/layout.tsx`）
+- **现象**：当主内容比视口高、页面出现滚动时，侧边栏深绿背景**不到底**，底部露出一段**白色**（body 底 #F9FAFB）。
+- **根因（实测）**：`aside` 用 `flex h-full … overflow-y-auto bg-sidebar`；内容把外层 `flex h-full min-h-screen` 容器撑到 1053px，但 `aside` 的 `h-full`(height:100%) 只解析到 ≈999px（≈视口高），**没拉满容器** → 矮 ~54px 露白。
+- **建议**：侧边栏改 **`sticky top-0 h-screen`**（钉住、恰为视口高、内部滚动，永不露白），或外层 flex 去掉 aside 的 `h-full`、靠 `items-stretch` 拉满容器高。
+- **附带**：`(admin)/layout.tsx` 还有内联 `style={{backgroundColor:"#F9FAFB"}}`、`style={{padding:24}}`（B9 内联 style 实例，可转 Tailwind）。
+- **证据**：CDP 量得 layout=1053px / aside=999px / viewport=825px；`/tmp/sidebar-full.jpg`。
