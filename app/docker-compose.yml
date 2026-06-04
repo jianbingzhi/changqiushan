@@ -140,7 +140,8 @@ services:
     volumes:
       - minio_data:/data
 
-  # 一次性:等 MinIO 起来 → 建 media 桶 → 设公共读(图片 URL 可直接嵌内容)
+  # 一次性:等 MinIO 起来 → 建 media 桶 → 仅 public/ 前缀公共读(其余私有,走 presigned GET)
+  # 目录治理: staging/(上传暂存) · public/(头像+公开内容图) · private/<module>/(私有)。详见 docs R-storage。
   minio-init:
     image: minio/mc:latest
     container_name: changqiushan-minio-init
@@ -155,8 +156,9 @@ services:
       - >
         until mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"; do echo 'waiting minio...'; sleep 2; done;
         mc mb -p local/changqiushan-media || true;
-        mc anonymous set download local/changqiushan-media || true;
-        echo 'minio bucket changqiushan-media ready';
+        mc anonymous set none local/changqiushan-media || true;
+        mc anonymous set download local/changqiushan-media/public || true;
+        echo 'minio bucket ready: only public/ is public-read';
     restart: "no"
 
 volumes:

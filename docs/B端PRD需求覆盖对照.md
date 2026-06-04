@@ -104,7 +104,10 @@
 > B 端侧合计约 1 周;比古腾堡(多周+持续维护)省一个量级,且满足"像最新 WP + 小程序兼容 + 高度定制 + 可预览"四诉求。
 
 ### R-storage · 媒体对象存储〔用户决策 2026-06-04，已落地基建〕
-**决策**：媒体（富文本配图/封面/视频）用 **MinIO（S3 兼容）**，应用侧抽象成 **S3 driver**，上线可无缝切 **腾讯云 COS / 阿里云 OSS**（均兼容 S3 协议）——只换 endpoint + key + bucket，driver 不变。
+**决策**：
+- **MinIO 仅开发/联调用**（本地自托管、零成本起一个 S3 兼容服务），**不是生产存储**。
+- **应用层一律走 S3 SDK（`@aws-sdk/client-s3`）**，不写任何 MinIO 专属代码 → 靠 S3 协议天然多平台兼容：**开发对 MinIO、生产对 腾讯云 COS / 阿里云 OSS（或 AWS S3）**，切换只改 endpoint + key + bucket(+ region/path-style)，**业务代码零改动**。
+- 即"面向 S3 接口编程，MinIO/COS/OSS 都只是其后端实现"。
 
 **已落地（docker compose）**：
 - `minio` 服务：`server /data`，S3 API 绑 `0.0.0.0:9000`（媒体经 VPN `10.7.0.1:9000` 可访问）、控制台 `127.0.0.1:9001`；资源封顶 cpus0.5/512m；卷 `minio_data`。
@@ -123,4 +126,49 @@ STORAGE_FORCE_PATH_STYLE=true               # MinIO 必须;COS/OSS 视情况(多
 STORAGE_PUBLIC_BASE=http://10.7.0.1:9000/changqiushan-media   # 拼可访问 URL;prod=CDN/桶域名
 ```
 **实现提示**：用 `@aws-sdk/client-s3`(+ `lib-storage` 分片、`s3-request-presigner` 签名)；一套代码通吃 MinIO/COS/OSS。COS S3 端点 `cos.<region>.myqcloud.com`、OSS S3 端点 `oss-<region>.aliyuncs.com`（OSS 的 S3 兼容个别能力有差，必要时退回原生 SDK）。
-**注**：当前仅基建就绪，应用 upload 路由/编辑器接入仍是后续 dev 工作（见上表工作量）。
+**上传流程 = 预签名直传（presigned URL direct upload）〔用户决策 2026-06-04〕**
+
+目标：**文件字节不经过应用服务器，浏览器直传对象存储，省服务器流量/带宽费用**。
+
+```
+① 浏览器 → 服务器：请求上传(带 文件名/类型/大小)
+② 服务器(持密钥,服务端签名) → 浏览器:返回 presigned PUT URL(限时+限类型+限大小)
+③ 浏览器 → S3/MinIO/COS/OSS：HTTP PUT 直传文件(不过应用服务器,省流量)
+④ 浏览器 → 服务器：提交(带 object key)
+⑤ 服务器 commit：HEAD 校验对象存在+大小/类型 → 落库记录 → 返回可访问 URL
+```
+
+**要点**：
+- **签名只在服务端**（用 `@aws-sdk/s3-request-presigner` 的 `getSignedUrl` + PutObjectCommand），AK/SK 永不下发浏览器。
+- presigned URL 加约束：`expiresIn`(短时效)、`ContentType`、必要时 `ContentLength` 限制，防滥用。
+- **桶要配 CORS**：允许应用 origin 的 `PUT`（MinIO/COS/OSS 都需配；否则浏览器直传被拦）。
+- **commit 步**：服务器 `HeadObject` 确认上传成功 + 校验大小/类型后才落库；可先传到 `tmp/` 前缀、commit 时再视为正式，配生命周期规则 GC 掉未 commit 的孤儿对象。
+- 跨平台：presigned PUT 在 MinIO/COS/OSS/AWS S3 通用（S3 SDK 一套）。公共读桶可直接拼 URL；私有桶则 commit 后发 presigned GET。
+
+**S3 目录(前缀)结构 + commit 移动 + 成本控制〔用户决策 2026-06-04〕**
+
+桶内按"公开/私有 + 模块"分前缀治理，**只有 `public/` 公共读，其余一律私有**（访问走 presigned GET）：
+```
+changqiushan-media/
+├── staging/                       # 所有上传统一先落这里(临时区), 不公开
+│   └── <yyyymmdd>/<uuid>.<ext>
+├── public/                        # ← 仅此前缀设匿名公共读
+│   ├── avatar/<userId>.<ext>      #   用户头像(明确放 public)
+│   └── content/<module>/<id>/…    #   需公开访问的内容配图(景区介绍/资讯等文章图)
+└── private/                       # 默认私有, 访问发 presigned GET
+    └── <module>/<…>               #   按模块隔离的私有文件
+```
+
+**上传统一落 staging，commit 时再移动到目标前缀**（呼应上面的 presigned 流程）：
+- 直传一律 PUT 到 `staging/<date>/<uuid>`；浏览器提交后服务器 commit。
+- commit：`HeadObject` 校验 → 按业务定目标前缀(头像→`public/avatar/`、文章图→`public/content/<module>/`、私有→`private/<module>/`) → **`CopyObject` 到目标 + `DeleteObject` 删 staging**（S3 无原子 move，用 copy+delete）→ 落库最终 key/URL。
+
+**成本控制（长期存储费用是大头）**：
+- **`staging/` 生命周期规则**：N 天(如 7 天)自动过期，GC 掉只传未 commit 的孤儿对象（MinIO `mc ilm` / COS/OSS 生命周期）。
+- **删内容即删对象**：内容/头像被删除时同步删 S3 对象，避免"已无引用仍在计费"。
+- **冷数据转存储类**：长期不访问的可转低频/归档存储类(IA/Archive)降单价（COS/OSS/S3 均支持）。
+- **去重**(可选)：按内容 hash 命名，相同文件不重复存。
+
+**权限策略落地**：匿名公共读**只授予 `public/` 前缀**（MinIO `mc anonymous set download …/public`；COS/OSS 用 bucket policy 限定该前缀）；`staging/` 与 `private/` 不公开。
+
+**注**：当前仅基建就绪（MinIO + 桶 + public 前缀策略），应用的"签发 presigned URL 路由 + commit(移动)路由 + 生命周期规则 + 编辑器直传接入"仍是后续 dev 工作（见上表工作量）。
