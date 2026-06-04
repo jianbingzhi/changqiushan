@@ -11,7 +11,9 @@
   },
   "scripts": {
     "build:weapp": "taro build --type weapp",
-    "dev:weapp": "npm run build:weapp -- --watch"
+    "dev:weapp": "npm run build:weapp -- --watch",
+    "lint:cn": "node scripts/lint-cn.mjs",
+    "upload": "node scripts/upload.mjs"
   },
   "browserslist": [
     "defaults and fully supports es6-module",
