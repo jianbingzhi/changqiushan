@@ -32,7 +32,6 @@ export default async function DashboardPage() {
   return (
     <>
       <PageHeader
-        title="仪表盘"
         description={`${formatCnDate(today)} · 运营概览`}
         actions={
           <div className="flex items-center gap-2">

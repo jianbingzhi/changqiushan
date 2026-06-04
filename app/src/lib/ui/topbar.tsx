@@ -1,24 +1,8 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import { ChevronDown, HelpCircle, Bell, Maximize2 } from "lucide-react";
-import { MENU_GROUPS } from "@/lib/ui/nav/menu";
-
-function useBreadcrumb(pathname: string) {
-  for (const group of MENU_GROUPS) {
-    for (const item of group.items) {
-      if (pathname === item.href || pathname.startsWith(item.href + "/")) {
-        return { group: group.title, page: item.label };
-      }
-    }
-  }
-  return null;
-}
 
 export function Topbar() {
-  const pathname = usePathname();
-  const crumb = useBreadcrumb(pathname);
-
   return (
     <header className="relative flex h-16 shrink-0 items-center justify-between border-b border-[#EEEEEE] bg-white px-6">
       {/* Left */}
@@ -32,11 +16,6 @@ export function Topbar() {
           </svg>
         </span>
         <span className="text-base font-bold text-primary">长秋山森林公园智慧景区</span>
-      </div>
-
-      {/* Center: breadcrumb */}
-      <div className="absolute left-1/2 -translate-x-1/2 select-none text-[13px] text-[#6B7280]">
-        {crumb ? <>首页 · {crumb.group} · <span className="text-primary">{crumb.page}</span></> : "首页"}
       </div>
 
       {/* Right */}
