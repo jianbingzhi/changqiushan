@@ -92,10 +92,7 @@ export const contentService = {
     if (!activity || activity.status !== "PUBLISHED") {
       return err(ErrCode.NOT_FOUND, "活动不存在或未开放报名");
     }
-    // 红线:付费活动需走微信支付(隔离),阶段一暂不开放在线报名
-    if (Number(activity.registrationFee.toString()) > 0) {
-      return err(ErrCode.INVALID_INPUT, "该活动需支付报名费，功能即将开放");
-    }
+    // 免费活动报名即完成;付费活动建单后经微信支付(隔离)完成,入园主流程零支付不变
     if (activity.maxParticipants != null) {
       const count = await contentRepository.countSignups(activityId);
       if (count >= activity.maxParticipants) return err(ErrCode.SLOT_FULL, "报名名额已满");
@@ -112,15 +109,19 @@ export const contentService = {
     return ok({ id: row.id });
   },
 
-  // 支付回调标记报名已付(经此公共面写,payment 模块不跨写 content 表)
-  async markSignupPaid(signupId: string, wxTransactionId?: string): Promise<Result<void>> {
+  // 支付回调标记报名已付(经此公共面写,payment 模块不跨写 content 表;红线:边界)
+  async markSignupPaid(
+    signupId: string,
+    meta?: { wxOrderId?: string; wxTransactionId?: string },
+  ): Promise<Result<void>> {
     const signup = await contentRepository.getSignup(signupId);
     if (!signup) return err(ErrCode.NOT_FOUND, "报名记录不存在");
     if (signup.paymentStatus === "PAID") return ok(undefined); // 幂等
     await contentRepository.updateSignup(signupId, {
       paymentStatus: "PAID",
       paidAt: new Date(),
-      ...(wxTransactionId ? { notes: `微信交易号 ${wxTransactionId}` } : {}),
+      ...(meta?.wxOrderId ? { wxOrderId: meta.wxOrderId } : {}),
+      ...(meta?.wxTransactionId ? { wxTransactionId: meta.wxTransactionId } : {}),
     });
     return ok(undefined);
   },

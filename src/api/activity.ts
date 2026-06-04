@@ -16,3 +16,20 @@ export function signupActivity(id: string, input: { userName: string; idCard: st
     data: input,
   })
 }
+
+export interface JsapiPayParams {
+  appId: string
+  timeStamp: string
+  nonceStr: string
+  package: string
+  signType: 'RSA'
+  paySign: string
+}
+
+// 付费活动:对已建报名单发起 JSAPI 下单,返回 requestPayment 参数
+export function paySignup(signupId: string) {
+  return request<JsapiPayParams>(`/activities/signups/${signupId}/pay`, {
+    method: 'POST',
+    auth: true,
+  })
+}

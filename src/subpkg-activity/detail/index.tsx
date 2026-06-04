@@ -1,7 +1,7 @@
 import { View, Text, Image, Input, Button } from '@tarojs/components'
 import Taro, { useRouter, useLoad } from '@tarojs/taro'
 import { useState } from 'react'
-import { getActivity, signupActivity } from '@/api/activity'
+import { getActivity, signupActivity, paySignup } from '@/api/activity'
 import { MpHtml } from '@/components/MpHtml'
 import { StatusBadge } from '@/components/StatusBadge'
 import { NoticeCard } from '@/components/NoticeCard'
@@ -48,13 +48,39 @@ export default function ActivityDetail() {
       idCard: idCard.trim(),
       phone: phone.trim(),
     })
-    setSubmitting(false)
-    if (r.ok) {
-      Taro.showToast({ title: '报名成功', icon: 'success' })
-      setShowForm(false)
-    } else {
+    if (!r.ok) {
+      setSubmitting(false)
       Taro.showModal({ title: '报名未成功', content: r.message, showCancel: false })
+      return
     }
+
+    // 免费活动:报名即完成;付费活动:发起微信支付(隔离,仅二消)
+    if (activity && !activity.isFree) {
+      const pay = await paySignup(r.data.id)
+      setSubmitting(false)
+      if (!pay.ok) {
+        Taro.showModal({ title: '发起支付失败', content: pay.message, showCancel: false })
+        return
+      }
+      try {
+        await Taro.requestPayment({
+          timeStamp: pay.data.timeStamp,
+          nonceStr: pay.data.nonceStr,
+          package: pay.data.package,
+          signType: 'RSA',
+          paySign: pay.data.paySign,
+        })
+        Taro.showToast({ title: '报名并支付成功', icon: 'success' })
+        setShowForm(false)
+      } catch {
+        Taro.showToast({ title: '支付未完成，可稍后在报名记录中继续', icon: 'none' })
+      }
+      return
+    }
+
+    setSubmitting(false)
+    Taro.showToast({ title: '报名成功', icon: 'success' })
+    setShowForm(false)
   }
 
   if (!activity) {
@@ -102,17 +128,13 @@ export default function ActivityDetail() {
       ) : null}
 
       <View className='adetail__bar'>
-        {activity.isFree ? (
-          <Button className='adetail__cta' onClick={openForm}>立即报名</Button>
-        ) : (
-          <Button className='adetail__cta adetail__cta--disabled' disabled>
-            付费报名 · 敬请期待
-          </Button>
-        )}
+        <Button className='adetail__cta' onClick={openForm}>
+          {activity.isFree ? '立即报名' : `报名并支付 ¥${activity.registrationFee}`}
+        </Button>
       </View>
 
       {!activity.isFree ? (
-        <NoticeCard text='付费活动报名(微信支付)即将开放;入园预约全程免费,不涉及任何支付。' />
+        <NoticeCard text='付费仅用于本活动报名费(微信支付);入园预约全程免费,不涉及任何支付。' />
       ) : null}
     </View>
   )

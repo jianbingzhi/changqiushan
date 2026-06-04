@@ -29,3 +29,30 @@ export function getAiCredentials(): AiCredentials {
     apiKey: process.env.AI_API_KEY ?? "",
   };
 }
+
+export interface WxPayCredentials {
+  appId: string;
+  mchId: string;
+  serialNo: string;
+  /** 商户 API 私钥(PEM);仅服务端持有 */
+  privateKey: string;
+  /** APIv3 密钥(32 字节),用于回调 AES-256-GCM 解密 */
+  apiV3Key: string;
+  /** 微信支付平台证书公钥(PEM),用于回调验签 */
+  platformPublicKey: string;
+  /** 支付结果通知地址(已备案 https) */
+  notifyUrl: string;
+}
+
+/** 读取微信支付 APIv3 凭据(活动报名费,隔离)。证书/密钥仅服务端持有,绝不下发。 */
+export function getWxPayCredentials(): WxPayCredentials {
+  return {
+    appId: process.env.WECHAT_APPID ?? "",
+    mchId: process.env.WXPAY_MCH_ID ?? "",
+    serialNo: process.env.WXPAY_SERIAL_NO ?? "",
+    privateKey: (process.env.WXPAY_PRIVATE_KEY ?? "").replace(/\\n/g, "\n"),
+    apiV3Key: process.env.WXPAY_API_V3_KEY ?? "",
+    platformPublicKey: (process.env.WXPAY_PLATFORM_PUBLIC_KEY ?? "").replace(/\\n/g, "\n"),
+    notifyUrl: process.env.WXPAY_NOTIFY_URL ?? "",
+  };
+}
