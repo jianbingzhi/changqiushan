@@ -1,0 +1,17 @@
+@use "../styles/tokens.scss" as *;
+
+.countdown-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 18px;
+  border-radius: 999px;
+  background: rgba(45, 90, 39, 0.1);
+  color: var(--brand);
+  font-size: $font-sm;
+  font-variant-numeric: tabular-nums;
+
+  &--urgent {
+    background: rgba(220, 38, 38, 0.12);
+    color: var(--danger);
+  }
+}

@@ -1,0 +1,36 @@
+@use "../styles/tokens.scss" as *;
+
+.slot-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 24px;
+  margin-bottom: 16px;
+  transition: opacity 0.15s ease;
+
+  &:active { opacity: 0.7; }
+
+  &--disabled {
+    opacity: 0.5;
+  }
+
+  &__time {
+    display: block;
+    font-size: $font-md;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  &__name {
+    display: block;
+    font-size: $font-sm;
+    color: var(--text-secondary);
+    margin-top: 4px;
+  }
+  &__remaining {
+    font-size: $font-sm;
+    color: var(--brand);
+  }
+}

@@ -1,0 +1,21 @@
+@use "../styles/tokens.scss" as *;
+
+.notice-card {
+  background: var(--notice-bg);
+  border: 1px solid rgba(217, 119, 6, 0.25);
+  border-radius: var(--radius-sm);
+  padding: 20px 24px;
+
+  &__title {
+    display: block;
+    font-size: $font-sm;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  &__text {
+    display: block;
+    font-size: $font-sm;
+    color: var(--text-secondary);
+  }
+}

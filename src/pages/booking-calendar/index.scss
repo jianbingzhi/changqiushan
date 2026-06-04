@@ -1,0 +1,13 @@
+@use "../../styles/tokens.scss" as *;
+
+.cal {
+  padding: 24px;
+
+  &__slots { margin-top: 24px; }
+  &__date {
+    display: block;
+    font-size: $font-md;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+}

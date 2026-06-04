@@ -1,0 +1,62 @@
+@use "../../styles/tokens.scss" as *;
+
+.profile {
+  padding: 24px;
+
+  &__card {
+    display: flex;
+    align-items: center;
+    background: linear-gradient(135deg, #2D5A27, #1F3F1A);
+    border-radius: var(--radius);
+    padding: 32px 28px;
+  }
+  &__avatar {
+    width: 96px;
+    height: 96px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40PX;
+    margin-right: 24px;
+  }
+  &__name { display: block; font-size: $font-md; color: #fff; font-weight: 600; }
+  &__id { display: block; font-size: $font-sm; color: rgba(255, 255, 255, 0.85); margin-top: 8px; }
+
+  &__stats {
+    display: flex;
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: 28px 0;
+    margin: 20px 0;
+  }
+  &__stat { flex: 1; display: flex; flex-direction: column; align-items: center; }
+  &__stat-n { font-size: $font-xl; font-weight: 700; color: var(--brand); }
+  &__stat-l { font-size: $font-xs; color: var(--text-secondary); margin-top: 6px; }
+
+  &__menu {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  &__item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 28px 24px;
+    border-bottom: 1px solid var(--border);
+    font-size: $font-base;
+    color: var(--text-primary);
+    &:last-child { border-bottom: none; }
+  }
+  &__item-val { font-size: $font-sm; color: var(--text-secondary); }
+
+  &__foot {
+    display: block;
+    text-align: center;
+    font-size: $font-xs;
+    color: var(--muted);
+    margin-top: 40px;
+  }
+}
