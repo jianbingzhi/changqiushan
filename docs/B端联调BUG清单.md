@@ -22,8 +22,10 @@
 | # | 严重度 | 状态 | 页面/位置 | 现象 | 初步判断 | 证据 |
 |---|---|---|---|---|---|---|
 
-## B1 · 富文本编辑器（TipTap）经 VPN/dev 不挂载
-- **严重度** 🟠 高　**状态** 🧪 待复核　**页面** `/content/news/new`（及所有富文本新建/编辑）
+## B1 · 富文本编辑器（TipTap）经 VPN/dev 不挂载〔定性:dev 专属,生产正常〕
+- **严重度** 🟠 高→🔵 低（仅 dev/HMR）　**状态** ✅ 生产已复测正常（dev-only）　**页面** `/content/*/new`、`*/edit`（四类内容共用同一 RichTextEditor）
+- **2026-06-04 prod 容器复测结论**：在 **docker 生产构建**(`next start`, NODE_ENV=production)经同一 VPN 访问 `/content/activities/new`，编辑器**挂载正常**——工具栏 12 按钮、`contenteditable=true`、`.ProseMirror` 已挂载、无 `aria-busy` 占位。**证实 B1 是 dev/HMR(StrictMode 双挂载/HMR WS 经 VPN 断)专属，生产构建不复现**，非业务代码 bug。证据 `/tmp/editor-prod.jpg`。
+- （以下为 dev 现象留存）
 - **现象**：页面整体渲染正常（标题/摘要/正文/封面字段、保存按钮都在），但正文区永远停在占位框 `<div aria-busy="true">`，等到 +8s 仍 `contenteditable=false`、无工具栏，无法输入。
 - **关键线索**：控制台刷屏 `WebSocket connection to 'ws://10.7.0.1:3000/_next/webpack-hmr' failed`——dev 模式 HMR 热更 WS 经 VPN 连不上浏览器。
 - **对比**：同代码在服务器**本地** headless Chrome（localhost，HMR WS 正常）下编辑器**能挂载+输入+加粗+保存**（已实测）。
@@ -99,6 +101,7 @@
 - **根因**：`status-chip.tsx` 的 STATUS_CONFIG 没有内容域的 `草稿/已发布/已下线` 标签，被复用成预约/设备的 启用/已暂停。
 - **建议**：给 StatusChip 加内容状态键（DRAFT="草稿"灰、PUBLISHED="已发布"绿、ARCHIVED="已下线"灰），各内容列表按真实 status 渲染。
 - **证据**：`/content/news/page.tsx:38`；截图 `/tmp/shot-btn-tw.jpg`（"园区步道临时维护通知（草稿）"显示"已暂停"）。
+- **附:跨模块动词不一致**：内容状态切换按钮，intro/activities 用 **发布/下线**（发布语义），knowledge 用 **启用/停用**（`StatusToggle variant="toggle"`，启停语义）——同是 DRAFT/PUBLISHED 切换却两套措辞。knowledge 内部自洽（chip 启用/已暂停 + 按钮 停用），但与其它内容模块不统一。建议随 B10 一并定一套内容状态措辞。
 
 ## B11 · 仪表盘「在园人数」SSE 实时更新失效（payload 契约不一致）〔实测确认〕
 - **严重度** 🔴 高（红线4 实时大屏核心）　**状态** 🆕 新登记　**页面** `/`（OccupancyCard）
@@ -192,3 +195,11 @@
 - **影响**：① 当前容器 QA 真人表单登录走不通（叠加 B2），需继续用 **CDP 注入非 secure cookie**（http 下能回传、middleware 照验，已实测放行）；② 上线必须走 **https**，否则生产用户全部无法登录。
 - **建议**：① 正式部署在反代/网关层做 TLS（cookie secure 才成立）；② 若需 http 内网部署，给 cookie secure 加可配开关（如 `COOKIE_SECURE` env），勿仅绑死 `NODE_ENV`。
 - **证据**：`(auth)/login/page.tsx` 的 `cookieStore.set(... secure: NODE_ENV==="production")`；容器实测 `curl 带注入token→200 / 无token→307`。
+
+## B22 · 面包屑中间层级不可点,子页无法经面包屑返回列表〔用户反馈·B12 缺陷〕
+- **严重度** 🟡 中（导航）　**状态** 🆕 新登记　**页面** 所有内容新建/编辑等子页（如 `/content/activities/new`、`*/edit`）；组件 `src/lib/ui/breadcrumb.tsx`
+- **现象（实测）**：在"新建活动"页，面包屑 `首页 / 基础宣传管理 / 活动运营管理`，但点"活动运营管理"**纹丝不动**（`/content/activities/new` 原地）。DOM 核实：仅"首页"是 `<a href="/">`，**分组与页面段都是 `<span>`**。→ 子页（new/edit）下用户**无法靠面包屑回到列表页**，只能浏览器后退或左侧菜单。
+- **根因**：`breadcrumb.tsx` 的 `resolveCrumb` 把 group 和 page 一律渲染成 `<span>`；未区分"当前正在列表页"(page=当前,span 合理) vs "当前在其子页"(page=父级,应为返回列表的 `<Link>`)。
+- **建议**：当 `pathname` 深于 `item.href`（即 `pathname.startsWith(item.href + "/")`）时，page 段渲染为 `<Link href={item.href}>` 可点返回列表，并把子页名（新建/编辑）作为末段 span；`pathname === item.href` 时 page 仍为当前 span。分组段无独立落地页，保持 span 可接受。
+- **关联**：B12（面包屑由我新增,本条是其缺陷）、B13（返回首页入口）。
+- **证据**：CDP 实测点击无跳转；`breadcrumb.tsx` group/page 均 `<span>`。
