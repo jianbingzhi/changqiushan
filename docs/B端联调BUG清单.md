@@ -130,9 +130,10 @@
 - **建议**：确保按 Enter 走表单 submit（必要时给密码框加 `onKeyDown` Enter→requestSubmit）。
 
 ## B16 · Session 1 小时硬过期、非滑动、无刷新〔用户反馈〕
-- **严重度** 🟡 中（联调/体验）　**状态** 🆕 新登记　**页面** 认证
-- **现象**：登录后满 1 小时被踢回登录页,中途操作不续期。`GOTRUE_JWT_EXP=3600` + cookie `maxAge:3600`,无 refresh 逻辑。
-- **建议**：① 联调期可把 `GOTRUE_JWT_EXP` 调长(如 8h=28800);② 正式做**滑动续期**:存 GoTrue 的 `refresh_token`,access token 快过期时用 `grant_type=refresh_token` 静默续期(或 middleware 检测临期重签)。
+- **严重度** 🟡 中（联调/体验）　**状态** 🟡 联调已缓解 / 生产待做滑动续期　**页面** 认证
+- **现象**：登录后满 1 小时被踢回登录页,中途操作不续期。原 `GOTRUE_JWT_EXP=3600` + cookie `maxAge:3600`,无 refresh 逻辑。
+- **已处理(联调)**：`GOTRUE_JWT_EXP` 调到 **604800(7 天)**(compose),已重建 gotrue 生效,免得测试中频繁被踢。
+- **仍待做(生产)**：① 生产改回短时效(如 3600);② **滑动续期**:存 GoTrue 的 `refresh_token`,access token 临期用 `grant_type=refresh_token` 静默续期(或 middleware 检测临期重签);③ 登录页 cookie `maxAge:3600` 硬编码(`login/page.tsx`)未随之调整——真实表单登录时 cookie 仍 1h 过期(当前靠注入绕过,叠加 B21)。
 
 ## B17 · 密码错误无提示〔用户反馈〕
 - **严重度** 🟡 中　**状态** 🆕 新登记　**页面** `/login`

@@ -106,7 +106,8 @@ services:
       # E5/M1: 签发 iss 声明,与应用 session.ts/middleware.ts 的 issuer 校验对齐;
       # 缺此项时 GoTrue 不写 iss,应用侧 issuer 校验会拒签所有真实登录 token。
       GOTRUE_JWT_ISSUER: http://localhost:9999
-      GOTRUE_JWT_EXP: "3600"
+      # 联调放宽:7 天,免得测试中频繁被踢去登录(B16)。⚠️ 生产应改回短时效(如 3600)+ 滑动续期(refresh_token)。
+      GOTRUE_JWT_EXP: "604800"
       GOTRUE_JWT_AUD: authenticated
       GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
       GOTRUE_JWT_ADMIN_ROLES: service_role
