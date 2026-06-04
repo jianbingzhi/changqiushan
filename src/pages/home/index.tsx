@@ -8,10 +8,19 @@ import { NoticeCard } from '@/components/NoticeCard'
 import type { PublicActivity, PublicIntro } from '@/api/types'
 import './index.scss'
 
-const QUICK_ENTRIES = [
+interface QuickEntry {
+  key: string
+  icon: string
+  label: string
+  tab?: string
+  page?: string
+  soon?: boolean
+}
+
+const QUICK_ENTRIES: QuickEntry[] = [
   { key: 'booking', icon: '📅', label: '预约入园', tab: '/pages/booking-calendar/index' },
   { key: 'mine', icon: '🎫', label: '我的预约', tab: '/pages/my-bookings/index' },
-  { key: 'activity', icon: '🎉', label: '活动报名', soon: true },
+  { key: 'activity', icon: '🎉', label: '活动报名', page: '/subpkg-activity/list/index' },
   { key: 'ai', icon: '🤖', label: '智能问答', soon: true },
   { key: 'map', icon: '🗺️', label: '导览地图', soon: true },
 ]
@@ -32,12 +41,13 @@ export default function Home() {
     Taro.stopPullDownRefresh()
   })
 
-  const onEntry = (e: typeof QUICK_ENTRIES[number]) => {
+  const onEntry = (e: QuickEntry) => {
     if (e.soon) {
       Taro.showToast({ title: '敬请期待', icon: 'none' })
       return
     }
-    if (e.tab) Taro.switchTab({ url: e.tab })
+    if (e.page) Taro.navigateTo({ url: e.page })
+    else if (e.tab) Taro.switchTab({ url: e.tab })
   }
 
   return (
@@ -67,7 +77,7 @@ export default function Home() {
           <ScrollView scrollX className='home__hscroll'>
             {activities.map((a) => (
               <View key={a.id} className='home__hitem'>
-                <ActivityCard activity={a} onTap={() => Taro.showToast({ title: '活动详情敬请期待', icon: 'none' })} />
+                <ActivityCard activity={a} onTap={(id) => Taro.navigateTo({ url: `/subpkg-activity/detail/index?id=${id}` })} />
               </View>
             ))}
           </ScrollView>

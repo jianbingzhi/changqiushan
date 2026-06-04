@@ -27,6 +27,14 @@ export const contentRepository = {
   listSignups(activityId: string) { return db.contentActivitySignup.findMany({ where: { activityId }, orderBy: { createdAt: "desc" } }); },
   getSignup(id: string) { return db.contentActivitySignup.findUnique({ where: { id } }); },
   updateSignup(id: string, data: Prisma.ContentActivitySignupUpdateInput) { return db.contentActivitySignup.update({ where: { id }, data }); },
+  // C 端报名:建单 / 名额计数 / 防重(同活动同身份证)
+  createSignup(data: { activityId: string; userId: string; userName: string; phone: string }) {
+    return db.contentActivitySignup.create({ data });
+  },
+  countSignups(activityId: string) { return db.contentActivitySignup.count({ where: { activityId } }); },
+  findSignupByUser(activityId: string, userId: string) {
+    return db.contentActivitySignup.findFirst({ where: { activityId, userId } });
+  },
 
   // ── 知识库 ────────────────────────────────────────────────────────────────
   listKnowledge(category?: string) {

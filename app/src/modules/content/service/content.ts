@@ -5,6 +5,7 @@ import {
   createNewsSchema, updateNewsSchema,
   createActivitySchema, updateActivitySchema,
   createKnowledgeSchema, updateKnowledgeSchema,
+  createSignupSchema,
 } from "../domain/schema";
 import { contentRepository } from "../repository";
 
@@ -80,6 +81,48 @@ export const contentService = {
       case "knowledge": row = await contentRepository.createKnowledge(d as never); break;
     }
     return ok({ id: row.id });
+  },
+
+  // C 端活动报名(阶段一:仅免费活动在线报名;付费活动报名经微信支付二期开放)
+  async createSignup(activityId: string, raw: unknown): Promise<Result<{ id: string }>> {
+    const parsed = createSignupSchema.safeParse(raw);
+    if (!parsed.success) return err(ErrCode.INVALID_INPUT, parsed.error.issues[0].message);
+
+    const activity = await contentRepository.getActivity(activityId);
+    if (!activity || activity.status !== "PUBLISHED") {
+      return err(ErrCode.NOT_FOUND, "活动不存在或未开放报名");
+    }
+    // 红线:付费活动需走微信支付(隔离),阶段一暂不开放在线报名
+    if (Number(activity.registrationFee.toString()) > 0) {
+      return err(ErrCode.INVALID_INPUT, "该活动需支付报名费，功能即将开放");
+    }
+    if (activity.maxParticipants != null) {
+      const count = await contentRepository.countSignups(activityId);
+      if (count >= activity.maxParticipants) return err(ErrCode.SLOT_FULL, "报名名额已满");
+    }
+    const dup = await contentRepository.findSignupByUser(activityId, parsed.data.idCard);
+    if (dup) return err(ErrCode.DUPLICATE_BOOKING, "您已报名该活动，请勿重复提交");
+
+    const row = await contentRepository.createSignup({
+      activityId,
+      userId: parsed.data.idCard,
+      userName: parsed.data.userName,
+      phone: parsed.data.phone,
+    });
+    return ok({ id: row.id });
+  },
+
+  // 支付回调标记报名已付(经此公共面写,payment 模块不跨写 content 表)
+  async markSignupPaid(signupId: string, wxTransactionId?: string): Promise<Result<void>> {
+    const signup = await contentRepository.getSignup(signupId);
+    if (!signup) return err(ErrCode.NOT_FOUND, "报名记录不存在");
+    if (signup.paymentStatus === "PAID") return ok(undefined); // 幂等
+    await contentRepository.updateSignup(signupId, {
+      paymentStatus: "PAID",
+      paidAt: new Date(),
+      ...(wxTransactionId ? { notes: `微信交易号 ${wxTransactionId}` } : {}),
+    });
+    return ok(undefined);
   },
 
   // B04: 编辑内容(部分更新)。

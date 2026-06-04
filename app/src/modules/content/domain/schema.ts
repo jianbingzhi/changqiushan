@@ -39,6 +39,13 @@ export const createNewsSchema = z.object({
 });
 export const updateNewsSchema = createNewsSchema.partial();
 
+// C 端活动报名:复用与预约同口径的身份证/手机校验(红线#2)
+export const createSignupSchema = z.object({
+  userName: z.string().min(1, "姓名不能为空").max(40),
+  idCard:   z.string().length(18, "身份证号必须 18 位"),
+  phone:    z.string().regex(/^1[3-9]\d{9}$/, "手机号格式无效"),
+});
+
 export const reviewSignupSchema = z.object({
   signupId: z.string().uuid("signupId 必须是 UUID"),
   status:   z.enum(["APPROVED", "REJECTED"]),
@@ -53,4 +60,5 @@ export type CreateKnowledgeInput = z.infer<typeof createKnowledgeSchema>;
 export type UpdateKnowledgeInput = z.infer<typeof updateKnowledgeSchema>;
 export type CreateNewsInput      = z.infer<typeof createNewsSchema>;
 export type UpdateNewsInput      = z.infer<typeof updateNewsSchema>;
+export type CreateSignupInput    = z.infer<typeof createSignupSchema>;
 export type ReviewSignupInput    = z.infer<typeof reviewSignupSchema>;

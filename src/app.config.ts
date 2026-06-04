@@ -8,6 +8,18 @@ export default defineAppConfig({
     'pages/profile/index',
     'pages/login/index'
   ],
+  subPackages: [
+    {
+      root: 'subpkg-activity',
+      pages: ['list/index', 'detail/index']
+    }
+  ],
+  preloadRule: {
+    'pages/home/index': {
+      network: 'all',
+      packages: ['subpkg-activity']
+    }
+  },
   window: {
     backgroundTextStyle: 'light',
     navigationBarBackgroundColor: '#2D5A27',

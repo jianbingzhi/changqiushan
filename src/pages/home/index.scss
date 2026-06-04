@@ -32,7 +32,7 @@
   &__section { margin-top: 28px; }
   &__section-title { display: block; font-size: $font-md; font-weight: 600; margin-bottom: 16px; }
   &__hscroll { white-space: nowrap; }
-  &__hitem { display: inline-block; margin-right: 16px; }
+  &__hitem { display: inline-block; width: 300px; margin-right: 16px; vertical-align: top; }
   &__empty { font-size: $font-sm; color: var(--muted); }
 
   &__intro {
