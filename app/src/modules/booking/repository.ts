@@ -64,6 +64,8 @@ export const bookingRepository = {
   async createBookingOptimistic(data: CreateBookingData): Promise<Booking> {
     const col = CHANNEL_COL[data.channel];
     const qrCode = "bk-" + randomBytes(29).toString("hex");
+    // 动态核销码派生密钥(永不下发);展示码由其派生 30s 滚动 TOTP
+    const qrSecret = randomBytes(32).toString("hex");
 
     return db.$transaction(async (tx) => {
       // Atomic per-channel counter increment with quota guard.
@@ -91,6 +93,7 @@ export const bookingRepository = {
             noVehicleDeclared: data.noVehicleDeclared,
             channel: data.channel,
             qrCode,
+            qrSecret,
           },
         });
       } catch (e) {

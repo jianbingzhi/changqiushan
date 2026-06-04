@@ -55,6 +55,8 @@ model Booking {
   channel          BookingChannel  @default(MINI_PROGRAM)
   status           BookingStatus   @default(CONFIRMED)
   qrCode           String          @unique @map("qr_code") @db.VarChar(64)
+  // 动态核销码派生密钥(建单生成,永不下发);展示码为其 30s 滚动 TOTP,qrCode 退居稳定核销主键
+  qrSecret         String          @map("qr_secret") @db.VarChar(64)
   checkedInAt      DateTime?       @map("checked_in_at") @db.Timestamptz(3)
   cancelledAt      DateTime?       @map("cancelled_at") @db.Timestamptz(3)
   noShowAt         DateTime?       @map("no_show_at") @db.Timestamptz(3)

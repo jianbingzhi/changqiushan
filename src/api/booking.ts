@@ -38,3 +38,15 @@ export function getMyStats() {
 export function submitAppeal(reason: string) {
   return request<{ id: string }>('/appeals', { method: 'POST', auth: true, data: { reason } })
 }
+
+export interface CheckinCode {
+  otp: string
+  periodSeconds: number
+  secondsRemaining: number
+  bookingRef: string
+  textCode: string
+}
+
+export function getCheckinCode(bookingId: string) {
+  return request<CheckinCode>(`/checkin-code?bookingId=${bookingId}`, { auth: true })
+}
