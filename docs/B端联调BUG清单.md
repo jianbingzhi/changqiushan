@@ -203,3 +203,12 @@
 - **建议**：当 `pathname` 深于 `item.href`（即 `pathname.startsWith(item.href + "/")`）时，page 段渲染为 `<Link href={item.href}>` 可点返回列表，并把子页名（新建/编辑）作为末段 span；`pathname === item.href` 时 page 仍为当前 span。分组段无独立落地页，保持 span 可接受。
 - **关联**：B12（面包屑由我新增,本条是其缺陷）、B13（返回首页入口）。
 - **证据**：CDP 实测点击无跳转；`breadcrumb.tsx` group/page 均 `<span>`。
+
+## B23 · 现场补录当天无时段可选——系统缺"每日时段生成"机制（P3 升级·prod 确认）
+- **严重度** 🔴 高（当天预约/补录链路瘫痪）　**状态** 🆕 确认　**页面** `/booking/onsite`（亦影响真实预约）
+- **现象（prod 实测）**：现场补录 step1 时段下拉恒"当日暂无可预约时段"，无法进入后续步骤。
+- **真根因**：`booking_slot` 表**最新时段只到 2026-06-03，当天(06-04)0 个时段**；`listSlotsByDate` 精确匹配 `where:{date}` → 当天查不到 → 下拉空。**即系统没有"为当天/未来日生成时段"的机制**，seed 数据一过期，**当天就无任何可预约时段**。
+- **放大效应**：叠加 R-cfg（配额配置页只读、UI 建不了时段）→ 运营**当天无时段时既不能预约、也无法在后台补建**，自救无门。不只补录，**真实在线预约同样会因当天无 slot 而瘫痪**。
+- **次要**：① 页面 `date` 默认用 `new Date().toISOString()`（**UTC** 日期），与 slots 页特意用的 CST 本地日期不一致，跨时区临界会再偏一天；② 预约日期用**原生 date 控件、英文格式 `06/04/2026`**（违红线6，U1）。
+- **建议**：① 加**时段排期/每日自动生成**（按规则滚动生成未来 N 天 slot；配 R-cfg 的"按日期类型建规则"一起做）；② 配额配置页提供手动建时段入口（R-cfg）；③ 日期统一走 CST 本地日期；④ 原生 date 控件换中文格式或自定义日期选择器。
+- **证据**：`/tmp/onsite-now.jpg`；DB `booking_slot` max(date)=2026-06-03、`date='2026-06-04'` count=0；`onsite/actions.ts getOnsiteSlots`、`page.tsx` 的 `toISOString()`。
