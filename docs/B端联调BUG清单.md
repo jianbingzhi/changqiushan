@@ -4,6 +4,21 @@
 > 严重度：🔴 阻断 · 🟠 高 · 🟡 中 · 🔵 低
 > 状态：🆕 新登记 · 🔍 排查中 · 🧪 待复核 · 🛠️ 待修 · ✅ 已修 · ❎ 非 Bug/按设计
 
+---
+
+### 🎨 设计系统统一策略〔用户决策 2026-06-04，框住所有 UI 类问题〕
+
+后续 UI/样式类问题（B18 登录页、B19 表格+token、B20 按钮，及之后所有视觉项）**不逐页逐组件改**，统一收口到 **theme**，最后一次性调：
+
+1. **样式集中到 theme**：颜色/圆角/间距/阴影/字号等都走 `@theme` token + 组件层，**禁止再往各页内联 style / 硬编码 hex / `text-[12px]` 打补丁**（这正是 B19/B20 的病根）。
+2. **支持深色/浅色双主题切换**：theme 要按 light/dark 两套 token 设计（如 `:root` 与 `.dark` 或 `data-theme`），组件只引用语义 token（`--color-bg`/`--color-fg`/`--color-muted`…），切换主题=换 token 值，组件零改动。
+3. **不必 100% 还原 UI 设计图**：设计稿是参考，具体样式以 theme 实现为准，允许偏差；优先保证一致性、可切换、可维护。
+4. **节奏**：联调阶段只记录 UI 问题、不单独改；**最后统一调 theme 一次性解决**。
+
+> 据此，B18/B19/B20 等的"建议"都应理解为"汇入这次统一 theme 调整"，而非各自单独动手。
+
+---
+
 | # | 严重度 | 状态 | 页面/位置 | 现象 | 初步判断 | 证据 |
 |---|---|---|---|---|---|---|
 
@@ -141,3 +156,38 @@
 - **建议方向**：改**左右分栏**——左侧用导览图主视觉 + 深绿渐变蒙版 + slogan，右侧表单卡片下沉、输入框加前置图标（手机/锁）、按钮与品牌色统一走 Tailwind token（`bg-primary`，去内联 style）。
 - **可用素材**：用户已提供登录页背景图，归档在 `UI/素材/登录页背景-导览图.jpg`（长秋山森林公园手绘导览图，5120×2560）。开发实现时复制到 `app/public/` 引用，上线前建议压缩/转 WebP。
 - **证据**：`/tmp/login-now.jpg`；`src/app/(auth)/login/page.tsx`、`_login-form.tsx`、`(auth)/layout.tsx`。
+
+## B19 · 列表表格丑/松散 + shadcn token 缺失致组件整体降级〔用户反馈·UI·系统性〕
+- **严重度** 🟠 高（影响所有列表/表单页观感）　**状态** 🆕 新登记　**页面** 全站列表（`/content/intro`、`/content/activities`、资讯、设备列表、预约单查询…共用 `src/lib/ui/table.tsx`）
+- **现象**：用户在景区介绍维护页反馈"表格太丑"。实测（`/tmp/intro-now.jpg`）表格松散、层次弱、像没排版的草稿。
+- **根因一 · shadcn token 未在 `@theme` 定义【系统性·真因】**：组件是标准 shadcn/ui，但本项目 `globals.css @theme` **缺** `--color-muted` / `--color-muted-foreground` / `--color-ring` / `--color-input` / `--color-foreground`（只有个不同名的 `--color-text-muted`）。导致组件内：
+  - `table.tsx` 表头 `text-muted-foreground` → 字色解析为空、发虚；行 `hover:bg-muted/50` → 悬停无反馈；
+  - `input/select/textarea` 的 `border-input`、`bg-background`、focus `ring` 同样失效；
+  - 受影响组件 ≥8：table/input/select/tabs/sheet/card/dialog/textarea。
+  - **同根历史**：`button.tsx` 顶部注释已记同一坑（缺 primary-foreground 等 token，按钮文字曾变透明，被迫各页内联 style）。→ 应**一次性把 shadcn token 集补进 `@theme`**，而非逐组件内联打补丁。
+- **根因二 · Table 当裸原语用、未做版式**：shadcn Table 只给骨架，需调用方设列宽/密度，但本项目直接 `w-full` 铺满：
+  - **列宽失控**：5 列短内容被均摊到整屏宽 → 标题贴最左、操作贴最右，中间"排序/发布时间"孤悬大片空白，扫读要横扫一屏；
+  - **行又高又松**：`TableCell p-4`(上下16px) + `TableHead h-12`，3 行数据撑大半屏，密度极低；
+  - **无斑马纹/无列分隔/无最大宽度约束/无分页**，层次扁平。
+  - 操作列按钮风格混杂（编辑/下线=outline 描边、发布=实心绿），同列视觉跳。
+- **建议**：① 补全 `@theme` 的 shadcn token 集（muted/muted-foreground/ring/input/foreground/accent…）使组件默认态恢复；② Table 给关键列设 `width`/收紧 padding（如 `py-3`）/操作列右对齐定宽/加斑马纹或更清晰的行分隔；③ 操作按钮统一为同一弱化样式（如统一 ghost/outline，主操作才实心）。
+- **证据**：`/tmp/intro-now.jpg`；`src/lib/ui/table.tsx`、`src/app/globals.css @theme`(14-22 行附近)、`src/lib/ui/button.tsx` 顶部注释。
+
+## B20 · 按钮样式不统一 / 主次不分 / 字号被各页覆盖〔用户反馈·UI·系统性〕
+- **严重度** 🟠 高　**状态** 🆕 新登记　**页面** 全站（共用 `src/lib/ui/button.tsx`，典型见 `/content/intro`、`/content/activities`）
+- **现象**：用户反馈"按钮也（不）乖"。实测同一行操作里 `编辑`(outline 淡描边) 与 `发布/下线`(实心深绿) 权重悬殊、视觉跳，看不出谁是主操作。
+- **具体问题**：
+  1. **主次不分**：列表操作列把同级操作（编辑/下线/发布/报名审核…）混用 outline 与实心，一行里实心深绿格外抢眼，主次规则缺失。
+  2. **实心主色过重**：default 变体 `bg-primary(#2D5A27)` 偏深，大面积实心显沉闷老气；hover 还**硬编码** `bg-[#3a7232]`（未走 `--color-primary-hover` token）。
+  3. **字号被各页覆盖、不统一**：Button 默认 `text-sm`(14px)，但**全站 11 处**列表操作按钮被 `text-[12px]` 覆盖 → 同界面按钮字号不一致，且压在 12px 红线下限（再小即违规）。
+  4. **outline 几乎不可见**：边框 `#E5E7EB` 过浅、hover `#F9FAFB` 反馈极弱 → outline 按钮看着像纯文字链接，无"可点"感。
+  5. **变体单一**：全站只用了 default(18 处) 与 outline(16 处) 两种，secondary/ghost/link 基本没用 → 缺"低权重次操作"层级，导致次操作只能塞 outline、与主操作挤在一起。
+- **建议**：① 定义清晰的按钮层级（主操作=实心/一行一个、次操作=outline、轻操作=ghost/link）并在列表操作列统一用弱化样式；② hover 走 `--color-primary-hover` token、考虑主色提亮或加浅色次级按钮；③ 去掉各页 `text-[12px]` 覆盖，按钮字号统一交给 size 变体（列表用 `size="sm"` 而非改字号）。与 [B19] 同属"组件层没收口、各页打补丁"。
+- **证据**：`/tmp/intro-now.jpg`；`src/lib/ui/button.tsx`(default hover 硬编码)；`grep 'text-\[12px\]'` 命中 11 处列表按钮。
+
+## B21 · 生产环境 http 下 secure cookie 致真实表单登录失效〔环境/安全〕
+- **严重度** 🟡 中（QA 环境 + 上线前须知）　**状态** 🆕 新登记　**页面** 认证（`(auth)/login/page.tsx`）
+- **现象/根因**：登录成功时写 cookie `sb-access-token` 设 `secure: process.env.NODE_ENV === "production"`。容器化 QA（`NODE_ENV=production`）经 **http**(VPN 10.7.0.1) 访问时，浏览器**不会回传 secure cookie** → 即便表单提交链路修好(B2/B15)，真人也登不进；middleware 读不到 cookie → 永远 307 回 /login。
+- **影响**：① 当前容器 QA 真人表单登录走不通（叠加 B2），需继续用 **CDP 注入非 secure cookie**（http 下能回传、middleware 照验，已实测放行）；② 上线必须走 **https**，否则生产用户全部无法登录。
+- **建议**：① 正式部署在反代/网关层做 TLS（cookie secure 才成立）；② 若需 http 内网部署，给 cookie secure 加可配开关（如 `COOKIE_SECURE` env），勿仅绑死 `NODE_ENV`。
+- **证据**：`(auth)/login/page.tsx` 的 `cookieStore.set(... secure: NODE_ENV==="production")`；容器实测 `curl 带注入token→200 / 无token→307`。
