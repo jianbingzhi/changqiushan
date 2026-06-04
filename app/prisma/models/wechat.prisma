@@ -1,0 +1,19 @@
+// 微信游客模块 — C 端小程序登录的游客身份
+// 与 admin(GoTrue) 体系彻底隔离:游客无密码、无 admin 角色,自签 JWT(VISITOR_JWT_SECRET)
+// 身份↔预约经 boundIdCard/phone 关联,Booking 不加 FK(身份证为预约唯一主体)
+
+model WechatVisitor {
+  id          String   @id @default(uuid()) @db.Uuid
+  openid      String   @unique @db.VarChar(64)
+  unionid     String?  @db.VarChar(64)
+  nickname    String?  @db.VarChar(80)
+  avatarUrl   String?  @map("avatar_url") @db.Text
+  // 首次预约/获取手机号时绑定的实名信息(身份证为预约主体)
+  boundIdCard String?  @map("bound_id_card") @db.VarChar(32)
+  phone       String?  @db.VarChar(20)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([boundIdCard])
+  @@map("wechat_visitor")
+}
