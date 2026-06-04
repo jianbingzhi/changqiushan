@@ -1,4 +1,41 @@
 services:
+  # B 端后台应用(Next 16 生产构建)。QA/联调用,完全容器化跑全栈。
+  # 构建是重活:按 CLAUDE.md「编译/打包纪律」先 down 释放内存再 build app,再 up。
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: changqiushan-app:latest
+    container_name: changqiushan-app
+    restart: unless-stopped
+    # 运行期(next start)内存占用温和;构建期重活在 image build 阶段,不受此 limit 约束
+    cpus: 1.0
+    mem_limit: 640m
+    mem_reservation: 256m
+    depends_on:
+      postgres:
+        condition: service_healthy
+      gotrue:
+        condition: service_started
+    environment:
+      NODE_ENV: production
+      TZ: Asia/Shanghai
+      # 容器内网:DB 主机名=postgres、端口=5432(非宿主映射的 5433)
+      DATABASE_URL: postgresql://changqiushan:changqiushan_dev@postgres:5432/changqiushan?schema=public
+      # fetch GoTrue 走容器内网名;但 issuer 必须仍 = GoTrue 签发的 iss(localhost:9999),否则验签拒所有真实 token
+      GOTRUE_URL: http://gotrue:9999
+      GOTRUE_JWT_ISSUER: http://localhost:9999
+      GOTRUE_JWT_SECRET: ${GOTRUE_JWT_SECRET}
+    # 绑 0.0.0.0 以便经 VPN(10.7.0.1)访问;pg/gotrue 仅 127.0.0.1 不外露
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3000/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
   postgres:
     image: postgres:18-alpine
     container_name: changqiushan-postgres

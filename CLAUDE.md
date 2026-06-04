@@ -33,13 +33,23 @@
 ```bash
 cd app
 pnpm dev              # ⚠️ 必须 webpack 模式(package.json 已配 --webpack);内存有限,勿用 turbopack
-pnpm build            # 已用 nice/ionice + cpus:2 限速,勿改回 build:fast
+pnpm build            # 已用 NEXT_BUILD_LIMIT=1 + nice -n19 + ionice -c3 限速,勿改回 build:fast
 pnpm db:migrate       # prisma migrate dev
 pnpm db:seed          # 造今日时段数据
 pnpm lint             # eslint-boundaries 是架构卡口,报错=架构违例
 ```
 - **Postgres**：`docker compose up -d`(在 `app/`)，PG18，映射到 **localhost:5433**。
 - 连接串在 `app/.env`（`DATABASE_URL`，gitignore），模板见 `app/.env.example`。
+
+### ⚠️ 编译/打包纪律（服务器资源紧张，违反会假死）
+本机内存/CPU 有限，`next build` 是最吃资源的动作，**与 dev / docker 同时跑会把服务器拖到假死**。打包按固定顺序来：
+
+1. **先停 dev**：`pkill -f 'next dev'`（释放 3000 端口与常驻内存）。
+2. **再停 docker 释放资源**：`cd app && docker compose down`（PG/GoTrue 占内存，打包期间用不到）。
+3. **限速打包**：只用 `pnpm build`（已带 `NEXT_BUILD_LIMIT=1 nice -n 19 ionice -c 3`，最低 CPU 优先级 + IO idle 类）。**严禁** `pnpm build:fast` / 裸 `next build` —— 不限速必假死。
+4. **打包完成后再起依赖**：`docker compose up -d`，确认 PG/GoTrue healthy 再继续。
+
+> QA/联调检查时用户**完全用 docker 跑**全栈（含应用容器），不是本地 dev。dev 模式专属现象（HMR WebSocket 噪声、StrictMode 双挂载、未压缩首屏慢）**不计入 bug**，疑似 dev 专属的缺陷（如富文本不挂载、表单提交）须在 docker/生产构建下复测才能定性。
 
 ### 架构（模块化单体 + eslint 硬边界）
 分层：`app/(路由) → modules/<m>/index.ts(公共面) → service → domain + repository → infrastructure → shared/lib`。

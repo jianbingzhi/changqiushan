@@ -1,0 +1,16 @@
+# 构建镜像时排除:容器内自行 install/build,且 .env 用 compose 注入(勿带 localhost 串进镜像)
+node_modules
+.next
+.env
+.env.*
+!.env.example
+.git
+.gitignore
+Dockerfile
+.dockerignore
+docker-compose.yml
+*.log
+.DS_Store
+coverage
+.vscode
+README*.md
