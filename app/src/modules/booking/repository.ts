@@ -167,4 +167,37 @@ export const bookingRepository = {
       take: 200,
     });
   },
+
+  // C 端「我的预约」— 精确 idCard 匹配(防枚举越权),过滤主体永远取 token 绑定值
+  listBookingsByIdCardExact(idCard: string) {
+    return db.booking.findMany({
+      where: { idCard },
+      include: { slot: true },
+      orderBy: { createdAt: "desc" },
+      take: 200,
+    });
+  },
+
+  // C 端「我的中心」只读聚合:待履约(CONFIRMED)/已核销/爽约/已取消
+  async getVisitorStats(idCard: string) {
+    const rows = await db.booking.groupBy({
+      by: ["status"],
+      where: { idCard },
+      _count: { _all: true },
+    });
+    const map = new Map<BookingStatus, number>();
+    for (const r of rows) map.set(r.status, r._count._all);
+    const pending = map.get("CONFIRMED") ?? 0;
+    const checkedIn = map.get("CHECKED_IN") ?? 0;
+    const noShow = map.get("NO_SHOW") ?? 0;
+    const cancelled = map.get("CANCELLED") ?? 0;
+    const expired = map.get("EXPIRED") ?? 0;
+    return {
+      pending,
+      checkedIn,
+      noShow,
+      cancelled,
+      total: pending + checkedIn + noShow + cancelled + expired,
+    };
+  },
 };

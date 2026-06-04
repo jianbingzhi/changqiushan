@@ -87,6 +87,22 @@ export const riskcontrolService = {
     return riskcontrolRepository.isBlacklisted(idCardToUserId(idCard));
   },
 
+  // C 端申诉:游客仅持有身份证,服务端据 idCard→userId 定位本人黑名单记录再建申诉
+  async submitAppealByIdCard(idCard: string, reason: string): Promise<Result<{ id: string }>> {
+    const trimmed = (reason ?? "").trim();
+    if (trimmed.length < 10) return err(ErrCode.INVALID_INPUT, "申诉原因至少 10 字");
+    if (trimmed.length > 500) return err(ErrCode.INVALID_INPUT, "申诉原因不超过 500 字");
+    const userId = idCardToUserId(idCard);
+    const blacklist = await riskcontrolRepository.findBlacklistByUserId(userId);
+    if (!blacklist) return err(ErrCode.NOT_FOUND, "当前身份未被限制，无需申诉");
+    const appeal = await riskcontrolRepository.createAppeal({
+      blacklistId: blacklist.id,
+      userId,
+      reason: trimmed,
+    });
+    return ok({ id: appeal.id });
+  },
+
   // B11: 黑名单只读列表 + 人工移除(申诉外的直接移除)
   listBlacklisted() {
     return riskcontrolRepository.findBlacklistAll();
