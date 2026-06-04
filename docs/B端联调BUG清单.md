@@ -15,12 +15,13 @@
 - **初步判断**（已收窄）：**仪表盘的客户端实时卡片 + SSE 在同环境(VPN/dev)下正常渲染**（见 B3），故**排除"客户端组件普遍挂不上"**，问题**收窄为 TipTap `useEditor` 专属**——疑 React 19 dev StrictMode 双挂载 / TipTap v3 SSR(`immediatelyRender:false`) 初始化竞态致 editor 恒为 null。**未必是业务代码 bug**。**待复核**：生产构建是否正常；或调整 useEditor 初始化时机。
 - **证据**：`/tmp/shot-5-editor.jpg`、`/tmp/shot-editor-diag.jpg`；容器 DOM = `<div class="min-h-[260px] ..." aria-busy="true"></div>`。
 
-## B2 · 登录表单经 CDP 点提交不跳转
-- **严重度** 🟡 中（测试侧）　**状态** 🔍 排查中　**页面** `/login`
-- **现象**：CDP 填好手机号/密码、点「登 录」（或 `requestSubmit()`）后停在 `/login`，无 `[role=alert]` 报错，也未跳转。
-- **对比/反证**：同一 `loginAction` 经 HTTP 直连（GoTrue 取 token + 写 cookie）正常；引导管理员、各页 cookie 鉴权均工作。
-- **初步判断**：疑 CDP 远程交互/React 19 server-action 表单在被驱动时的提交未触发，或与 B1 同源的 dev HMR 客户端运行时问题；**未必是登录代码 bug**。当前用 CDP 注入 cookie 绕过以继续测页。
-- **证据**：`/tmp/shot-0-login.jpg`（表单已正确填充）；脚本 `scripts/cdp-verify.cjs` 输出。
+## B2 · 登录表单提交失效——点「登录」按钮也不跳转〔升级:确认真 bug〕
+- **严重度** 🔴 高（UI 登录走不通）　**状态** 🔴 确认　**页面** `/login`
+- **现象（实测确认）**：在你浏览器**真实点击**「登 录」按钮（非 requestSubmit、非回车）填对账号密码后**仍停在 `/login`，不跳转**。靠 CDP 注入 cookie 才登进。→ 排除"CDP 交互"的解释,**表单 action 根本没触发**。
+- **同根三联**：B15(回车不提交)、B17(密码错无提示) 与本条**同一根因**——`<form action={formAction}>`(React 19 useActionState)的提交链路在运行时没跑(成功不 redirect、失败不回显 error)。
+- **待查**：是真代码 bug 还是 **dev/VPN 下客户端水合问题**(同 B1 编辑器:本地 headless 能用、跨 VPN 不行)。需在**本地直连**或**生产构建**复测点登录是否生效来定性。
+- **影响**：当前真人**无法经登录页登录**(只能靠注入 cookie)。
+- **证据**：`scripts/cdp-login.cjs` 输出(表单点登录未跳转→cookie 兜底成功);`/tmp/shot-0-login.jpg`(表单已正确填充)。
 
 ## B3 · 仪表盘被遮蔽：根路径 `/` 被强制重定向到 `/booking/slots`〔已修〕
 - **严重度** 🟠 高（仪表盘 B02 完全不可达）　**状态** ✅ 已修（阻塞用户指定要测的仪表盘，按"遇阻塞才处理"修复）　**页面** `/`
@@ -93,5 +94,34 @@
 - **建议**：触发器/路由补出 `checkedInCount`（核销后重算在园数再推），或卡片改成"收到 checkin_event 就重新拉在园数"。
 - **证据**：`scripts/cdp-sse-test.cjs`（前后都 17、`__sse=[]`）；本地 `/tmp/sse.out`；`prisma/migrations/*realtime*/migration.sql:36`。
 
----
-_（新 Bug 在此续登）_
+## B12 · 首页头部:不需要"仪表盘"title + title 字号过大 + 无面包屑〔用户反馈〕✅ 已改
+- **严重度** 🟡 中　**状态** ✅ 已改　**页面** `/`（及全站 PageHeader）
+- **已改**：`page-header.tsx` title 28px→`text-xl`(20px)+ title 改可选；新增 `breadcrumb.tsx`（首页/分组/页面，由路由反查菜单）；仪表盘省略 title；topbar 去掉重复的居中面包屑。CDP 截图确认。
+
+## B13 · 没有返回首页/仪表盘的入口〔用户反馈〕
+- **严重度** 🟠 高　**状态** 🆕 新登记　**页面** 全局壳
+- **现象**：菜单(`MENU_GROUPS`)无"首页/仪表盘"项；侧边栏 logo+名称、topbar logo+名称**都不是链接**，点了无反应。唯一入口是 B12 新加的面包屑"首页"（仅子页有）。
+- **建议**：侧边栏顶部 logo+名称包成 `<Link href="/">`（最通用习惯）；可选再给菜单加"首页/仪表盘"项。
+
+## B14 · 左侧菜单拥挤,分组应可折叠〔用户反馈〕
+- **严重度** 🟡 中　**状态** 🆕 新登记　**页面** 侧边栏 `sidebar.tsx`
+- **现象**：5 个分组(基础宣传管理/预约管理中心/出行服务/数据可视化与分析/物联网设备监控)全部常驻展开,菜单项多时拥挤、需滚动(底部"物联网/系统管理"被挤出视口)。
+- **建议**：分组标题做成可点击折叠/展开(accordion);记住展开态(localStorage);当前页所在分组默认展开。需把 sidebar 由纯展示改为带状态的客户端交互。
+
+## B15 · 登录页回车不触发登录〔用户反馈〕
+- **严重度** 🟡 中　**状态** 🆕 新登记　**页面** `/login`
+- **现象**：在手机号/密码框按回车不提交，必须手点「登 录」。（与 B2"CDP 提交不跳转"可能同源:表单提交链路有问题。）
+- **疑点**：`<form action={formAction}>` + 自定义 `Input` 组件;正常单/多输入框+submit 按钮按回车应触发原生提交。需查 Input 是否吞了 Enter,或 React 19 action form 的提交未走原生 submit。
+- **建议**：确保按 Enter 走表单 submit（必要时给密码框加 `onKeyDown` Enter→requestSubmit）。
+
+## B16 · Session 1 小时硬过期、非滑动、无刷新〔用户反馈〕
+- **严重度** 🟡 中（联调/体验）　**状态** 🆕 新登记　**页面** 认证
+- **现象**：登录后满 1 小时被踢回登录页,中途操作不续期。`GOTRUE_JWT_EXP=3600` + cookie `maxAge:3600`,无 refresh 逻辑。
+- **建议**：① 联调期可把 `GOTRUE_JWT_EXP` 调长(如 8h=28800);② 正式做**滑动续期**:存 GoTrue 的 `refresh_token`,access token 快过期时用 `grant_type=refresh_token` 静默续期(或 middleware 检测临期重签)。
+
+## B17 · 密码错误无提示〔用户反馈〕
+- **严重度** 🟡 中　**状态** 🆕 新登记　**页面** `/login`
+- **现象**：输错密码后页面无任何错误提示。
+- **代码核对**：逻辑其实**存在**——`login/page.tsx:28` 错误时 `return "手机号或密码错误"`；`_login-form.tsx:53-55` `{error && <p role="alert">…</p>}` 展示。故为运行时未生效。
+- **疑根因**：极可能与 **B15(回车不提交)/B2(表单提交链路)** 同源——用户按回车未触发提交→action 没跑→自然无提示。需实测确认:**点按钮**输错密码是否会显示"手机号或密码错误"。若点按钮也不显示,则 useActionState 回显本身有问题。
+- **待办**：CDP 实测(填错密码→点登录→看是否出红字)。
