@@ -1,0 +1,33 @@
+// AI 问答模块 — 直连大模型(无 RAG),会话/消息持久化
+// 表名前缀 ai_;visitorId 应用层关联 wechat_visitor,不加 FK
+
+model AiConversation {
+  id        String   @id @default(uuid()) @db.Uuid
+  visitorId String   @map("visitor_id") @db.Uuid
+  title     String   @db.VarChar(80)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  messages  AiMessage[]
+
+  @@index([visitorId, updatedAt(sort: Desc)])
+  @@map("ai_conversation")
+}
+
+enum AiRole {
+  USER
+  ASSISTANT
+}
+
+model AiMessage {
+  id             String         @id @default(uuid()) @db.Uuid
+  conversationId String         @map("conversation_id") @db.Uuid
+  role           AiRole
+  content        String         @db.Text
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  conversation   AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@map("ai_message")
+}

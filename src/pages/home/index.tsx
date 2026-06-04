@@ -21,7 +21,7 @@ const QUICK_ENTRIES: QuickEntry[] = [
   { key: 'booking', icon: '📅', label: '预约入园', tab: '/pages/booking-calendar/index' },
   { key: 'mine', icon: '🎫', label: '我的预约', tab: '/pages/my-bookings/index' },
   { key: 'activity', icon: '🎉', label: '活动报名', page: '/subpkg-activity/list/index' },
-  { key: 'ai', icon: '🤖', label: '智能问答', soon: true },
+  { key: 'ai', icon: '🤖', label: '智能问答', page: '/subpkg-ai/chat/index' },
   { key: 'map', icon: '🗺️', label: '导览地图', soon: true },
 ]
 

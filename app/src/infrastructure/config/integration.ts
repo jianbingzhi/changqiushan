@@ -14,3 +14,18 @@ export function getWechatCredentials(): WechatCredentials {
     secret: process.env.WECHAT_SECRET ?? "",
   };
 }
+
+export interface AiCredentials {
+  baseURL: string;
+  model: string;
+  apiKey: string;
+}
+
+/** 读取大模型 API 凭据(OpenAI 兼容)。仅服务端调用,key 绝不下发前端。 */
+export function getAiCredentials(): AiCredentials {
+  return {
+    baseURL: process.env.AI_BASE_URL ?? "",
+    model: process.env.AI_MODEL ?? "",
+    apiKey: process.env.AI_API_KEY ?? "",
+  };
+}

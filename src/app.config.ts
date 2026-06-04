@@ -12,6 +12,10 @@ export default defineAppConfig({
     {
       root: 'subpkg-activity',
       pages: ['list/index', 'detail/index']
+    },
+    {
+      root: 'subpkg-ai',
+      pages: ['chat/index']
     }
   ],
   preloadRule: {
