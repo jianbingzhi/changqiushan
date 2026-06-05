@@ -4,12 +4,8 @@ export type GuardResult =
   | { ok: true; session: Session }
   | { ok: false; message: string };
 
-// 所有业务角色(已登录员工)
-export const ANY_STAFF = ["SUPER_ADMIN", "ADMIN", "OPERATOR"] as const;
-// 管理及以上
-export const ADMIN_UP = ["SUPER_ADMIN", "ADMIN"] as const;
-// 仅超级管理员
-export const SUPER_ONLY = ["SUPER_ADMIN"] as const;
+// 角色常量单一来源在 shared/auth/roles(edge middleware 也用同一份);此处再导出供旧引用点不变
+export { ANY_STAFF, ADMIN_UP, SUPER_ONLY, type AppRole } from "@/shared/auth/roles";
 
 /**
  * Server Action 授权守卫:Server Action 是独立可达的 POST 端点,中间件只做

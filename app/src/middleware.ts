@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { jwtVerify } from "jose";
+import { jwtVerify, type JWTPayload } from "jose";
+import { ADMIN_UP, SUPER_ONLY } from "@/shared/auth/roles";
 
 const PUBLIC_PATHS = ["/login"];
 const JWT_SECRET = process.env.GOTRUE_JWT_SECRET ?? "";
@@ -8,14 +9,29 @@ const JWT_SECRET = process.env.GOTRUE_JWT_SECRET ?? "";
 const JWT_ISSUER =
   process.env.GOTRUE_JWT_ISSUER ?? process.env.GOTRUE_URL ?? "http://localhost:9999";
 
-async function verifyToken(token: string): Promise<boolean> {
+// 路由前缀 → 允许角色(粗粒度纵深防御)。真正的强制点在各 action 的 requireRole;
+// 此处仅在 edge 层先挡一道,未授权角色访问越权页面直接回首页,不进 RSC。
+const ROUTE_ROLE_GATES: { prefix: string; allow: readonly string[] }[] = [
+  { prefix: "/system", allow: SUPER_ONLY },
+  { prefix: "/analytics", allow: ADMIN_UP },
+  { prefix: "/content", allow: ADMIN_UP },
+  { prefix: "/riskcontrol", allow: ADMIN_UP },
+];
+
+async function verifyToken(token: string): Promise<JWTPayload | null> {
   try {
     const secret = new TextEncoder().encode(JWT_SECRET);
-    await jwtVerify(token, secret, { issuer: JWT_ISSUER });
-    return true;
+    const { payload } = await jwtVerify(token, secret, { issuer: JWT_ISSUER });
+    return payload;
   } catch {
-    return false;
+    return null;
   }
+}
+
+function matchGate(pathname: string) {
+  return ROUTE_ROLE_GATES.find(
+    (g) => pathname === g.prefix || pathname.startsWith(g.prefix + "/"),
+  );
 }
 
 export async function middleware(request: NextRequest) {
@@ -29,13 +45,25 @@ export async function middleware(request: NextRequest) {
     request.cookies.get("sb-access-token")?.value ??
     request.cookies.get("access_token")?.value;
 
-  if (!token || !(await verifyToken(token))) {
+  const payload = token ? await verifyToken(token) : null;
+
+  if (!payload) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  // TODO 阶段 1: 细粒度 RBAC — 读 JWT app_metadata.role 做路由权限门
+  // 阶段 1: 细粒度 RBAC — 读 JWT app_metadata.role 做路由权限门(纵深防御,不替代 action 层)
+  const gate = matchGate(pathname);
+  if (gate) {
+    const appRole = (payload.app_metadata as { role?: string } | undefined)?.role;
+    if (!appRole || !gate.allow.includes(appRole)) {
+      const homeUrl = new URL("/", request.url);
+      homeUrl.searchParams.set("denied", pathname);
+      return NextResponse.redirect(homeUrl);
+    }
+  }
+
   return NextResponse.next();
 }
 
