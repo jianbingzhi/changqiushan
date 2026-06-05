@@ -70,3 +70,9 @@
 - **P7** 🟡 渠道接入页纯静态 + 英文枚举标识整列。
 - **P8** 🟡 红线 6 英文泄漏面扩大（枚举码/UUID/OTA/原生日期格式），lint 未覆盖。
 - **P9** 🟡 用户画像描述栏露内部需求编号 B17/B18/B19；画像维度排序混乱。
+- **P10** 🟠 **时区处理不统一（系统性，代码审查发现，非页面巡检）**：
+  - **根因**：进程未设 `TZ`（docker/Dockerfile/.env 均无 → 容器多半跑 UTC），且多处用 `new Date().toISOString().slice(0,10)` 取"今天"——`toISOString()` 恒返 UTC，**北京 0:00–8:00 这段会算成昨天**（设 `TZ` 也修不掉，因 `toISOString` 与进程 TZ 无关）。
+  - **真 bug 实例**：① 现场补录默认日期 `booking/onsite/page.tsx:24`（**疑即 P3 时段下拉为空的诱因之一**——默认日期偏到昨天/明天，getOnsiteSlots 查不到当日时段）；② 导出时间范围 + 文件名日期 `api/export/[module]/route.ts:59-60,98`。
+  - **待确认**：`analytics/repository.ts:35-36` 查询范围（若来自 `@db.Date` 则安全，来自墙上 `new Date()` 推算则偏）。
+  - **本就正确、勿动**：`booking/domain/rules.ts:54`(canCancel)、`checkin/domain/rules.ts:43` 的 `slot.date.toISOString().slice(0,10)` —— `@db.Date` 经 Prisma 存为 UTC 零点，`.slice` 原样还原日历日，正确；其内联 `+08:00` 锚定北京墙上时间也是对的。`paidAt/blacklistedAt/createdAt` 等 `new Date()` 写时间戳全部正确（存的是瞬时，与时区无关）。
+  - **建议（钉死中国时区，单区域标准解法）**：存储用 UTC（`@db.Timestamptz` 已是）/ 营业日用 `@db.Date`；业务计算 + 展示一律按 **Asia/Shanghai（=固定 +08:00，中国无夏令时）**，哪怕国外预订也按北京时间。落地：① docker/Dockerfile/.env 设 `TZ=Asia/Shanghai`（纵深防御）；② 建 `src/shared/lib/time.ts` 收口（`chinaToday()` / `cstStartOf()` / `formatCnDate()`「2026 年 6 月 5 日」/ `formatCnDateTime()`），禁散落的 `+08:00` 字面量与 `toISOString().slice` 取业务日；③ 修上述 2 处真 bug 改用 `chinaToday()`；④ `lint-cn.mjs` 加规则禁 `toISOString().slice` 取业务日 + 裸 `+08:00`（time.ts 豁免），防回归。

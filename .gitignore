@@ -12,3 +12,6 @@ tmp/
 
 # swc 插件缓存(误生成)
 .swc/
+
+# 定时任务运行时锁(进程瞬时状态,含 pid/sessionId,不入库)
+.claude/scheduled_tasks.lock
