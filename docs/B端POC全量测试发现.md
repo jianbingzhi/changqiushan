@@ -4,6 +4,8 @@
 > 分「功能」与「UI/规范」两类。引用已立项 bug 见 `docs/B端联调BUG清单.md`（B1–B17）。本文新增项标 `P-xx`。
 > 全 25 页**无 JS 控制台报错**、**无裸 ISO 日期**（之前已修）。
 >
+> **2026-06-06 QA 回归复核**：无头浏览器(Playwright)真登录态逐项实测线上 https://changqiushan.vercel.app —— **P1–P10 全部复核通过**(详见 [`B端联调BUG清单.md`](./B端联调BUG清单.md) 的 QA 回归矩阵)。
+>
 > **2026-06-05 修复同步**：本文发现已由 **b-98 POC 修复计划 C1–C10** 处理并合入 main 推送（见 [`.claude/plan/b-98-POC问题修复计划.md`](../.claude/plan/b-98-POC问题修复计划.md)）。逐项收口见下方 P 系列尾标。系统性项映射：F1→C1（StatusChip 领域键）、F2→C3（删假 SSE 文案）、F5/B4→C6/D1（大屏口径）、U1→C3/C7/C10（英文中文化）、U2→**仍待 R6 高德 key**、N1/N2/N3→C2（导航）。功能项 F3 登录链路（F3/B2/B15/B17）→C9，**判定大概率 B21 cookie 环境问题，待 docker prod 复测定性**；F4 富文本→已证 dev-only、生产正常，无需修。纯视觉项归后续统一 theme。
 
 ---
