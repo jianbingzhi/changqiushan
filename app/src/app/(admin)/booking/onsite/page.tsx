@@ -6,6 +6,7 @@ import { PageHeader } from "@/lib/ui/page-header";
 import { Button } from "@/lib/ui/button";
 import { Input } from "@/lib/ui/input";
 import { cn } from "@/lib/ui/utils";
+import { chinaToday, formatCnDate } from "@/shared/lib/time";
 import { getOnsiteSlots, submitOnsiteBooking, type OnsiteSlotOption } from "./actions";
 
 interface FormState {
@@ -21,7 +22,7 @@ interface FormState {
 }
 
 const INITIAL: FormState = {
-  date: new Date().toISOString().slice(0, 10),
+  date: chinaToday(),
   slotId: "",
   slotLabel: "",
   visitorName: "",
@@ -190,6 +191,7 @@ export default function OnsitePage() {
                 onChange={(e) => setForm((f) => ({ ...f, date: e.target.value, slotId: "", slotLabel: "" }))}
                 className="max-w-xs"
               />
+              {form.date && <p className="text-[12px] text-[#6B7280]">{formatCnDate(form.date)}</p>}
               {errors.date && <p className="text-[12px] text-[#DC2626]">{errors.date}</p>}
             </div>
             <div className="space-y-1.5">
@@ -290,7 +292,7 @@ export default function OnsitePage() {
             <p className="text-sm text-[#6B7280]">请核对以下信息后提交</p>
             <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] px-4 divide-y divide-[#F3F4F6]">
               {[
-                ["预约日期", form.date],
+                ["预约日期", formatCnDate(form.date)],
                 ["时段", form.slotLabel],
                 ["姓名", form.visitorName],
                 ["手机号", form.phone],

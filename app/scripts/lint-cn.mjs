@@ -62,6 +62,42 @@ const VISIBLE_ATTR_RE = /(?:placeholder|title|aria-label|alt)\s*=\s*"([^"]*)"/g;
 
 const srcDir = new URL("../src/app", import.meta.url).pathname;
 
+// ── 时区红线(P10):禁止用当前时刻派生「业务日历日」。
+//   `new Date().toISOString()` 恒按 UTC 取日,北京 0–8 点偏到昨天 → 一律走
+//   `@/shared/lib/time` 的 chinaToday()/toCstDateStr()。扫全 src(.ts/.tsx),
+//   仅 time.ts 自身豁免。注:domain rules 里 `slot.date.toISOString()`(从 @db.Date
+//   列取日)与 `+08:00`(钉北京墙钟)是正确用法,不在本规则范围。
+const TZ_BAD_RE = /new\s+Date\(\s*\)\s*\.toISOString\s*\(\s*\)\s*\.slice/;
+const TZ_EXEMPT = /shared\/lib\/time\.ts$/;
+
+function walkSrc(dir) {
+  const entries = [];
+  for (const name of readdirSync(dir)) {
+    if (name === "node_modules") continue;
+    const full = join(dir, name);
+    if (statSync(full).isDirectory()) entries.push(...walkSrc(full));
+    else if (extname(full) === ".ts" || extname(full) === ".tsx") entries.push(full);
+  }
+  return entries;
+}
+
+function lintTimezone() {
+  const root = new URL("../src", import.meta.url).pathname;
+  let n = 0;
+  for (const file of walkSrc(root)) {
+    if (TZ_EXEMPT.test(file)) continue;
+    const relPath = file.replace(process.cwd() + "/", "");
+    readFileSync(file, "utf8").split("\n").forEach((line, i) => {
+      if (/^\s*(\/\/|\*)/.test(line)) return; // 跳过注释
+      if (TZ_BAD_RE.test(line)) {
+        console.error(`[lint:cn] ${relPath}:${i + 1} → 时区红线 new Date().toISOString() 取业务日,请改用 @/shared/lib/time → ${line.trim()}`);
+        n++;
+      }
+    });
+  }
+  return n;
+}
+
 // 在一段可见文本里挑出未豁免的孤立英文词并报错
 function flagAsciiWords(segment, relPath, lineNo, line) {
   let n = 0;
@@ -79,7 +115,7 @@ function flagAsciiWords(segment, relPath, lineNo, line) {
   return n;
 }
 const files  = walk(srcDir);
-let errors   = 0;
+let errors   = lintTimezone();
 
 for (const file of files) {
   const src      = readFileSync(file, "utf8");

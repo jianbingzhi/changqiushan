@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/infrastructure/db/client";
+import { toCstDateStr } from "@/shared/lib/time";
 
 // B2: 所有物化视图查询集中在此文件，使用 $queryRaw + 手写 TS 返回类型
 // Prisma 不能查物化视图，必须走原始 SQL
@@ -32,8 +33,8 @@ export interface ProfileOverviewRow {
 
 export const analyticsRepository = {
   getDailyTraffic(startDate: Date, endDate: Date): Promise<DailyTrafficRow[]> {
-    const start = startDate.toISOString().slice(0, 10);
-    const end   = endDate.toISOString().slice(0, 10);
+    const start = toCstDateStr(startDate);
+    const end   = toCstDateStr(endDate);
     return db.$queryRaw<DailyTrafficRow[]>(Prisma.sql`
       SELECT date, total_visitors, checked_in_count, cancelled_count, noshow_count
       FROM analytics_daily_traffic

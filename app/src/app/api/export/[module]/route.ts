@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { getSession } from "@/infrastructure/auth/session";
 import { exportToExcel } from "@/lib/excel";
-import { formatCnDate } from "@/shared/format";
+import { chinaToday, formatCnDate } from "@/shared/lib/time";
 
 export const dynamic = "force-dynamic";
 export const runtime  = "nodejs";
@@ -95,7 +95,7 @@ export async function GET(
   }
 
   const buffer = await exportToExcel({ sheetName, headers, rows });
-  const filename = encodeURIComponent(`${sheetName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  const filename = encodeURIComponent(`${sheetName}_${chinaToday()}.xlsx`);
 
   return new Response(buffer.buffer as ArrayBuffer, {
     headers: {
