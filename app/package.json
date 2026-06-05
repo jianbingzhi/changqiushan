@@ -10,6 +10,8 @@
     "start": "next start",
     "lint": "eslint && node scripts/lint-cn.mjs",
     "lint:cn": "node scripts/lint-cn.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
@@ -61,6 +63,7 @@
     "eslint-plugin-boundaries": "^6.0.2",
     "tailwindcss": "^4",
     "tsx": "^4.22.3",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.8"
   }
 }
