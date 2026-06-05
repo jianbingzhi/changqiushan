@@ -1,7 +1,11 @@
+import { SUPER_ONLY } from "@/shared/auth/roles";
+
 export interface MenuItem {
   label: string;
   href: string;
   icon: string;
+  /** 可见角色(app_metadata.role)白名单;省略=所有已登录员工可见。与路由级 RBAC(R3)一致。 */
+  roles?: readonly string[];
 }
 
 export interface MenuGroup {
@@ -23,6 +27,7 @@ export const MENU_GROUPS: MenuGroup[] = [
     title: "预约管理中心",
     items: [
       { label: "分时预约配额配置", href: "/booking/slots",        icon: "Clock" },
+      { label: "预约单查询",       href: "/booking/bookings",     icon: "FileSearch" },
       { label: "渠道预约接入",     href: "/booking/channels",     icon: "Network" },
       { label: "现场补录面板",     href: "/booking/onsite",       icon: "ClipboardList" },
       { label: "爽约风控与黑名单", href: "/riskcontrol/blacklist", icon: "ShieldAlert" },
@@ -47,8 +52,13 @@ export const MENU_GROUPS: MenuGroup[] = [
   {
     title: "物联网设备监控",
     items: [
-      { label: "实时设备列表",       href: "/iot/devices", icon: "Cpu" },
-      { label: "设备详情与心跳监测", href: "/iot/detail",  icon: "Activity" },
+      { label: "实时设备列表", href: "/iot/devices", icon: "Cpu" },
+    ],
+  },
+  {
+    title: "系统设置",
+    items: [
+      { label: "系统管理", href: "/system", icon: "Settings", roles: SUPER_ONLY },
     ],
   },
 ];

@@ -19,6 +19,8 @@ import {
   Users,
   Cpu,
   Activity,
+  FileSearch,
+  Settings,
   HelpCircle,
   LogOut,
   type LucideIcon,
@@ -43,15 +45,29 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Users,
   Cpu,
   Activity,
+  FileSearch,
+  Settings,
 };
 
-export function Sidebar() {
+export function Sidebar({ appRole }: { appRole?: string | null }) {
   const pathname = usePathname();
+
+  // 按角色过滤(R3 路由级 RBAC 同源):item.roles 缺省=所有员工可见;过滤后空分组不渲染
+  const groups = MENU_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter(
+      (item) => !item.roles || (appRole != null && item.roles.includes(appRole)),
+    ),
+  })).filter((group) => group.items.length > 0);
 
   return (
     <aside className="flex h-full w-60 shrink-0 flex-col overflow-y-auto bg-sidebar">
-      {/* Logo */}
-      <div className="flex items-center gap-3 px-4 pt-6 pb-5">
+      {/* Logo — 点击返回仪表盘首页(N3/B13) */}
+      <Link
+        href="/"
+        aria-label="返回仪表盘首页"
+        className="flex items-center gap-3 px-4 pt-6 pb-5 transition-colors hover:bg-white/5"
+      >
         <span
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary"
           aria-hidden="true"
@@ -64,11 +80,11 @@ export function Sidebar() {
           <p className="truncate text-sm font-semibold text-sidebar-text">长秋山森林公园智慧景区</p>
           <p className="text-xs text-sidebar-section">管理后台</p>
         </div>
-      </div>
+      </Link>
 
       {/* Navigation */}
       <nav className="flex-1 px-2">
-        {MENU_GROUPS.map((group) => (
+        {groups.map((group) => (
           <div key={group.title} className="mb-4">
             <p className="px-2 pt-2 pb-1 text-xs text-sidebar-section">{group.title}</p>
             {group.items.map((item) => {
