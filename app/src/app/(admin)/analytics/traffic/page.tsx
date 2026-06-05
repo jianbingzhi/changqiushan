@@ -6,6 +6,7 @@ import { EmptyState } from "@/lib/ui/empty-state";
 import { BarList } from "@/lib/ui/charts/BarList";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/lib/ui/table";
 import { FileDown } from "lucide-react";
+import { DateRangeFilter } from "./_date-range-filter";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "客流分析 · 长秋山管理后台" };
@@ -51,16 +52,7 @@ export default async function AnalyticsTrafficPage({ searchParams }: Props) {
         </KpiRow>
       </div>
       <div className="mb-5 flex items-end gap-3 rounded-lg border border-[#E5E7EB] bg-white p-4">
-        <form method="GET" className="flex items-end gap-3 flex-wrap">
-          {[["startDate", "开始日期", startDate], ["endDate", "结束日期", endDate]].map(([name, label, val]) => (
-            <div key={name as string} className="flex flex-col gap-1">
-              <label className="text-[13px] text-[#6B7280]" htmlFor={name as string}>{label}</label>
-              <input id={name as string} name={name as string} type="date" defaultValue={val as string}
-                className="h-9 rounded-md border border-[#E5E7EB] px-3 text-sm text-[#1F2937] focus:outline-none focus:ring-2 focus:ring-[#2D5A27]/30" />
-            </div>
-          ))}
-          <button type="submit" className="h-9 rounded-md bg-[#2D5A27] px-4 text-sm font-medium text-white hover:opacity-90">查询</button>
-        </form>
+        <DateRangeFilter startDate={startDate} endDate={endDate} />
       </div>
       <div className="mb-5 rounded-lg border border-[#E5E7EB] bg-white p-4">
         <p className="mb-3 text-[13px] font-medium text-[#1F2937]">客流趋势（每日游客总数）</p>
