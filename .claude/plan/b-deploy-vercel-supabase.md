@@ -41,7 +41,7 @@
 - SSE route 代码保留(自托管仍用),前端关态不连即可。
 
 ### B4 · 定时任务 → Vercel Cron + 熔断内联
-- **物化视图刷新**:新增 `src/app/api/cron/refresh-mv/route.ts`(校验 `CRON_SECRET`,内做 3 条 `REFRESH MATERIALIZED VIEW`);`vercel.json` 配 `crons` 每 15min 打它。
+- **物化视图刷新**:新增 `src/app/api/cron/refresh-mv/route.ts`(校验 `CRON_SECRET`,内做 3 条 `REFRESH MATERIALIZED VIEW`);`vercel.json` 配 `crons`(⚠️ Vercel Hobby 免费版 cron 仅支持每天一次,故用 `0 0 * * *` 每日刷新;Pro 版才能 */15)。
 - **熔断(红线4)**:从 `instrumentation-node.ts` 的 `bus.on("checkin_event")` 监听,**移到 checkin service 写路径内联**调用 `pauseSlotsForCircuitBreak`(`checkin/service/checkin.ts` 算出 circuitBroken 处)。这样无实时也能停当日预约。
 
 ### B5 · instrumentation 守卫
