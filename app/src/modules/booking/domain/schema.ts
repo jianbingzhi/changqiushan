@@ -20,3 +20,26 @@ export const createBookingSchema = z
   );
 
 export type CreateBookingInput = z.infer<typeof createBookingSchema>;
+
+// C4:运营后台手动建时段(止血)。date 为北京日历日 YYYY-MM-DD,各渠道配额之和即总名额。
+export const createSlotSchema = z
+  .object({
+    date:      z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "日期格式无效"),
+    name:      z.string().min(1, "时段名不能为空").max(80),
+    startTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "开始时间格式无效"),
+    endTime:   z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "结束时间格式无效"),
+    miniProgramQuota: z.coerce.number().int().min(0).max(100000).default(0),
+    onsiteQuota:      z.coerce.number().int().min(0).max(100000).default(0),
+    otaQuota:         z.coerce.number().int().min(0).max(100000).default(0),
+    adminQuota:       z.coerce.number().int().min(0).max(100000).default(0),
+  })
+  .refine((v) => v.endTime > v.startTime, {
+    message: "结束时间须晚于开始时间",
+    path: ["endTime"],
+  })
+  .refine(
+    (v) => v.miniProgramQuota + v.onsiteQuota + v.otaQuota + v.adminQuota > 0,
+    { message: "各渠道名额之和须大于 0", path: ["miniProgramQuota"] },
+  );
+
+export type CreateSlotInput = z.infer<typeof createSlotSchema>;

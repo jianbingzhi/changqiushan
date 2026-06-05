@@ -48,6 +48,42 @@ export const bookingRepository = {
     return db.bookingSlot.findUnique({ where: { id } });
   },
 
+  // C4:建单个时段。capacity 由各渠道配额之和派生,与 seed 口径一致。
+  createSlot(data: {
+    date: Date;
+    name: string;
+    startTime: string;
+    endTime: string;
+    miniProgramQuota: number;
+    onsiteQuota: number;
+    otaQuota: number;
+    adminQuota: number;
+  }): Promise<BookingSlot> {
+    const capacity =
+      data.miniProgramQuota + data.onsiteQuota + data.otaQuota + data.adminQuota;
+    return db.bookingSlot.create({
+      data: {
+        date: data.date,
+        name: data.name,
+        startTime: data.startTime,
+        endTime: data.endTime,
+        capacity,
+        miniProgramQuota: data.miniProgramQuota,
+        onsiteQuota: data.onsiteQuota,
+        otaQuota: data.otaQuota,
+        adminQuota: data.adminQuota,
+        status: "ACTIVE",
+      },
+    });
+  },
+
+  // C4:批量建时段(复制场景),已存在的开始时间由调用方先行过滤。已用量一律归零。
+  createManySlots(
+    rows: Prisma.BookingSlotCreateManyInput[],
+  ): Promise<number> {
+    return db.bookingSlot.createMany({ data: rows }).then((r) => r.count);
+  },
+
   getBookingWithSlot(id: string) {
     return db.booking.findUnique({
       where: { id },

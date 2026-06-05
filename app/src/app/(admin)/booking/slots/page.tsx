@@ -1,8 +1,10 @@
 import { bookingRepository } from "@/modules/booking";
 import { requireRole, ADMIN_UP } from "@/infrastructure/auth/guard";
+import { getSession } from "@/infrastructure/auth/session";
 import { PageHeader } from "@/lib/ui/page-header";
 import { StatusChip } from "@/lib/ui/status-chip";
 import { formatCnDate } from "@/shared/format";
+import { SlotTools } from "./_slot-tools";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +18,10 @@ export default async function BookingSlotsPage({ searchParams }: Props) {
   target.setHours(0, 0, 0, 0);
 
   const slots = await bookingRepository.listSlotsByDate(target);
+
+  const session = await getSession();
+  const canManage =
+    session?.appRole != null && (ADMIN_UP as readonly string[]).includes(session.appRole);
 
   const prevDate = new Date(target);
   prevDate.setDate(prevDate.getDate() - 1);
@@ -75,6 +81,8 @@ export default async function BookingSlotsPage({ searchParams }: Props) {
           </form>
         </div>
       )}
+
+      {canManage && <SlotTools targetDate={toDateParam(target)} />}
 
       <div className="bg-white rounded-lg border border-[#E5E7EB] overflow-auto">
         <table className="w-full border-collapse text-sm">

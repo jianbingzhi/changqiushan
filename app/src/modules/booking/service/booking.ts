@@ -1,8 +1,12 @@
 import { bookingRepository, SlotFullError, DuplicateBookingError } from "../repository";
-import { createBookingSchema } from "../domain/schema";
+import { createBookingSchema, createSlotSchema } from "../domain/schema";
 import { assertDualElements, canBook, canCancel, isCircuitBroken } from "../domain/rules";
 import { ok, err, ErrCode, type Result } from "@/shared/result";
-import type { Booking } from "@prisma/client";
+import type { Booking, BookingSlot } from "@prisma/client";
+
+// booking_slot.date 是 @db.Date;用 UTC 零点构造,避免本地时区把日历日挪到前一天
+// (与 seed / onsite 取数口径一致)。入参为北京日历日串 YYYY-MM-DD。
+const toSlotDate = (dateStr: string) => new Date(`${dateStr}T00:00:00Z`);
 
 export const bookingService = {
   async createBooking(raw: unknown): Promise<Result<Booking>> {
@@ -82,5 +86,72 @@ export const bookingService = {
   // A1: 幂等恢复 — 仅 PAUSED → ACTIVE，不影响 CLOSED
   async resumePausedSlots(date: Date): Promise<void> {
     await bookingRepository.resumePausedSlots(date);
+  },
+
+  // C4 止血:运营手动建单个时段。同日同开始时间判重,避免重复时段。
+  async createSlot(raw: unknown): Promise<Result<BookingSlot>> {
+    const parsed = createSlotSchema.safeParse(raw);
+    if (!parsed.success) {
+      return err(ErrCode.INVALID_INPUT, parsed.error.issues[0]?.message ?? "输入校验失败");
+    }
+    const input = parsed.data;
+    const date = toSlotDate(input.date);
+
+    const existing = await bookingRepository.listSlotsByDate(date);
+    if (existing.some((s) => s.startTime === input.startTime)) {
+      return err(ErrCode.CONFLICT, "该日已存在相同开始时间的时段");
+    }
+
+    const slot = await bookingRepository.createSlot({
+      date,
+      name: input.name,
+      startTime: input.startTime,
+      endTime: input.endTime,
+      miniProgramQuota: input.miniProgramQuota,
+      onsiteQuota: input.onsiteQuota,
+      otaQuota: input.otaQuota,
+      adminQuota: input.adminQuota,
+    });
+    return ok(slot);
+  },
+
+  // C4 止血:把来源日的时段结构复制到目标日(已用量归零、状态 ACTIVE)。
+  // 幂等:跳过目标日已存在的开始时间,可重复点击。
+  async copyDaySlots(
+    sourceDate: string,
+    targetDate: string,
+  ): Promise<Result<{ created: number; skipped: number }>> {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(sourceDate) || !/^\d{4}-\d{2}-\d{2}$/.test(targetDate)) {
+      return err(ErrCode.INVALID_INPUT, "日期格式无效");
+    }
+    const src = toSlotDate(sourceDate);
+    const tgt = toSlotDate(targetDate);
+
+    const sourceSlots = await bookingRepository.listSlotsByDate(src);
+    if (sourceSlots.length === 0) {
+      return err(ErrCode.NOT_FOUND, "来源日无时段可复制");
+    }
+    const existingTimes = new Set(
+      (await bookingRepository.listSlotsByDate(tgt)).map((s) => s.startTime),
+    );
+    const toCreate = sourceSlots
+      .filter((s) => !existingTimes.has(s.startTime))
+      .map((s) => ({
+        date: tgt,
+        name: s.name,
+        startTime: s.startTime,
+        endTime: s.endTime,
+        capacity: s.capacity,
+        miniProgramQuota: s.miniProgramQuota,
+        onsiteQuota: s.onsiteQuota,
+        otaQuota: s.otaQuota,
+        adminQuota: s.adminQuota,
+        status: "ACTIVE" as const,
+      }));
+
+    const created = toCreate.length
+      ? await bookingRepository.createManySlots(toCreate)
+      : 0;
+    return ok({ created, skipped: sourceSlots.length - toCreate.length });
   },
 };
