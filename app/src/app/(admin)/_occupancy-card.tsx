@@ -1,31 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useDashboardLive } from "./_dashboard-live";
 
-interface OccupancyCardProps {
-  initialCount: number;
-  capacity:     number;
-}
+// 在园人数卡。在园数由 DashboardLiveProvider 的「脏信号 + 回拉」驱动;
+// capacity 为瞬时承载量(D1,占位 env),达 90% 闪红落地红线 4 机制。
+export function OccupancyCard({ capacity }: { capacity: number }) {
+  const { count } = useDashboardLive();
 
-export function OccupancyCard({ initialCount, capacity }: OccupancyCardProps) {
-  const [count, setCount] = useState(initialCount);
-
-  useEffect(() => {
-    const es = new EventSource("/api/sse/checkin_event");
-    es.onmessage = (e: MessageEvent) => {
-      try {
-        const payload = JSON.parse(e.data as string) as { checkedInCount?: number };
-        if (typeof payload.checkedInCount === "number") {
-          setCount(payload.checkedInCount);
-        }
-      } catch {
-        // ignore malformed events
-      }
-    };
-    return () => es.close();
-  }, []);
-
-  const pct = capacity > 0 ? Math.round(count / capacity * 100) : 0;
+  const pct = capacity > 0 ? Math.round((count / capacity) * 100) : 0;
   const isRed = pct >= 90;
 
   return (

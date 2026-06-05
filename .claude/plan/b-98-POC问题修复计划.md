@@ -226,7 +226,7 @@ R1–R5、R7 **均已合入**，**仅 R6（高德地图）未做**：
 |---|---|---|
 | C1 StatusChip | 加领域键 + 8 处调用方换键 + 动词统一(D6) | [x] |
 | C2 导航 | 删 /iot/detail + 加 bookings/system 入口(角色过滤) + logo Link + 面包屑可点 | [x] |
-| C3 在园数/假SSE | 在园数回拉(实测 service 核销路径) + 删假文案 + LiveDot 真态 + B6 三态 | [ ] |
+| C3 在园数/假SSE | 在园数回拉(实测 service 核销路径) + 删假文案 + LiveDot 真态 + B6 三态 | [x] (service 核销路径实测留待 docker QA) |
 | C4 时段生成 | 建时段 service 用例 + slots 页手动建入口(止血B) | [x] |
 | C5 时区 | **C5a time.ts 先于 C4** + C5b onsite/export 改 chinaToday + lint 增量规则 | [x] |
 | C6 大屏 | /realtime 重写为中文 KPI 大屏 + 90% 闪红机制(口径 D1，**红线4 待 PRD 数值才算真闭合**) | [ ] |

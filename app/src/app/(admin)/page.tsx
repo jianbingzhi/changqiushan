@@ -5,8 +5,10 @@ import { LiveDot } from "@/lib/ui/live-dot";
 import { bookingRepository } from "@/modules/booking";
 import { iotRepository } from "@/modules/iot";
 import { formatCnDate } from "@/shared/format";
+import { getInstantCapacity } from "@/shared/lib/capacity";
 import Link from "next/link";
 import { OccupancyCard } from "./_occupancy-card";
+import { DashboardLiveProvider, HeaderLive } from "./_dashboard-live";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "仪表盘 · 长秋山森林公园智慧景区管理后台" };
@@ -21,7 +23,6 @@ export default async function DashboardPage() {
   ]);
 
   const todayBookings   = slots.reduce((s, sl) => s + sl.bookedCount, 0);
-  const todayCapacity   = slots.reduce((s, sl) => s + sl.capacity, 0);
   const checkedInCount  = slots.reduce((s, sl) => s + sl.checkedInCount, 0);
   const pausedCount     = slots.filter((s) => s.status === "PAUSED").length;
   const onlineDevices   = devices.filter((d) => d.status === "ONLINE").length;
@@ -30,21 +31,16 @@ export default async function DashboardPage() {
     : 0;
 
   return (
-    <>
+    <DashboardLiveProvider initialCount={checkedInCount}>
       <PageHeader
         description={`${formatCnDate(today)} · 运营概览`}
-        actions={
-          <div className="flex items-center gap-2">
-            <LiveDot alive />
-            <span className="text-[13px] text-[#6B7280]">checkin_event 实时</span>
-          </div>
-        }
+        actions={<HeaderLive />}
       />
 
-      {/* 在园人数卡：接 SSE 实时更新 */}
+      {/* 在园人数卡：脏信号 + 回拉实时更新；分母为瞬时承载量(D1) */}
       <div className="mb-5">
         <KpiRow>
-          <OccupancyCard initialCount={checkedInCount} capacity={todayCapacity} />
+          <OccupancyCard capacity={getInstantCapacity()} />
           <StatCard label="今日预约" value={todayBookings} unit="人次" />
           <StatCard label="时段状态"
             value={pausedCount > 0 ? `${pausedCount} 个暂停` : "正常"}
@@ -98,7 +94,7 @@ export default async function DashboardPage() {
           <div className="grid grid-cols-2 gap-0 divide-y divide-[#F3F4F6] md:grid-cols-3">
             {devices.slice(0, 6).map((d) => (
               <div key={d.id} className="flex items-center gap-2 px-4 py-3">
-                <LiveDot alive={d.status === "ONLINE"} />
+                <LiveDot tone={d.status === "ONLINE" ? "online" : d.status === "ALERT" ? "alert" : "offline"} />
                 <span className="text-[13px] font-medium text-[#1F2937] truncate">{d.name}</span>
                 <span className="ml-auto text-xs text-[#6B7280]">{d.type}</span>
               </div>
@@ -106,6 +102,6 @@ export default async function DashboardPage() {
           </div>
         )}
       </div>
-    </>
+    </DashboardLiveProvider>
   );
 }

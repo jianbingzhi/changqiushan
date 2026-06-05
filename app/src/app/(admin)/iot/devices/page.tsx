@@ -22,12 +22,7 @@ export default async function IotDevicesPage() {
   return (
     <>
       <PageHeader title="实时设备列表" description="物联网设备在线状态监控"
-        actions={
-          <div className="flex items-center gap-2">
-            <LiveDot alive />
-            <span className="text-[13px] text-[#6B7280]">iot_event 频道</span>
-          </div>
-        }
+        actions={<span className="text-[13px] text-[#9CA3AF]">数据定时刷新</span>}
       />
       <div className="mb-5">
         <KpiRow>
@@ -36,10 +31,6 @@ export default async function IotDevicesPage() {
           <StatCard label="离线"     value={offline} unit="台" />
           <StatCard label="告警"     value={alert}   unit="台" />
         </KpiRow>
-      </div>
-      <div className="mb-4 flex items-center gap-3 rounded-lg border border-[#BFDBFE] bg-[#EFF6FF] px-4 py-3">
-        <LiveDot alive />
-        <p className="text-[13px] text-[#2563EB]">已接入 iot_event SSE 频道，设备状态与心跳实时更新</p>
       </div>
       <div className="rounded-lg border border-[#E5E7EB] bg-white">
         <Table>
@@ -59,7 +50,7 @@ export default async function IotDevicesPage() {
                 <TableRow key={device.id} className="hover:bg-[#F9FAFB]" style={isOffline ? { backgroundColor: "#FEF2F2" } : undefined}>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <LiveDot alive={device.status === "ONLINE"} />
+                      <LiveDot tone={device.status === "ONLINE" ? "online" : device.status === "ALERT" ? "alert" : "offline"} />
                       <span className="font-medium text-[#1F2937]">{device.name}</span>
                     </div>
                   </TableCell>

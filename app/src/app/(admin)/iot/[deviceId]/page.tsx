@@ -70,8 +70,8 @@ export default async function IotDeviceDetailPage({ params }: Props) {
         <div className="flex items-center justify-between border-b border-[#E5E7EB] px-5 py-3">
           <h2 className="text-[14px] font-semibold text-[#1F2937]">近 24 小时心跳数据</h2>
           <div className="flex items-center gap-2">
-            <LiveDot alive={device?.status === "ONLINE"} />
-            <span className="text-[12px] text-[#6B7280]">心跳数据通过 iot_event SSE 频道实时追加</span>
+            <LiveDot tone={device?.status === "ONLINE" ? "online" : device?.status === "ALERT" ? "alert" : "offline"} />
+            <span className="text-[12px] text-[#6B7280]">心跳数据定时刷新</span>
           </div>
         </div>
         <Table>

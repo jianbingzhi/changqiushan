@@ -1,7 +1,6 @@
 import { PageHeader } from "@/lib/ui/page-header";
 import { StatCard, KpiRow } from "@/lib/ui/stat-card";
 import { StatusChip } from "@/lib/ui/status-chip";
-import { LiveDot } from "@/lib/ui/live-dot";
 import { EmptyState } from "@/lib/ui/empty-state";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/lib/ui/table";
 import { trafficRepository } from "@/modules/traffic";
@@ -19,13 +18,8 @@ export default async function TrafficParkingPage() {
 
   return (
     <>
-      <PageHeader title="停车场动静态上图" description="景区停车场实时状态监控"
-        actions={
-          <div className="flex items-center gap-2">
-            <LiveDot alive />
-            <span className="text-[13px] text-[#6B7280]">parking_state 频道</span>
-          </div>
-        }
+      <PageHeader title="停车场动静态上图" description="景区停车场状态监控"
+        actions={<span className="text-[13px] text-[#9CA3AF]">数据定时刷新</span>}
       />
       <div className="mb-5">
         <KpiRow>
@@ -35,11 +29,6 @@ export default async function TrafficParkingPage() {
           <StatCard label="满车场数量" value={fullCount} unit="个" />
         </KpiRow>
       </div>
-      <div className="mb-4 flex items-center gap-3 rounded-lg border border-[#BFDBFE] bg-[#EFF6FF] px-4 py-3">
-        <LiveDot alive />
-        <p className="text-[13px] text-[#2563EB]">已接入 parking_state SSE 频道，实时更新占用数</p>
-      </div>
-
       {/* 地图占位 */}
       <div className="mb-4 rounded-lg border border-[#E5E7EB] bg-white p-4">
         <p className="mb-3 text-[13px] font-medium text-[#6B7280]">停车场分布地图</p>
