@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
@@ -47,6 +47,7 @@ function Toolbar({ editor }: { editor: Editor }) {
   // a11y:用内联受控输入替代原生弹窗(读屏不可达、不可键盘取消)
   const [field, setField] = useState<null | "link" | "image">(null);
   const [url, setUrl] = useState("");
+  const urlInputId = useId(); // 同页多实例时 label/input 关联不撞 id
 
   const openLink = () => {
     setUrl((editor.getAttributes("link").href as string | undefined) ?? "https://");
@@ -91,11 +92,11 @@ function Toolbar({ editor }: { editor: Editor }) {
 
       {field && (
         <div className="flex items-center gap-2 border-b border-[#E5E7EB] bg-white px-3 py-2">
-          <label htmlFor="richtext-url-input" className="shrink-0 text-[12px] text-[#6B7280]">
+          <label htmlFor={urlInputId} className="shrink-0 text-[12px] text-[#6B7280]">
             {field === "link" ? "链接地址(留空移除链接)" : "图片地址"}
           </label>
           <input
-            id="richtext-url-input"
+            id={urlInputId}
             type="url"
             value={url}
             autoFocus

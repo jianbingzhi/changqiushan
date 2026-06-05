@@ -116,8 +116,12 @@ export function AccountRowActions({ profileId, disabled }: { profileId: string; 
             id={pwdInputId}
             type="password"
             value={pwd}
+            autoFocus
             onChange={(e) => setPwd(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") submitReset(); }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") submitReset();
+              if (e.key === "Escape") { setResetting(false); setPwd(""); }
+            }}
             placeholder="至少 8 位"
             className="h-8 w-44 text-[12px]"
           />

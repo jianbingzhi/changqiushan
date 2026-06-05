@@ -37,6 +37,8 @@ const ASCII_ALLOW = new Set([
   "EXCEL", "PDF", "CSV", "MINIO", "COS", "OSS", "AMAP", "GOTRUE", "POSTGRES", "NOTIFY",
   // 计量单位
   "KM", "KG", "MG", "PM", "AQI", "CO", "NO", "SO", "UV", "HPA", "DB", "MS", "CM", "MM",
+  // 示例编码前缀(占位符里的工号样例 如 OPS-001)
+  "OPS",
 ]);
 
 function walk(dir) {
@@ -55,8 +57,27 @@ function walk(dir) {
 // 抽 JSX 可见文本节点:同一行内 `>文本<` 之间的内容(排除标签 <…> 与表达式 {…})。
 // 前置 (?<!=) 排除箭头 `=>`,避免把 `=> Promise<T>` 这类类型/代码误当文本。
 const TEXT_NODE_RE = /(?<!=)>([^<>{}]*)</g;
+// 用户可见的属性值(同样是 UI 文本,英文不得孤立出现);只取字面量 "…"
+const VISIBLE_ATTR_RE = /(?:placeholder|title|aria-label|alt)\s*=\s*"([^"]*)"/g;
 
 const srcDir = new URL("../src/app", import.meta.url).pathname;
+
+// 在一段可见文本里挑出未豁免的孤立英文词并报错
+function flagAsciiWords(segment, relPath, lineNo, line) {
+  let n = 0;
+  for (const wsToken of segment.split(/\s+/)) {
+    if (!wsToken || wsToken.includes("_")) continue; // snake_case 技术标识符整体豁免
+    const words = wsToken.match(/[A-Za-z]{2,}/g);
+    if (!words) continue;
+    for (const w of words) {
+      if (!ASCII_ALLOW.has(w.toUpperCase())) {
+        console.error(`[lint:cn] ${relPath}:${lineNo} → 孤立英文「${w}」→ ${line.trim()}`);
+        n++;
+      }
+    }
+  }
+  return n;
+}
 const files  = walk(srcDir);
 let errors   = 0;
 
@@ -76,21 +97,15 @@ for (const file of files) {
       }
     }
 
-    // ② 孤立英文词:只在 JSX 可见文本节点里扫
+    // ② 孤立英文词:JSX 可见文本节点 + 用户可见属性值(placeholder/title/aria-label/alt)
     let m;
     TEXT_NODE_RE.lastIndex = 0;
     while ((m = TEXT_NODE_RE.exec(line))) {
-      for (const wsToken of m[1].split(/\s+/)) {
-        if (!wsToken || wsToken.includes("_")) continue; // snake_case 技术标识符整体豁免
-        const words = wsToken.match(/[A-Za-z]{2,}/g);
-        if (!words) continue;
-        for (const w of words) {
-          if (!ASCII_ALLOW.has(w.toUpperCase())) {
-            console.error(`[lint:cn] ${relPath}:${i + 1} → 孤立英文「${w}」→ ${line.trim()}`);
-            errors++;
-          }
-        }
-      }
+      errors += flagAsciiWords(m[1], relPath, i + 1, line);
+    }
+    VISIBLE_ATTR_RE.lastIndex = 0;
+    while ((m = VISIBLE_ATTR_RE.exec(line))) {
+      errors += flagAsciiWords(m[1], relPath, i + 1, line);
     }
   });
 }

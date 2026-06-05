@@ -26,7 +26,7 @@ export default async function ActivityAwardsPage({ params }: Props) {
   return (
     <>
       <PageHeader title="获奖公示" description="公示本次活动获奖名单"
-        actions={<Button className="bg-[#2D5A27] text-white" disabled title="content 模块建立后启用">新增获奖</Button>}
+        actions={<Button className="bg-[#2D5A27] text-white" disabled title="内容模块建立后启用">新增获奖</Button>}
       />
       <div className="rounded-lg border border-[#E5E7EB] bg-white">
         <Table>

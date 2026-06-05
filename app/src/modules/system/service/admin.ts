@@ -56,9 +56,21 @@ export const adminService = {
       });
       return ok({ id: authUser.id });
     } catch (dbError) {
+      let compensated = true;
       await deleteAuthUser(authUser.id).catch(() => {
+        compensated = false;
         console.error(`[system] GoTrue 回滚失败,孤儿用户: ${authUser.id}`);
       });
+      // 尽力补一条失败审计(尤其补偿删除也失败=孤儿用户时,留下可追溯记录)。
+      // 同库写入,库故障场景本身也会失败,故 .catch 吞掉,绝不掩盖原始 dbError。
+      await systemRepository
+        .writeAudit({
+          actorId,
+          action: "CREATE_ADMIN_FAILED",
+          resource: "sys_profile",
+          detail: { targetId: authUser.id, roleCode, compensated },
+        })
+        .catch(() => {});
       throw dbError;
     }
   },
