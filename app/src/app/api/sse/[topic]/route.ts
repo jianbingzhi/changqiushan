@@ -6,7 +6,9 @@ import { getSession } from "@/infrastructure/auth/session";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-export const maxDuration = 600; // 10 分钟,Stitch nginx 心跳后会续连
+// Vercel Hobby 上限 300s(超了部署被拒);自托管 next start 不强制此值,SSE 仍可长连。
+// Vercel 上实时本就关闭(NEXT_PUBLIC_REALTIME_ENABLED=false,前端不连此路由)。
+export const maxDuration = 300;
 
 // 已知 topic 白名单(防止任意字符串注入)
 const ALLOWED_TOPICS = new Set([
