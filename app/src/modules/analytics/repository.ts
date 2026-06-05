@@ -77,15 +77,16 @@ export const analyticsRepository = {
       SELECT q.dimension, q.value,
              ROUND(q.value::numeric / NULLIF((SELECT n FROM total), 0) * 100, 2)::float AS percentage
       FROM (
-        SELECT '性别·男' AS dimension, COUNT(*) FILTER (WHERE gender_bit = 1) AS value FROM visitors
-        UNION ALL SELECT '性别·女',      COUNT(*) FILTER (WHERE gender_bit = 0) FROM visitors
-        UNION ALL SELECT '年龄·18岁以下', COUNT(*) FILTER (WHERE age < 18) FROM visitors
-        UNION ALL SELECT '年龄·18-30岁',  COUNT(*) FILTER (WHERE age BETWEEN 18 AND 30) FROM visitors
-        UNION ALL SELECT '年龄·31-45岁',  COUNT(*) FILTER (WHERE age BETWEEN 31 AND 45) FROM visitors
-        UNION ALL SELECT '年龄·46-60岁',  COUNT(*) FILTER (WHERE age BETWEEN 46 AND 60) FROM visitors
-        UNION ALL SELECT '年龄·60岁以上', COUNT(*) FILTER (WHERE age > 60) FROM visitors
+        -- 显式 sort_order:性别在前(1~2),年龄段按区间递增(10~50),避免按中文标签 collation 乱序
+        SELECT '性别·男' AS dimension, COUNT(*) FILTER (WHERE gender_bit = 1) AS value, 1 AS sort_order FROM visitors
+        UNION ALL SELECT '性别·女',      COUNT(*) FILTER (WHERE gender_bit = 0), 2 FROM visitors
+        UNION ALL SELECT '年龄·18岁以下', COUNT(*) FILTER (WHERE age < 18), 10 FROM visitors
+        UNION ALL SELECT '年龄·18-30岁',  COUNT(*) FILTER (WHERE age BETWEEN 18 AND 30), 20 FROM visitors
+        UNION ALL SELECT '年龄·31-45岁',  COUNT(*) FILTER (WHERE age BETWEEN 31 AND 45), 30 FROM visitors
+        UNION ALL SELECT '年龄·46-60岁',  COUNT(*) FILTER (WHERE age BETWEEN 46 AND 60), 40 FROM visitors
+        UNION ALL SELECT '年龄·60岁以上', COUNT(*) FILTER (WHERE age > 60), 50 FROM visitors
       ) q
-      ORDER BY q.dimension
+      ORDER BY q.sort_order
     `);
   },
 

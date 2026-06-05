@@ -36,7 +36,7 @@ export function ProfileTabs({ overview, travel }: { overview: ProfileRow[]; trav
       <TabsList className="mb-4 bg-[#F3F4F6] border border-[#E5E7EB]">
         <TabsTrigger value="overview" className="data-[state=active]:bg-white data-[state=active]:text-[#2D5A27] data-[state=active]:shadow-sm">总览</TabsTrigger>
         <TabsTrigger value="travel"   className="data-[state=active]:bg-white data-[state=active]:text-[#2D5A27] data-[state=active]:shadow-sm">出行偏好</TabsTrigger>
-        <TabsTrigger value="app"      className="data-[state=active]:bg-white data-[state=active]:text-[#2D5A27] data-[state=active]:shadow-sm">APP 偏好</TabsTrigger>
+        <TabsTrigger value="app"      className="data-[state=active]:bg-white data-[state=active]:text-[#2D5A27] data-[state=active]:shadow-sm">应用偏好</TabsTrigger>
       </TabsList>
       <TabsContent value="overview">
         <div className="rounded-lg border border-[#E5E7EB] bg-white">
@@ -52,7 +52,7 @@ export function ProfileTabs({ overview, travel }: { overview: ProfileRow[]; trav
       </TabsContent>
       <TabsContent value="app">
         <div className="rounded-lg border border-[#E5E7EB] bg-white p-6">
-          <EmptyState message="APP 行为偏好（功能使用频率/留存率）来自 C 端小程序埋点，待 C 端数据同步后接入。" />
+          <EmptyState message="应用行为偏好（功能使用频率/留存率）来自 C 端小程序埋点，待 C 端数据同步后接入。" />
         </div>
       </TabsContent>
     </Tabs>

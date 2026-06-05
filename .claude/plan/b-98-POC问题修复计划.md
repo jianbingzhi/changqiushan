@@ -231,7 +231,7 @@ R1–R5、R7 **均已合入**，**仅 R6（高德地图）未做**：
 | C5 时区 | **C5a time.ts 先于 C4** + C5b onsite/export 改 chinaToday + lint 增量规则 | [x] |
 | C6 大屏 | /realtime 重写为中文 KPI 大屏 + 90% 闪红机制(口径 D1，**红线4 待 PRD 数值才算真闭合**) | [x] |
 | C7 英文收口 | labels.ts 收口 + 渠道列中文 + UUID 截断 + OTA 统一(D7) + lint-cn 频道名英文清零回归 | [x] |
-| C8 画像 | description 去编号 + getProfileOverview SQL 排序 | [ ] |
+| C8 画像 | description 去编号 + getProfileOverview SQL 排序 | [x] |
 | C9 登录 | docker prod 复测定性 → COOKIE_SECURE 开关 + maxAge 对齐(**生产=短时效，勿设7天；滑动续期下迭代**) | [ ] |
 | C10 日期 | onsite/traffic 原生 date 旁中文回显 | [ ] |
 
