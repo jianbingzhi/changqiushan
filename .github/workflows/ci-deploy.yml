@@ -11,6 +11,10 @@
 #   由 `vercel pull/build` 注入,不放这里。
 #
 # 前置:Vercel 项目 Root Directory 设为 `app`(monorepo 子目录);本仓 app/vercel.json 提供 cron。
+#
+# 双库说明:本仓双推 origin + jianbingzhi,workflow 文件两库都有。deploy 前有 guard job 检测
+# 部署密钥:未配齐(如 jianbingzhi 库)→ deploy 自动跳过(灰色 skipped,非红色失败),ci 照常跑。
+# 故无需在 jianbingzhi 关 Actions;只在 d2xstudio 配 secrets 即只在 origin 真部署。
 
 name: CI / Deploy
 
@@ -61,10 +65,35 @@ jobs:
       - name: Unit tests
         run: pnpm test
 
-  deploy:
-    name: Migrate · Deploy to Vercel
+  # 守卫:检测部署 secret 是否齐。没配齐(如双推到的 jianbingzhi 库)→ deploy 整个 job 跳过,
+  # 不报红。secret 不能直接用于 job 级 if,故映射到 env 再在步骤里判空并输出。
+  guard:
+    name: Check deploy secrets
     needs: ci
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - id: check
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: |
+          if [ -n "$VERCEL_TOKEN" ] && [ -n "$VERCEL_ORG_ID" ] && [ -n "$VERCEL_PROJECT_ID" ] && [ -n "$DIRECT_URL" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::部署密钥齐全,将执行 migrate + Vercel 部署。"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::未配置部署密钥(VERCEL_TOKEN/ORG_ID/PROJECT_ID/DIRECT_URL),跳过部署(非失败)。"
+          fi
+
+  deploy:
+    name: Migrate · Deploy to Vercel
+    needs: [ci, guard]
+    if: needs.guard.outputs.ready == 'true'
     runs-on: ubuntu-latest
     env:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}

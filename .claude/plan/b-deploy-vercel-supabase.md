@@ -81,7 +81,7 @@
   `VERCEL_TOKEN`、`VERCEL_ORG_ID`、`VERCEL_PROJECT_ID`、`DIRECT_URL`(Supabase 直连 5432)。
 - **应用运行时变量**(`DATABASE_URL` pooler / `GOTRUE_*` / `SUPABASE_ANON_KEY` / `S3_*` / `NEXT_PUBLIC_REALTIME_ENABLED=false` / `COOKIE_SECURE=true` / `CRON_SECRET` 等)在 **Vercel 项目 env** 配置,由 `vercel pull/build` 注入,不放 GitHub Secrets。
 - **Vercel 项目前置**:Root Directory 设 `app`(monorepo 子目录);`vercel link` 后从 `.vercel/project.json` 取 ORG_ID/PROJECT_ID。
-- 注:双推到 jianbingzhi 不触发本工作流(CI/CD 只挂 origin)。
+- **双库**:workflow 文件随双推也在 jianbingzhi,但 deploy 前有 `guard` job 检测部署密钥——未配齐(jianbingzhi)→ deploy **自动跳过(skipped,非失败)**,ci 照常。故只在 d2xstudio 配 secrets 即只在 origin 真部署,无需在 jianbingzhi 关 Actions。
 
 ## 执行顺序
 1.(你)建 Supabase 项目 + Vercel 项目(Root=app)→ 把上面 4 个 GitHub Secrets 加到 d2xstudio repo、应用变量加到 Vercel env。
