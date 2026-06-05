@@ -1,5 +1,7 @@
-// 手写 UTF-8 解码:小程序无全局 TextDecoder;对整段累积字节解码,末尾不完整多字节自动留待下一片段
-export function decodeUtf8(bytes: Uint8Array): string {
+// 手写 UTF-8 解码:小程序无全局 TextDecoder
+// decodeUtf8Stream 增量解码:返回已解码文本 + 消费的字节数(末尾不完整多字节不消费,留待下一片段),
+//   调用方只需保留 [consumed..] 的尾巴,避免每次重解码全量字节(O(n²))与帧索引回退导致的 token 重复。
+export function decodeUtf8Stream(bytes: Uint8Array): { text: string; consumed: number } {
   let result = ''
   let i = 0
   const len = bytes.length
@@ -30,5 +32,10 @@ export function decodeUtf8(bytes: Uint8Array): string {
       i += 4
     }
   }
-  return result
+  return { text: result, consumed: i }
+}
+
+// 一次性解码整段(末尾不完整多字节丢弃),用于非流式场景
+export function decodeUtf8(bytes: Uint8Array): string {
+  return decodeUtf8Stream(bytes).text
 }

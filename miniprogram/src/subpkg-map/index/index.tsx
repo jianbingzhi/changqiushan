@@ -81,7 +81,7 @@ export default function GuideMap() {
       </View>
 
       <View className='gmap__controls'>
-        <View className='gmap__ctrl' onClick={() => setIs3D((v) => !v)}>{is3D ? '2D' : '3D'}</View>
+        <View className='gmap__ctrl' onClick={() => setIs3D((v) => !v)}>{is3D ? '切为2D' : '切为3D'}</View>
         <View className='gmap__ctrl' onClick={() => setDrawerOpen((v) => !v)}>🅿️</View>
       </View>
 

@@ -9,11 +9,11 @@ model WechatVisitor {
   nickname    String?  @db.VarChar(80)
   avatarUrl   String?  @map("avatar_url") @db.Text
   // 首次预约/获取手机号时绑定的实名信息(身份证为预约主体)
-  boundIdCard String?  @map("bound_id_card") @db.VarChar(32)
+  // @unique:一个身份证只能绑一个微信账号(Postgres 唯一索引允许多个 NULL,未绑定游客不受限)
+  boundIdCard String?  @unique @map("bound_id_card") @db.VarChar(32)
   phone       String?  @db.VarChar(20)
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  @@index([boundIdCard])
   @@map("wechat_visitor")
 }

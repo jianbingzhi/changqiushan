@@ -68,6 +68,12 @@ export const wechatAuthService = {
     const visitor = await wechatRepository.findById(visitorId);
     if (!visitor) return err(ErrCode.NOT_FOUND, "游客身份不存在");
 
+    // 实名唯一性:该身份证不得已被其他游客绑定(身份证为预约唯一主体,红线#2)
+    const holder = await wechatRepository.findByBoundIdCard(parsed.data.idCard);
+    if (holder && holder.id !== visitorId) {
+      return err(ErrCode.CONFLICT, "该身份证已绑定其他微信账号，如有疑问请联系客服");
+    }
+
     const updated = await wechatRepository.bindIdentity(
       visitorId,
       parsed.data.idCard,

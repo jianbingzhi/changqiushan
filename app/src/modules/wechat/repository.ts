@@ -28,6 +28,10 @@ export const wechatRepository = {
     return db.wechatVisitor.findUnique({ where: { id } });
   },
 
+  findByBoundIdCard(idCard: string): Promise<WechatVisitor | null> {
+    return db.wechatVisitor.findFirst({ where: { boundIdCard: idCard } });
+  },
+
   bindIdentity(id: string, idCard: string, phone: string): Promise<WechatVisitor> {
     return db.wechatVisitor.update({
       where: { id },

@@ -12,6 +12,7 @@ const STATUS: Partial<Record<ErrCode, number>> = {
   [ErrCode.DUPLICATE_BOOKING]: 409,
   [ErrCode.CIRCUIT_BREAKER_OPEN]: 409,
   [ErrCode.CHECKIN_ALREADY_DONE]: 409,
+  [ErrCode.CONFLICT]: 409,
   [ErrCode.EXTERNAL_SERVICE_ERROR]: 502,
 };
 

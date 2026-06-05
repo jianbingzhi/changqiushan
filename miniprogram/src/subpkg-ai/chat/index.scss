@@ -6,6 +6,18 @@
   height: 100vh;
   background: var(--bg-page);
 
+  &__topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+  }
+  &__title { font-size: $font-md; font-weight: 600; color: var(--text-primary); }
+  &__actions { display: flex; }
+  &__action { font-size: $font-sm; color: var(--brand); margin-left: 24px; }
+
   &__list {
     flex: 1;
     padding: 24px;
@@ -61,5 +73,48 @@
     font-size: $font-sm;
     padding: 0 32px;
     margin: 0;
+  }
+
+  &__mask {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.35);
+    display: flex;
+    justify-content: flex-end;
+    z-index: 50;
+  }
+  &__drawer {
+    width: 70%;
+    height: 100%;
+    background: var(--bg-card);
+    display: flex;
+    flex-direction: column;
+  }
+  &__drawer-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px calc(16px + env(safe-area-inset-top));
+    border-bottom: 1px solid var(--border);
+  }
+  &__drawer-title { font-size: $font-md; font-weight: 600; color: var(--text-primary); }
+  &__drawer-list { flex: 1; }
+  &__drawer-empty {
+    padding: 48px 24px;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: $font-sm;
+  }
+  &__conv {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    &--active { background: var(--notice-bg); }
+  }
+  &__conv-title {
+    font-size: $font-base;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }

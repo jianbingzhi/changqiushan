@@ -1,0 +1,69 @@
+@use "../styles/tokens.scss" as *;
+
+.md {
+  font-size: $font-base;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+.md-p {
+  margin: 4px 0;
+  word-break: break-word;
+}
+
+.md-bold {
+  font-weight: 600;
+}
+
+.md-code-inline {
+  font-family: Menlo, Consolas, monospace;
+  font-size: $font-sm;
+  background: rgba(127, 127, 127, 0.16);
+  border-radius: 4px;
+  padding: 0 4px;
+}
+
+.md-codeblock {
+  margin: 8px 0;
+  padding: 10px 12px;
+  background: rgba(127, 127, 127, 0.12);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+
+  &__text {
+    font-family: Menlo, Consolas, monospace;
+    font-size: $font-sm;
+    color: var(--text-primary);
+    white-space: pre;
+  }
+}
+
+.md-h {
+  font-weight: 600;
+  margin: 8px 0 4px;
+}
+.md-h1 { font-size: $font-lg; }
+.md-h2 { font-size: $font-md; }
+.md-h3 { font-size: $font-base; }
+
+.md-list {
+  margin: 4px 0;
+}
+
+.md-li {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  margin: 3px 0;
+
+  &__marker {
+    color: var(--brand);
+    margin-right: 6px;
+    flex-shrink: 0;
+  }
+
+  &__body {
+    flex: 1;
+    word-break: break-word;
+  }
+}

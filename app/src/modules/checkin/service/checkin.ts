@@ -80,13 +80,15 @@ export const checkinService = {
     }
     const now = Date.now();
     const otp = rotatingCode(booking.qrSecret, now);
+    // 离线降级文本码:用稳定的短编号(取 booking id 前 6 位,大写),断网时长期可读、可人工核对
+    // 不含动态 OTP(否则 30s 后失效,人工核销形同虚设),也不含任何密钥
+    const stableRef = booking.id.replace(/-/g, "").slice(0, 6).toUpperCase();
     return ok({
       otp,
       periodSeconds: OTP_STEP_SECONDS,
       secondsRemaining: otpSecondsRemaining(now),
       bookingRef: booking.id,
-      // 离线降级文本码:断网时供人工核销(不含任何密钥)
-      textCode: `长秋山-${cnDate(booking.slot.date)}-${otp}`,
+      textCode: `长秋山-${cnDate(booking.slot.date)}-${stableRef}`,
     });
   },
 };

@@ -1,4 +1,6 @@
 export default defineAppConfig({
+  // 开启深色模式:WXSS 的 @media (prefers-color-scheme: dark) 才会生效(跟随系统深浅色)
+  darkmode: true,
   pages: [
     'pages/home/index',
     'pages/booking-calendar/index',
