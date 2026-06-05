@@ -69,7 +69,7 @@ export default async function TrafficParkingPage() {
                   <TableCell className="text-[13px] text-[#6B7280]">{lot.occupied}</TableCell>
                   <TableCell className="text-[13px] font-medium" style={{ color: remaining === 0 ? "#DC2626" : "#1F2937" }}>{remaining}</TableCell>
                   <TableCell>
-                    <StatusChip status={lot.status === "OPEN" ? "ACTIVE" : lot.status === "FULL" ? "BLACKLISTED" : "CANCELLED"} />
+                    <StatusChip status={lot.status === "OPEN" ? "LOT_OPEN" : lot.status === "FULL" ? "LOT_FULL" : "LOT_CLOSED"} />
                   </TableCell>
                   <TableCell className="text-[13px] text-[#6B7280]">{formatCnDateTime(lot.updatedAt)}</TableCell>
                 </TableRow>

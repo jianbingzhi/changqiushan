@@ -34,7 +34,7 @@ export default async function ContentIntroPage() {
             ) : items.map((item) => (
               <TableRow key={item.id} className="hover:bg-[#F9FAFB]">
                 <TableCell className="font-medium text-[#1F2937]">{item.title}</TableCell>
-                <TableCell><StatusChip status={item.status === "PUBLISHED" ? "ACTIVE" : "PAUSED"} /></TableCell>
+                <TableCell><StatusChip status={item.status === "PUBLISHED" ? "PUBLISHED_OK" : item.status === "ARCHIVED" ? "OFFLINE_CONTENT" : "DRAFT"} /></TableCell>
                 <TableCell className="text-[#6B7280]">{item.sortOrder}</TableCell>
                 <TableCell className="text-[13px] text-[#6B7280]">{item.publishedAt ? formatCnDate(item.publishedAt) : "—"}</TableCell>
                 <TableCell>

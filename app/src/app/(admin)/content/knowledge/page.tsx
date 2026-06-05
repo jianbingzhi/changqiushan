@@ -65,7 +65,7 @@ export default async function ContentKnowledgePage({ searchParams }: { searchPar
                 <TableCell>
                   {item.category ? <span className="inline-flex items-center rounded-full border border-[#E5E7EB] bg-[#F9FAFB] px-2.5 py-0.5 text-xs text-[#6B7280]">{item.category}</span> : "—"}
                 </TableCell>
-                <TableCell><StatusChip status={item.status === "PUBLISHED" ? "ACTIVE" : "PAUSED"} /></TableCell>
+                <TableCell><StatusChip status={item.status === "PUBLISHED" ? "PUBLISHED_OK" : item.status === "ARCHIVED" ? "OFFLINE_CONTENT" : "DRAFT"} /></TableCell>
                 <TableCell>
                   <div className="flex gap-2">
                     <Link href={`/content/knowledge/${item.id}/edit`}><Button size="sm" variant="outline" className="text-[12px]">编辑</Button></Link>

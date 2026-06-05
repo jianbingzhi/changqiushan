@@ -12,7 +12,7 @@ interface Props {
   id: string;
   status: Status;
   revalidate: string;
-  /** 文案风格:default=发布/下线;toggle=启用/停用(知识库) */
+  /** D6:内容状态动词全站统一为「发布/下线」。variant 保留兼容旧调用,不再改变文案。 */
   variant?: "default" | "toggle";
 }
 
@@ -21,8 +21,9 @@ export function StatusToggle({ model, id, status, revalidate, variant = "default
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  const publishLabel = variant === "toggle" ? "启用" : "发布";
-  const archiveLabel = variant === "toggle" ? "停用" : "下线";
+  void variant;
+  const publishLabel = "发布";
+  const archiveLabel = "下线";
 
   function act(fn: () => Promise<{ ok: boolean; message: string }>) {
     setError(null);

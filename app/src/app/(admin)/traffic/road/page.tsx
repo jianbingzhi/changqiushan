@@ -51,7 +51,7 @@ export default async function TrafficRoadPage() {
               <TableRow key={i} className="hover:bg-[#F9FAFB]">
                 <TableCell className="font-medium text-[#1F2937]">{c.name}</TableCell>
                 <TableCell>
-                  <StatusChip status={c.congestion === "畅通" ? "ACTIVE" : c.congestion === "缓行" ? "PAUSED" : "BLACKLISTED"} />
+                  <StatusChip status={c.congestion === "畅通" ? "ROAD_SMOOTH" : c.congestion === "缓行" ? "ROAD_SLOW" : "ROAD_JAM"} />
                 </TableCell>
                 <TableCell className="text-[13px] text-[#6B7280]">{c.description}</TableCell>
                 <TableCell className="text-[13px] text-[#6B7280]">{c.updatedAt ? formatCnDateTime(new Date(c.updatedAt)) : "—"}</TableCell>

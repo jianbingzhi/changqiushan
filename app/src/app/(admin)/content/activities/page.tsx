@@ -56,7 +56,7 @@ export default async function ContentActivitiesPage() {
                 <TableCell className="font-medium text-[#1F2937]">{item.title}</TableCell>
                 <TableCell className="text-[13px] text-[#6B7280]">{formatCnDate(item.startDate)} ~ {formatCnDate(item.endDate)}</TableCell>
                 <TableCell className="text-[13px]">{fee === 0 ? <span className="text-[#6B7280]">免费</span> : `¥${fee}`}</TableCell>
-                <TableCell><StatusChip status={item.status === "PUBLISHED" ? "ACTIVE" : "PAUSED"} /></TableCell>
+                <TableCell><StatusChip status={item.status === "PUBLISHED" ? "PUBLISHED_OK" : item.status === "ARCHIVED" ? "OFFLINE_CONTENT" : "DRAFT"} /></TableCell>
                 <TableCell className="text-[13px]">{item._count.signups} 人</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">

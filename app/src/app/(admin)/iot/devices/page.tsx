@@ -66,7 +66,7 @@ export default async function IotDevicesPage() {
                   <TableCell className="text-[13px] text-[#6B7280]">{device.type}</TableCell>
                   <TableCell className="text-[13px] text-[#6B7280]">{device.location ?? "—"}</TableCell>
                   <TableCell>
-                    <StatusChip status={device.status === "ONLINE" ? "ACTIVE" : device.status === "ALERT" ? "BLACKLISTED" : "CANCELLED"} />
+                    <StatusChip status={device.status === "ONLINE" ? "DEVICE_ONLINE" : device.status === "ALERT" ? "DEVICE_ALERT" : "DEVICE_OFFLINE"} />
                   </TableCell>
                   <TableCell className="text-[13px] text-[#6B7280]">
                     {device.lastSeen ? formatCnDateTime(device.lastSeen) : "—"}

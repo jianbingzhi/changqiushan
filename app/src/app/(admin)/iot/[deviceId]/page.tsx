@@ -51,7 +51,7 @@ export default async function IotDeviceDetailPage({ params }: Props) {
               ["设备名称", device.name],
               ["设备类型", device.type],
               ["位置",     device.location ?? "—"],
-              ["状态",     <StatusChip key="status" status={device.status === "ONLINE" ? "ACTIVE" : device.status === "ALERT" ? "BLACKLISTED" : "CANCELLED"} />],
+              ["状态",     <StatusChip key="status" status={device.status === "ONLINE" ? "DEVICE_ONLINE" : device.status === "ALERT" ? "DEVICE_ALERT" : "DEVICE_OFFLINE"} />],
               ["最后在线时间", device.lastSeen ? formatCnDateTime(device.lastSeen) : "—"],
             ] as [string, React.ReactNode][]).map(([label, value]) => (
               <div key={label as string} className="flex flex-col gap-0.5">

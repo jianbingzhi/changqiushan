@@ -35,7 +35,7 @@ export default async function ContentNewsPage() {
               <TableRow key={item.id} className="hover:bg-[#F9FAFB]">
                 <TableCell className="font-medium text-[#1F2937] max-w-[220px] truncate">{item.title}</TableCell>
                 <TableCell className="text-[13px] text-[#6B7280] max-w-[300px] truncate">{item.summary ?? "—"}</TableCell>
-                <TableCell><StatusChip status={item.status === "PUBLISHED" ? "ACTIVE" : "PAUSED"} /></TableCell>
+                <TableCell><StatusChip status={item.status === "PUBLISHED" ? "PUBLISHED_OK" : item.status === "ARCHIVED" ? "OFFLINE_CONTENT" : "DRAFT"} /></TableCell>
                 <TableCell className="text-[13px] text-[#6B7280]">{item.publishedAt ? formatCnDate(item.publishedAt) : "—"}</TableCell>
                 <TableCell>
                   <div className="flex gap-2">
