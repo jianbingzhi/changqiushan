@@ -7,10 +7,8 @@ UI_old_shots/
 tmp/
 .env
 
-# Taro 小程序构建产物(mobile 分支:仓库根即 Taro 工程)
-dist/
-.temp/
-.rn_temp/
+# 根目录的 Stitch 抓取脚本用 npm,pnpm-lock.yaml 是 pnpm 误跑生成的,不入库
+/pnpm-lock.yaml
+
+# swc 插件缓存(误生成)
 .swc/
-deploy_versions/
-project.private.config.json
