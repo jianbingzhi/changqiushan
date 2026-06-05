@@ -3,6 +3,8 @@
 > 配合 `docs/B端联调测试清单.md`。逐页测试时实时登记。**当前阶段只记录、不修**（用户指示），遇阻塞才处理以继续。
 > 严重度：🔴 阻断 · 🟠 高 · 🟡 中 · 🔵 低
 > 状态：🆕 新登记 · 🔍 排查中 · 🧪 待复核 · 🛠️ 待修 · ✅ 已修 · ❎ 非 Bug/按设计
+>
+> **2026-06-05 同步**：b-98 POC 修复计划 C1–C10 已合入 main 并推送（见 [`.claude/plan/b-98-POC问题修复计划.md`](../.claude/plan/b-98-POC问题修复计划.md)）。下列 B 项状态据此更新——✅ 已修：B5/B6/B7/B10/B13/B21/B22；🧪 代码已修待 docker 实测：B11；🧪 机制就绪待 PRD 数值：B4；🔍 待 QA 复测定性：B2/B15/B17；🛠️ 部分（生产项/根治排下迭代）：B16/B23。纯视觉项 B9/B14/B18/B19/B20/B24 仍归后续统一 theme，维持 open。
 
 ---
 
@@ -33,7 +35,7 @@
 - **证据**：`/tmp/shot-5-editor.jpg`、`/tmp/shot-editor-diag.jpg`；容器 DOM = `<div class="min-h-[260px] ..." aria-busy="true"></div>`。
 
 ## B2 · 登录表单提交失效——点「登录」按钮也不跳转〔升级:确认真 bug〕
-- **严重度** 🔴 高（UI 登录走不通）　**状态** 🔴 确认　**页面** `/login`
+- **严重度** 🔴 高（UI 登录走不通）　**状态** 🔍 待 QA 复测定性（b-98 C9：判定大概率为 B21 secure-cookie-over-http 环境问题，非代码；须 docker 生产构建 + https/或临时 secure=false 复测点登录是否跳转）　**页面** `/login`
 - **现象（实测确认）**：在你浏览器**真实点击**「登 录」按钮（非 requestSubmit、非回车）填对账号密码后**仍停在 `/login`，不跳转**。靠 CDP 注入 cookie 才登进。→ 排除"CDP 交互"的解释,**表单 action 根本没触发**。
 - **同根三联**：B15(回车不提交)、B17(密码错无提示) 与本条**同一根因**——`<form action={formAction}>`(React 19 useActionState)的提交链路在运行时没跑(成功不 redirect、失败不回显 error)。
 - **待查**：是真代码 bug 还是 **dev/VPN 下客户端水合问题**(同 B1 编辑器:本地 headless 能用、跨 VPN 不行)。需在**本地直连**或**生产构建**复测点登录是否生效来定性。
@@ -48,23 +50,23 @@
 - **附带结论**：仪表盘的实时卡片 + SSE(`checkin_event`)在 VPN/dev 下**正常**，故 **B1 编辑器不挂载是 TipTap 专属问题，非通用 HMR/客户端运行时问题**（已回写 B1）。
 
 ## B4 · 大屏「在园/承载率 + 90% 熔断」口径错（PRD 红线 4）
-- **严重度** 🟠 高（触红线 4）　**状态** 🆕 新登记　**页面** `/`（仪表盘 OccupancyCard）
+- **严重度** 🟠 高（触红线 4）　**状态** 🧪 机制就绪待数值（b-98 C6/D1：大屏改用 `getInstantCapacity` 瞬时承载量口径 + 90% 整屏闪红机制；阈值待 PRD 给具体数值才算完全闭合）　**页面** `/`（仪表盘 OccupancyCard）
 - **现象/根因**：`(admin)/page.tsx` 把 `todayCapacity = 各时段容量之和`（200+200+250+250+150=**1050**）当作分母传给 OccupancyCard；卡片用 `在园/1050` 算占比与 `pct>=90` 闪红 + 「在园达 90%，预约已自动暂停」。
 - **问题**：PRD 红线 4 是「在园人数达**瞬时承载量** 90% 闪红」。瞬时承载量 ≠ 当日各时段容量累加。后果：① 大屏占比被稀释（在园 17 显示 2%）；② **90% 大屏闪红/熔断几乎永不触发**（需在园达 945），红线 4 的大屏告警形同虚设；③ 与真实熔断口径（按**单时段** checkedInCount/该时段容量）不一致，卡片"已自动暂停"提示与实际暂停逻辑不同源。
 - **证据**：`page.tsx:28` todayCapacity 求和、`:48` 传入；`_occupancy-card.tsx:28-29` pct/isRed。
 
 ## B5 · 大屏「checkin_event 实时」绿点写死，不反映 SSE 真实连接
-- **严重度** 🟡 中　**状态** 🆕 新登记　**页面** `/`（仪表盘 Header）
+- **严重度** 🟡 中　**状态** ✅ 已修（b-98 C3：LiveDot 改由 OccupancyCard 的 EventSource onopen/onerror 上报真实连接态）　**页面** `/`（仪表盘 Header）
 - **现象**：`page.tsx:39` `<LiveDot alive />` —— alive 恒为 true。SSE 断开/未连时绿点仍亮、仍显示"实时"，有误导（运维以为实时在线）。OccupancyCard 内的 EventSource 才是真连接，但其状态没回传给这个指示点。
 - **证据**：`page.tsx:39`；对比 `_occupancy-card.tsx` 的 EventSource 无 onerror/连接态上报。
 
 ## B6 · 告警(ALERT)设备在大屏显示成"离线"灰点，且在线率把告警算作不在线
-- **严重度** 🟡 中　**状态** 🆕 新登记　**页面** `/`（设备在线状态）+ 设备在线率卡
+- **严重度** 🟡 中　**状态** ✅ 已修（b-98 C3：仪表盘设备点改三态 在线/告警/离线，告警不再与离线同灰）　**页面** `/`（设备在线状态）+ 设备在线率卡
 - **现象**：设备列表 `page.tsx:102` `<LiveDot alive={d.status === "ONLINE"} />` —— ALERT(告警)设备 alive=false，显示灰点，**与 OFFLINE(离线)视觉完全一样**，运维分不清"告警 vs 掉线"。在线率 `onlineDevices = 仅 ONLINE` → 把告警设备计为不在线（5 台里观景台摄像头 ALERT，算出 60% 而非含告警的口径）。
 - **证据**：`page.tsx:102`（列表）、`:onlineDevices`（在线率）；截图 `/tmp/shot-dash.jpg` 观景台摄像头-01 灰点。
 
 ## B7 · UI 直接露出 SSE 频道英文名（违反 PRD 红线 6：100% 中文）〔用户发现〕
-- **严重度** 🟠 高（触红线 6）　**状态** 🆕 新登记　**页面** 多页通病（4 页 6 处）
+- **严重度** 🟠 高（触红线 6）　**状态** ✅ 已修（b-98 C3/C7：4 页频道名英文文案全部中文化为「数据定时刷新」等）　**页面** 多页通病（4 页 6 处）
 - **现象**：实时指示文案把英文频道名直接显示给用户：
   - `(admin)/page.tsx:40` 「**checkin_event** 实时」（仪表盘）
   - `traffic/parking/page.tsx:26,40` 「**parking_state** 频道」「已接入 **parking_state** SSE 频道…」
@@ -93,7 +95,7 @@
 - **剩余 24 处**：~8 处**真动态必须保留**（`width:${pct}%` 进度条、`height` prop、`latencyColor()`、`trendColor`——Tailwind 表达不了 JS 计算值，官方推荐内联）；~16 处**可转**（条件二值色 `isRed?…`/`circuitRed?…`、`padding:24`、`color:"#9CA3AF"`）→`cn()` 三元 class，**待续**。
 
 ## B10 · 内容状态标签语义错（草稿/归档都显示"已暂停"）
-- **严重度** 🟠 高　**状态** 🆕 新登记　**页面** `/content/news`（及 intro/knowledge/activities 全部内容列表，同款映射）
+- **严重度** 🟠 高　**状态** ✅ 已修（b-98 C1：StatusChip 加内容域键 草稿/已发布/已下线 + 切换动词统一发布/下线）　**页面** `/content/news`（及 intro/knowledge/activities 全部内容列表，同款映射）
 - **现象**：内容状态(`DRAFT`/`PUBLISHED`/`ARCHIVED`)被硬塞进 StatusChip 的 `ACTIVE`/`PAUSED`：`status={item.status === "PUBLISHED" ? "ACTIVE" : "PAUSED"}`。
   - 草稿 `DRAFT` → "已暂停"（错，应"草稿"）；
   - 已归档 `ARCHIVED` → 也 "已暂停"（错，应"已下线"）；**草稿与归档视觉无法区分**；
@@ -104,7 +106,7 @@
 - **附:跨模块动词不一致**：内容状态切换按钮，intro/activities 用 **发布/下线**（发布语义），knowledge 用 **启用/停用**（`StatusToggle variant="toggle"`，启停语义）——同是 DRAFT/PUBLISHED 切换却两套措辞。knowledge 内部自洽（chip 启用/已暂停 + 按钮 停用），但与其它内容模块不统一。建议随 B10 一并定一套内容状态措辞。
 
 ## B11 · 仪表盘「在园人数」SSE 实时更新失效（payload 契约不一致）〔实测确认〕
-- **严重度** 🔴 高（红线4 实时大屏核心）　**状态** 🆕 新登记　**页面** `/`（OccupancyCard）
+- **严重度** 🔴 高（红线4 实时大屏核心）　**状态** 🧪 代码已修待实测（b-98 C3：改「脏信号+回拉」收到 checkin_event 后回拉最新在园数，绕开 payload 形状；service 核销路径留待 docker QA 实测确认）　**页面** `/`（OccupancyCard）
 - **现象（实测）**：核销 1 笔后仪表盘"在园人数"**不变**（17→17）。
 - **根因**：`notify_checkin_event` 触发器 NOTIFY 的 payload 是 `{id, slot_id, checked_in_at, channel}`——**没有** `checkedInCount`；`_occupancy-card.tsx:17-19` 只在 `typeof payload.checkedInCount==="number"` 时才 `setCount`，没这字段就**忽略**；`listener.ts` 也只原样转发不补 → 事件到了也不更新。
 - **基础设施正常**：服务器本地 `curl -N /api/sse/checkin_event` + 核销，**能收到** `event: checkin_event`（触发器→pg-listen→bus→SSE 全通）。问题纯在 payload 契约 + 前端取值字段。
@@ -117,7 +119,7 @@
 - **已改**：`page-header.tsx` title 28px→`text-xl`(20px)+ title 改可选；新增 `breadcrumb.tsx`（首页/分组/页面，由路由反查菜单）；仪表盘省略 title；topbar 去掉重复的居中面包屑。CDP 截图确认。
 
 ## B13 · 没有返回首页/仪表盘的入口〔用户反馈〕
-- **严重度** 🟠 高　**状态** 🆕 新登记　**页面** 全局壳
+- **严重度** 🟠 高　**状态** ✅ 已修（b-98 C2：sidebar logo 包 `<Link href="/" aria-label="返回仪表盘首页">`）　**页面** 全局壳
 - **现象**：菜单(`MENU_GROUPS`)无"首页/仪表盘"项；侧边栏 logo+名称、topbar logo+名称**都不是链接**，点了无反应。唯一入口是 B12 新加的面包屑"首页"（仅子页有）。
 - **建议**：侧边栏顶部 logo+名称包成 `<Link href="/">`（最通用习惯）；可选再给菜单加"首页/仪表盘"项。
 
@@ -127,19 +129,19 @@
 - **建议**：分组标题做成可点击折叠/展开(accordion);记住展开态(localStorage);当前页所在分组默认展开。需把 sidebar 由纯展示改为带状态的客户端交互。
 
 ## B15 · 登录页回车不触发登录〔用户反馈〕
-- **严重度** 🟡 中　**状态** 🆕 新登记　**页面** `/login`
+- **严重度** 🟡 中　**状态** 🔍 待 QA 复测定性（b-98 C9：与 B2 同源，疑 B21 cookie 环境问题；可选给密码框 onKeyDown Enter→requestSubmit 兜底，待 docker prod 复测后定）　**页面** `/login`
 - **现象**：在手机号/密码框按回车不提交，必须手点「登 录」。（与 B2"CDP 提交不跳转"可能同源:表单提交链路有问题。）
 - **疑点**：`<form action={formAction}>` + 自定义 `Input` 组件;正常单/多输入框+submit 按钮按回车应触发原生提交。需查 Input 是否吞了 Enter,或 React 19 action form 的提交未走原生 submit。
 - **建议**：确保按 Enter 走表单 submit（必要时给密码框加 `onKeyDown` Enter→requestSubmit）。
 
 ## B16 · Session 1 小时硬过期、非滑动、无刷新〔用户反馈〕
-- **严重度** 🟡 中（联调/体验）　**状态** 🟡 联调已缓解 / 生产待做滑动续期　**页面** 认证
+- **严重度** 🟡 中（联调/体验）　**状态** 🛠️ 部分（b-98 C9：cookie `maxAge` 已对齐 `GOTRUE_JWT_EXP`，消除"7天JWT/1h cookie"不一致——即清单③；生产短时效 + 滑动续期仍待下迭代）　**页面** 认证
 - **现象**：登录后满 1 小时被踢回登录页,中途操作不续期。原 `GOTRUE_JWT_EXP=3600` + cookie `maxAge:3600`,无 refresh 逻辑。
 - **已处理(联调)**：`GOTRUE_JWT_EXP` 调到 **604800(7 天)**(compose),已重建 gotrue 生效,免得测试中频繁被踢。
 - **仍待做(生产)**：① 生产改回短时效(如 3600);② **滑动续期**:存 GoTrue 的 `refresh_token`,access token 临期用 `grant_type=refresh_token` 静默续期(或 middleware 检测临期重签);③ 登录页 cookie `maxAge:3600` 硬编码(`login/page.tsx`)未随之调整——真实表单登录时 cookie 仍 1h 过期(当前靠注入绕过,叠加 B21)。
 
 ## B17 · 密码错误无提示〔用户反馈〕
-- **严重度** 🟡 中　**状态** 🆕 新登记　**页面** `/login`
+- **严重度** 🟡 中　**状态** 🔍 待 QA 复测定性（b-98 C9：回显逻辑代码本就在，疑与 B2/B15 同源；docker prod 点登录输错密码复测是否出红字）　**页面** `/login`
 - **现象**：输错密码后页面无任何错误提示。
 - **代码核对**：逻辑其实**存在**——`login/page.tsx:28` 错误时 `return "手机号或密码错误"`；`_login-form.tsx:53-55` `{error && <p role="alert">…</p>}` 展示。故为运行时未生效。
 - **疑根因**：极可能与 **B15(回车不提交)/B2(表单提交链路)** 同源——用户按回车未触发提交→action 没跑→自然无提示。需实测确认:**点按钮**输错密码是否会显示"手机号或密码错误"。若点按钮也不显示,则 useActionState 回显本身有问题。
@@ -190,14 +192,14 @@
 - **证据**：`/tmp/intro-now.jpg`；`src/lib/ui/button.tsx`(default hover 硬编码)；`grep 'text-\[12px\]'` 命中 11 处列表按钮。
 
 ## B21 · 生产环境 http 下 secure cookie 致真实表单登录失效〔环境/安全〕
-- **严重度** 🟡 中（QA 环境 + 上线前须知）　**状态** 🆕 新登记　**页面** 认证（`(auth)/login/page.tsx`）
+- **严重度** 🟡 中（QA 环境 + 上线前须知）　**状态** ✅ 已修（b-98 C9：cookie `secure` 改 `COOKIE_SECURE` env 开关，默认回退 NODE_ENV，内网 http QA 置 false；compose 已设 `COOKIE_SECURE:${COOKIE_SECURE:-false}`）　**页面** 认证（`(auth)/login/page.tsx`）
 - **现象/根因**：登录成功时写 cookie `sb-access-token` 设 `secure: process.env.NODE_ENV === "production"`。容器化 QA（`NODE_ENV=production`）经 **http**(VPN 10.7.0.1) 访问时，浏览器**不会回传 secure cookie** → 即便表单提交链路修好(B2/B15)，真人也登不进；middleware 读不到 cookie → 永远 307 回 /login。
 - **影响**：① 当前容器 QA 真人表单登录走不通（叠加 B2），需继续用 **CDP 注入非 secure cookie**（http 下能回传、middleware 照验，已实测放行）；② 上线必须走 **https**，否则生产用户全部无法登录。
 - **建议**：① 正式部署在反代/网关层做 TLS（cookie secure 才成立）；② 若需 http 内网部署，给 cookie secure 加可配开关（如 `COOKIE_SECURE` env），勿仅绑死 `NODE_ENV`。
 - **证据**：`(auth)/login/page.tsx` 的 `cookieStore.set(... secure: NODE_ENV==="production")`；容器实测 `curl 带注入token→200 / 无token→307`。
 
 ## B22 · 面包屑中间层级不可点,子页无法经面包屑返回列表〔用户反馈·B12 缺陷〕
-- **严重度** 🟡 中（导航）　**状态** 🆕 新登记　**页面** 所有内容新建/编辑等子页（如 `/content/activities/new`、`*/edit`）；组件 `src/lib/ui/breadcrumb.tsx`
+- **严重度** 🟡 中（导航）　**状态** ✅ 已修（b-98 C2：子页时 page 段渲染 `<Link>` 可返回列表 + 末段子页 span + `aria-current`）　**页面** 所有内容新建/编辑等子页（如 `/content/activities/new`、`*/edit`）；组件 `src/lib/ui/breadcrumb.tsx`
 - **现象（实测）**：在"新建活动"页，面包屑 `首页 / 基础宣传管理 / 活动运营管理`，但点"活动运营管理"**纹丝不动**（`/content/activities/new` 原地）。DOM 核实：仅"首页"是 `<a href="/">`，**分组与页面段都是 `<span>`**。→ 子页（new/edit）下用户**无法靠面包屑回到列表页**，只能浏览器后退或左侧菜单。
 - **根因**：`breadcrumb.tsx` 的 `resolveCrumb` 把 group 和 page 一律渲染成 `<span>`；未区分"当前正在列表页"(page=当前,span 合理) vs "当前在其子页"(page=父级,应为返回列表的 `<Link>`)。
 - **建议**：当 `pathname` 深于 `item.href`（即 `pathname.startsWith(item.href + "/")`）时，page 段渲染为 `<Link href={item.href}>` 可点返回列表，并把子页名（新建/编辑）作为末段 span；`pathname === item.href` 时 page 仍为当前 span。分组段无独立落地页，保持 span 可接受。
@@ -205,7 +207,7 @@
 - **证据**：CDP 实测点击无跳转；`breadcrumb.tsx` group/page 均 `<span>`。
 
 ## B23 · 现场补录当天无时段可选——系统缺"每日时段生成"机制（P3 升级·prod 确认）
-- **严重度** 🔴 高（当天预约/补录链路瘫痪）　**状态** 🆕 确认　**页面** `/booking/onsite`（亦影响真实预约）
+- **严重度** 🔴 高（当天预约/补录链路瘫痪）　**状态** 🛠️ 部分（b-98 C4：slots 页加手动建时段入口止血 + C5 修默认日期偏移诱因；结构性"每日滚动生成 cron"根治排下迭代）　**页面** `/booking/onsite`（亦影响真实预约）
 - **现象（prod 实测）**：现场补录 step1 时段下拉恒"当日暂无可预约时段"，无法进入后续步骤。
 - **真根因**：`booking_slot` 表**最新时段只到 2026-06-03，当天(06-04)0 个时段**；`listSlotsByDate` 精确匹配 `where:{date}` → 当天查不到 → 下拉空。**即系统没有"为当天/未来日生成时段"的机制**，seed 数据一过期，**当天就无任何可预约时段**。
 - **放大效应**：叠加 R-cfg（配额配置页只读、UI 建不了时段）→ 运营**当天无时段时既不能预约、也无法在后台补建**，自救无门。不只补录，**真实在线预约同样会因当天无 slot 而瘫痪**。
