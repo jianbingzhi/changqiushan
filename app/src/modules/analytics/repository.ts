@@ -102,13 +102,14 @@ export const analyticsRepository = {
       SELECT q.dimension, q.value,
              ROUND(q.value::numeric / NULLIF((SELECT n FROM total), 0) * 100, 2)::float AS percentage
       FROM (
-        SELECT '出行·自驾' AS dimension, COUNT(*) FILTER (WHERE plate IS NOT NULL) AS value FROM b
-        UNION ALL SELECT '出行·非自驾', COUNT(*) FILTER (WHERE plate IS NULL) FROM b
-        UNION ALL SELECT '时段·上午(12时前)', COUNT(*) FILTER (WHERE hr < 12) FROM b
-        UNION ALL SELECT '时段·下午(12-16时)', COUNT(*) FILTER (WHERE hr >= 12 AND hr < 16) FROM b
-        UNION ALL SELECT '时段·傍晚(16时后)', COUNT(*) FILTER (WHERE hr >= 16) FROM b
+        -- 显式 sort_order:出行方式在前(1~2),入园时段按时序递增(10~30),避免按中文标签 collation 乱序
+        SELECT '出行·自驾' AS dimension, COUNT(*) FILTER (WHERE plate IS NOT NULL) AS value, 1 AS sort_order FROM b
+        UNION ALL SELECT '出行·非自驾', COUNT(*) FILTER (WHERE plate IS NULL), 2 FROM b
+        UNION ALL SELECT '时段·上午(12时前)', COUNT(*) FILTER (WHERE hr < 12), 10 FROM b
+        UNION ALL SELECT '时段·下午(12-16时)', COUNT(*) FILTER (WHERE hr >= 12 AND hr < 16), 20 FROM b
+        UNION ALL SELECT '时段·傍晚(16时后)', COUNT(*) FILTER (WHERE hr >= 16), 30 FROM b
       ) q
-      ORDER BY q.dimension
+      ORDER BY q.sort_order
     `);
   },
 };
