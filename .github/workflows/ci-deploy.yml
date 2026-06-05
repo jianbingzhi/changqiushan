@@ -1,0 +1,106 @@
+# B 端后台 CI/CD —— GitHub Actions + Vercel CLI
+#
+# 需在 GitHub repo (d2xstudio/changqiushan) → Settings → Secrets and variables → Actions
+# 配置以下 Secrets:
+#   VERCEL_TOKEN        Vercel 账号 Token(Account Settings → Tokens)
+#   VERCEL_ORG_ID       Vercel 组织 ID(项目 Settings 或 `vercel link` 后 .vercel/project.json)
+#   VERCEL_PROJECT_ID   Vercel 项目 ID(同上)
+#   DIRECT_URL          Supabase 直连串(端口 5432),供 prisma migrate deploy 用
+# 其余应用运行时变量(DATABASE_URL pooler / GOTRUE_* / SUPABASE_ANON_KEY / S3_* /
+#   NEXT_PUBLIC_REALTIME_ENABLED=false / COOKIE_SECURE / CRON_SECRET 等)在 Vercel 项目 env 配置,
+#   由 `vercel pull/build` 注入,不放这里。
+#
+# 前置:Vercel 项目 Root Directory 设为 `app`(monorepo 子目录);本仓 app/vercel.json 提供 cron。
+
+name: CI / Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: Lint · Typecheck · Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    env:
+      # 占位串:tsc/test 不连库,仅防 prisma.config 读取为空告警。
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      # @prisma/client 类型由 generate 产出,tsc/test 依赖它
+      - run: pnpm prisma generate
+
+      - name: Typecheck
+        run: pnpm exec tsc --noEmit
+
+      - name: Lint(eslint 边界 + lint-cn 红线)
+        run: pnpm lint
+
+      - name: Unit tests
+        run: pnpm test
+
+  deploy:
+    name: Migrate · Deploy to Vercel
+    needs: ci
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+        working-directory: app
+
+      # 迁移:用直连(端口 5432);prisma.config 读 DIRECT_URL。失败则不部署。
+      - name: Prisma migrate deploy
+        working-directory: app
+        env:
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: pnpm prisma migrate deploy
+
+      # Vercel CLI 部署(项目 Root Directory=app,从仓库根跑即可)
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Vercel pull (production env)
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Vercel build
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Vercel deploy (prebuilt)
+        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}

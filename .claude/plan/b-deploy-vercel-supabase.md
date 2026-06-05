@@ -73,5 +73,20 @@
 - 会话仍长时效无滑动续期(b-98 C9 生产项);连接池仅基本配置;熔断改内联后多实例一致但无跨实例广播(演示足够)。
 - 实时关闭 → 大屏/仪表盘非自动刷新;需自动态势时再按"Supabase Realtime"方案升级。
 
+## F · CI/CD(GitHub Actions + Vercel CLI,源库 origin=d2xstudio)
+工作流:`.github/workflows/ci-deploy.yml`。
+- **ci job**(PR + push main):`pnpm install` → `prisma generate` → `tsc --noEmit` → `pnpm lint`(eslint 边界 + lint-cn 红线)→ `pnpm test`。不连库、无需 secret。
+- **deploy job**(仅 push main,需 ci 通过):`prisma migrate deploy`(用 `DIRECT_URL` secret,失败则不部署)→ `vercel pull/build/deploy --prod`。
+- **需在 GitHub repo(d2xstudio/changqiushan)→ Settings → Secrets → Actions 配置**:
+  `VERCEL_TOKEN`、`VERCEL_ORG_ID`、`VERCEL_PROJECT_ID`、`DIRECT_URL`(Supabase 直连 5432)。
+- **应用运行时变量**(`DATABASE_URL` pooler / `GOTRUE_*` / `SUPABASE_ANON_KEY` / `S3_*` / `NEXT_PUBLIC_REALTIME_ENABLED=false` / `COOKIE_SECURE=true` / `CRON_SECRET` 等)在 **Vercel 项目 env** 配置,由 `vercel pull/build` 注入,不放 GitHub Secrets。
+- **Vercel 项目前置**:Root Directory 设 `app`(monorepo 子目录);`vercel link` 后从 `.vercel/project.json` 取 ORG_ID/PROJECT_ID。
+- 注:双推到 jianbingzhi 不触发本工作流(CI/CD 只挂 origin)。
+
 ## 执行顺序
-1.(你)A1–A2 给我连接串/密钥 → 2.(我)B1–B5 代码改 + 本地 docker 回归不破 → 3.(你)A3–A4 建管理员+bucket → 4.(我)B6 存储 → 5.(你)A5 Vercel env+部署 → 6. 联调冒烟。
+1.(你)建 Supabase 项目 + Vercel 项目(Root=app)→ 把上面 4 个 GitHub Secrets 加到 d2xstudio repo、应用变量加到 Vercel env。
+2.(我,已完成)B1–B5 代码 + CI/CD workflow + 本地回归绿。
+3.(你)Supabase 建带 `app_metadata.role` 的管理员 + public bucket(S3 key)。
+4.(我)B6 S3 兼容存储 driver + 上传入口。
+5. push main → CI 自动 migrate + 部署 → 联调冒烟。
+6.(可选)给我**临时**连接串/anon key,我从本地跑一次 migrate/连接/登录冒烟定性后你 rotate。
