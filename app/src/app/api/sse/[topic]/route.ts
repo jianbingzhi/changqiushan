@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { bus } from "@/infrastructure/realtime/bus";
 import { startPgListener } from "@/infrastructure/realtime/listener";
 import { logger } from "@/infrastructure/logger";
+import { getSession } from "@/infrastructure/auth/session";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -16,6 +17,17 @@ const ALLOWED_TOPICS = new Set([
 ]);
 
 export async function GET(req: NextRequest, ctx: { params: Promise<{ topic: string }> }) {
+  // 鉴权门:四路实时流(核销/IoT/车位/时段)均为 B 端管理数据,须登录员工态。
+  // /api/* 不经 middleware(matcher 负向排除 api/),故各 route handler 自带鉴权。
+  // 访客 token 走独立密钥(VISITOR_JWT_SECRET),getSession 用 B 端密钥验签,天然排除游客。
+  const session = await getSession();
+  if (!session) {
+    return new Response(JSON.stringify({ error: "未登录" }), {
+      status: 401,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
   const { topic } = await ctx.params;
 
   if (!ALLOWED_TOPICS.has(topic)) {
