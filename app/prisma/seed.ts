@@ -41,8 +41,12 @@ async function main() {
     let idSeq = 0;
 
     // 近 7 天(含今日),今日索引为 0
+    // 以 Asia/Shanghai 今天为基准(与 app 的 chinaToday 一致);否则 UTC 取"今天"在北京 0–8 点会偏到昨天,
+    // 导致"今日"无时段(现场补录/仪表盘空)。cstBase 取北京日历日的 UTC 零点,后续按 UTC 减天数安全。
+    const cstToday = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai" }).format(new Date());
+    const cstBase = new Date(cstToday + "T00:00:00Z");
     for (let dayOffset = 6; dayOffset >= 0; dayOffset--) {
-      const d = new Date();
+      const d = new Date(cstBase);
       d.setUTCDate(d.getUTCDate() - dayOffset);
       const dateStr = d.toISOString().slice(0, 10);
       const isToday = dayOffset === 0;
