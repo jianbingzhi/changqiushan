@@ -26,6 +26,11 @@ services:
       GOTRUE_URL: http://gotrue:9999
       GOTRUE_JWT_ISSUER: http://localhost:9999
       GOTRUE_JWT_SECRET: ${GOTRUE_JWT_SECRET}
+      # B16:cookie 寿命与 GoTrue JWT 寿命对齐(下方 gotrue 服务同值),消除提前掉线
+      GOTRUE_JWT_EXP: "604800"
+      # B21:内网 http(VPN)QA 必须 false,否则浏览器不回传 secure cookie → 登录"没反应";
+      # 生产经 https 反代时置 true(D4)。
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
     # 绑 0.0.0.0 以便经 VPN(10.7.0.1)访问;pg/gotrue 仅 127.0.0.1 不外露
     ports:
       - "3000:3000"
