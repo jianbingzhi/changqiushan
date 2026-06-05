@@ -1,0 +1,15 @@
+# Taro 小程序工程(自包含子工程)
+node_modules/
+dist/
+.temp/
+.rn_temp/
+.swc/
+deploy_versions/
+.DS_Store
+*.log
+*.local
+.env
+.env.local
+# 体验版上传码包密钥,绝不入库
+*.key
+project.private.config.json

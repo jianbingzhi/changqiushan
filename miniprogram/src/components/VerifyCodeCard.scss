@@ -1,0 +1,46 @@
+@use "../styles/tokens.scss" as *;
+
+.vcode {
+  width: 100%;
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 40px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 2px 12px rgba(45, 90, 39, 0.1);
+
+  &--loading { padding: 60px 32px; }
+  &--stale { opacity: 0.6; }
+
+  &__label { font-size: $font-sm; color: var(--text-secondary); }
+  &__otp {
+    font-size: 44PX;
+    font-weight: 700;
+    letter-spacing: 4px;
+    color: var(--brand);
+    margin: 16px 0;
+    font-variant-numeric: tabular-nums;
+  }
+  &__meta { margin-bottom: 24px; }
+  &__count { font-size: $font-sm; color: var(--accent); }
+  &__stale-tip { font-size: $font-sm; color: var(--danger); }
+
+  &__text {
+    width: 100%;
+    border-top: 1px dashed var(--border);
+    padding-top: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  &__text-label { font-size: $font-xs; color: var(--muted); }
+  &__text-val { font-size: $font-base; color: var(--text-primary); margin-top: 6px; letter-spacing: 1px; }
+
+  &__watermark {
+    font-size: $font-xs;
+    color: var(--muted);
+    margin-top: 24px;
+    opacity: 0.7;
+  }
+}

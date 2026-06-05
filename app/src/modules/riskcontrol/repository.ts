@@ -46,6 +46,10 @@ export const riskcontrolRepository = {
     return db.riskBlacklist.findMany({ orderBy: { blacklistedAt: "desc" } });
   },
 
+  findBlacklistByUserId(userId: string) {
+    return db.riskBlacklist.findUnique({ where: { userId } });
+  },
+
   findAppeal(id: string) {
     return db.riskAppeal.findUnique({ where: { id }, include: { blacklist: true } });
   },

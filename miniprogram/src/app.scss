@@ -1,0 +1,54 @@
+@use "./styles/tokens.scss" as *;
+
+// 颜色令牌(同源 B 端,仅 token 层共识)— 浅色主题(默认)
+page,
+page[data-theme="light"] {
+  --brand: #2D5A27;
+  --brand-deep: #1F3F1A;
+  --accent: #D97706;
+  --danger: #DC2626;
+  --success: #059669;
+  --muted: #9CA3AF;
+  --notice-bg: #FFFBEB;
+  --bg-page: #F5F6F4;
+  --bg-card: #FFFFFF;
+  --text-primary: #1F2937;
+  --text-secondary: #6B7280;
+  --border: #E5E7EB;
+  --radius: 16px;
+  --radius-sm: 10px;
+}
+
+// 深色主题令牌(单一来源)— 既供手动 data-theme,也供系统跟随 media query 复用(mixin 可跨 @media)
+@mixin dark-tokens {
+  --brand: #4ADE80;
+  --brand-deep: #16A34A;
+  --accent: #FBBF24;
+  --danger: #F87171;
+  --success: #34D399;
+  --muted: #6B7280;
+  --notice-bg: #2A2410;
+  --bg-page: #111613;
+  --bg-card: #1B211D;
+  --text-primary: #F3F4F6;
+  --text-secondary: #9CA3AF;
+  --border: #2B332C;
+  --radius: 16px;
+  --radius-sm: 10px;
+}
+
+// 手动覆盖:themeStore 写 page[data-theme](优先级高于系统)
+page[data-theme="dark"] { @include dark-tokens; }
+
+// 系统跟随:手机处于深色模式时自动生效(app.config darkmode:true 前提);未手动设浅色时才跟随
+@media (prefers-color-scheme: dark) {
+  page:not([data-theme="light"]) { @include dark-tokens; }
+}
+
+page {
+  background: var(--bg-page);
+  color: var(--text-primary);
+  font-family: $font-family;
+  font-size: $font-base;
+  line-height: 1.6;
+}

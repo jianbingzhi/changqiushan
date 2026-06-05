@@ -1,0 +1,46 @@
+@use "../../styles/tokens.scss" as *;
+
+.mb {
+  padding: 24px;
+
+  &__tabs {
+    display: flex;
+    background: var(--bg-card);
+    border-radius: var(--radius-sm);
+    padding: 8px;
+    margin-bottom: 20px;
+  }
+  &__tab {
+    flex: 1;
+    text-align: center;
+    font-size: $font-sm;
+    color: var(--text-secondary);
+    padding: 12px 0;
+    border-radius: var(--radius-sm);
+    &--active { background: var(--brand); color: #fff; }
+  }
+
+  &__card {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+  &__card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  &__card-date { font-size: $font-base; font-weight: 600; color: var(--text-primary); }
+  &__card-time { display: block; font-size: $font-sm; color: var(--brand); margin-bottom: 8px; }
+  &__card-info { display: block; font-size: $font-sm; color: var(--text-secondary); margin-top: 4px; }
+
+  &__cancel {
+    margin-top: 16px;
+    margin-left: 0;
+    color: var(--danger);
+    background: rgba(220, 38, 38, 0.08);
+    font-size: $font-sm;
+  }
+}

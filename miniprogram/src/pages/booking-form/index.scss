@@ -1,0 +1,47 @@
+@use "../../styles/tokens.scss" as *;
+
+.form {
+  padding: 24px;
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  &__slot { font-size: $font-base; font-weight: 600; color: var(--brand); }
+
+  &__card {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: 8px 24px;
+    margin-bottom: 20px;
+  }
+  &__row {
+    display: flex;
+    align-items: center;
+    padding: 24px 0;
+    border-bottom: 1px solid var(--border);
+    &:last-child { border-bottom: none; }
+    &--switch { justify-content: space-between; }
+  }
+  &__label {
+    width: 160px;
+    font-size: $font-base;
+    color: var(--text-primary);
+  }
+  &__input {
+    flex: 1;
+    font-size: $font-base;
+    color: var(--text-primary);
+  }
+
+  &__submit {
+    margin-top: 32px;
+    background: var(--brand);
+    color: #fff;
+    border-radius: 999px;
+    font-size: $font-md;
+    font-weight: 600;
+  }
+}

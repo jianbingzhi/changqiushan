@@ -1,0 +1,10 @@
+# pnpm 11:批准以下原生依赖执行安装构建脚本(Taro 编译器/原生绑定需要)
+# 注:此处不声明 packages,故 app/ 仍是独立工程,不并入 workspace
+allowBuilds:
+  '@parcel/watcher': true
+  '@swc/core': true
+  '@tarojs/binding': true
+  '@tarojs/cli': true
+  core-js: true
+  core-js-pure: true
+  esbuild: true

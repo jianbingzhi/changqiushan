@@ -5,6 +5,7 @@ import {
   createNewsSchema, updateNewsSchema,
   createActivitySchema, updateActivitySchema,
   createKnowledgeSchema, updateKnowledgeSchema,
+  createSignupSchema,
 } from "../domain/schema";
 import { contentRepository } from "../repository";
 
@@ -80,6 +81,49 @@ export const contentService = {
       case "knowledge": row = await contentRepository.createKnowledge(d as never); break;
     }
     return ok({ id: row.id });
+  },
+
+  // C 端活动报名(阶段一:仅免费活动在线报名;付费活动报名经微信支付二期开放)
+  async createSignup(activityId: string, raw: unknown): Promise<Result<{ id: string }>> {
+    const parsed = createSignupSchema.safeParse(raw);
+    if (!parsed.success) return err(ErrCode.INVALID_INPUT, parsed.error.issues[0].message);
+
+    const activity = await contentRepository.getActivity(activityId);
+    if (!activity || activity.status !== "PUBLISHED") {
+      return err(ErrCode.NOT_FOUND, "活动不存在或未开放报名");
+    }
+    // 免费活动报名即完成;付费活动建单后经微信支付(隔离)完成,入园主流程零支付不变
+    if (activity.maxParticipants != null) {
+      const count = await contentRepository.countSignups(activityId);
+      if (count >= activity.maxParticipants) return err(ErrCode.SLOT_FULL, "报名名额已满");
+    }
+    const dup = await contentRepository.findSignupByUser(activityId, parsed.data.idCard);
+    if (dup) return err(ErrCode.DUPLICATE_BOOKING, "您已报名该活动，请勿重复提交");
+
+    const row = await contentRepository.createSignup({
+      activityId,
+      userId: parsed.data.idCard,
+      userName: parsed.data.userName,
+      phone: parsed.data.phone,
+    });
+    return ok({ id: row.id });
+  },
+
+  // 支付回调标记报名已付(经此公共面写,payment 模块不跨写 content 表;红线:边界)
+  async markSignupPaid(
+    signupId: string,
+    meta?: { wxOrderId?: string; wxTransactionId?: string },
+  ): Promise<Result<void>> {
+    const signup = await contentRepository.getSignup(signupId);
+    if (!signup) return err(ErrCode.NOT_FOUND, "报名记录不存在");
+    if (signup.paymentStatus === "PAID") return ok(undefined); // 幂等
+    await contentRepository.updateSignup(signupId, {
+      paymentStatus: "PAID",
+      paidAt: new Date(),
+      ...(meta?.wxOrderId ? { wxOrderId: meta.wxOrderId } : {}),
+      ...(meta?.wxTransactionId ? { wxTransactionId: meta.wxTransactionId } : {}),
+    });
+    return ok(undefined);
   },
 
   // B04: 编辑内容(部分更新)。

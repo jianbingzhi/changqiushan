@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     return Response.json({ success: false, message: "未授权：无效的闸机密钥" }, { status: 401 });
   }
 
-  let body: { qrCode?: unknown };
+  let body: { qrCode?: unknown; bookingRef?: unknown; otp?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -21,12 +21,21 @@ export async function POST(req: NextRequest) {
   }
 
   const qrCode = typeof body.qrCode === "string" ? body.qrCode.trim() : "";
-  if (!qrCode) {
-    return Response.json({ success: false, code: "INVALID_INPUT", message: "qrCode 不可为空" }, { status: 400 });
+  const bookingRef = typeof body.bookingRef === "string" ? body.bookingRef.trim() : "";
+  const otp = typeof body.otp === "string" ? body.otp.trim() : "";
+
+  // 新固件:bookingRef + 30s 动态 OTP;旧固件:静态 qrCode(重载兼容)
+  if (!qrCode && !(bookingRef && otp)) {
+    return Response.json(
+      { success: false, code: "INVALID_INPUT", message: "缺少核销凭证(qrCode 或 bookingRef+otp)" },
+      { status: 400 },
+    );
   }
 
   try {
-    const result = await checkinService.checkin(qrCode);
+    const result = bookingRef && otp
+      ? await checkinService.checkinByOtp({ bookingRef, otp })
+      : await checkinService.checkin(qrCode);
     if (result.ok) {
       const { bookingId, slotId, checkedInAt } = result.value;
       return Response.json({ success: true, bookingId, slotId, checkedInAt }, { status: 200 });

@@ -1,0 +1,38 @@
+@use "../styles/tokens.scss" as *;
+
+.activity-card {
+  width: 100%;
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
+
+  &__cover {
+    width: 100%;
+    height: 180px;
+    background: var(--border);
+    &--ph { background: linear-gradient(135deg, #2D5A27, #1F3F1A); }
+  }
+  &__body { padding: 20px; }
+  &__title {
+    display: block;
+    font-size: $font-md;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  &__date {
+    display: block;
+    font-size: $font-sm;
+    color: var(--text-secondary);
+    margin: 6px 0 12px;
+  }
+  &__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  &__count {
+    font-size: $font-xs;
+    color: var(--muted);
+  }
+}

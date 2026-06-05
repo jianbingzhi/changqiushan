@@ -57,6 +57,11 @@ export const bookingService = {
     }
   },
 
+  // C 端「我的中心」只读统计聚合(按身份证)
+  getVisitorStats(idCard: string) {
+    return bookingRepository.getVisitorStats(idCard);
+  },
+
   async cancelBooking(bookingId: string): Promise<Result<void>> {
     const booking = await bookingRepository.getBookingWithSlot(bookingId);
     if (!booking) return err(ErrCode.NOT_FOUND, "预约单不存在");

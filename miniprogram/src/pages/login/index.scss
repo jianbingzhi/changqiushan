@@ -1,0 +1,31 @@
+@use "../../styles/tokens.scss" as *;
+
+.login {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 120px 48px 0;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #2D5A27 0%, #1F3F1A 100%);
+
+  &__logo { font-size: 64PX; margin-bottom: 24px; }
+  &__title { font-size: $font-xl; color: #fff; font-weight: 700; }
+  &__sub { font-size: $font-sm; color: rgba(255, 255, 255, 0.8); margin-top: 12px; }
+
+  &__btn {
+    width: 100%;
+    margin-top: 96px;
+    background: #fff;
+    color: var(--brand);
+    border-radius: 999px;
+    font-size: $font-md;
+    font-weight: 600;
+  }
+  &__tip {
+    font-size: $font-xs;
+    color: rgba(255, 255, 255, 0.7);
+    margin-top: 32px;
+    line-height: 1.6;
+    text-align: center;
+  }
+}

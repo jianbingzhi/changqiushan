@@ -9,3 +9,6 @@ tmp/
 
 # 根目录的 Stitch 抓取脚本用 npm,pnpm-lock.yaml 是 pnpm 误跑生成的,不入库
 /pnpm-lock.yaml
+
+# swc 插件缓存(误生成)
+.swc/
