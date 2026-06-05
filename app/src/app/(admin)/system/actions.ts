@@ -16,7 +16,7 @@ export async function createAdminAction(input: {
 }): Promise<SystemActionResult> {
   const auth = await requireRole(SUPER_ONLY);
   if (!auth.ok) return auth;
-  const r = await adminService.createAdmin(input);
+  const r = await adminService.createAdmin(auth.session.userId, input);
   if (!r.ok) return { ok: false, message: r.message };
   revalidatePath("/system");
   return { ok: true, message: "账号已创建" };
@@ -36,7 +36,7 @@ export async function disableAdminAction(targetId: string): Promise<SystemAction
 export async function resetPasswordAction(targetId: string, newPassword: string): Promise<SystemActionResult> {
   const auth = await requireRole(SUPER_ONLY);
   if (!auth.ok) return auth;
-  const r = await adminService.resetPassword(targetId, newPassword);
+  const r = await adminService.resetPassword(auth.session.userId, targetId, newPassword);
   if (!r.ok) return { ok: false, message: r.message };
   return { ok: true, message: "密码已重置" };
 }

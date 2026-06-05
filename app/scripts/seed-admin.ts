@@ -28,7 +28,9 @@ async function main() {
     }
   }
 
-  const r = await adminService.createAdmin({
+  // 引导期无登录 actor,用 nil UUID 作系统操作人(审计无 FK,层级校验对未知 actor 跳过)
+  const SYSTEM_ACTOR = "00000000-0000-0000-0000-000000000000";
+  const r = await adminService.createAdmin(SYSTEM_ACTOR, {
     phone: PHONE,
     password: PASSWORD,
     name: "系统超管",
