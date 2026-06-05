@@ -8,6 +8,7 @@
     "build": "NEXT_BUILD_LIMIT=1 nice -n 19 ionice -c 3 next build",
     "build:fast": "next build",
     "start": "next start",
+    "postinstall": "prisma generate",
     "lint": "eslint && node scripts/lint-cn.mjs",
     "lint:cn": "node scripts/lint-cn.mjs",
     "test": "vitest run",
