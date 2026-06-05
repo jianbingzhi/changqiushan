@@ -5,6 +5,7 @@ import { LiveDot } from "@/lib/ui/live-dot";
 import { bookingRepository } from "@/modules/booking";
 import { iotRepository } from "@/modules/iot";
 import { formatCnDate } from "@/shared/format";
+import { chinaToday, chinaTodayDbDate } from "@/shared/lib/time";
 import { getInstantCapacity } from "@/shared/lib/capacity";
 import Link from "next/link";
 import { OccupancyCard } from "./_occupancy-card";
@@ -14,8 +15,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "仪表盘 · 长秋山森林公园智慧景区管理后台" };
 
 export default async function DashboardPage() {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = chinaTodayDbDate();
 
   const [slots, devices] = await Promise.all([
     bookingRepository.listSlotsByDate(today).catch(() => []),
@@ -33,7 +33,7 @@ export default async function DashboardPage() {
   return (
     <DashboardLiveProvider initialCount={checkedInCount}>
       <PageHeader
-        description={`${formatCnDate(today)} · 运营概览`}
+        description={`${formatCnDate(chinaToday())} · 运营概览`}
         actions={<HeaderLive />}
       />
 

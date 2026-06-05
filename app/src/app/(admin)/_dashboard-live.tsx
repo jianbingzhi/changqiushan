@@ -32,15 +32,23 @@ export function DashboardLiveProvider({
 
   useEffect(() => {
     const es = new EventSource("/api/sse/checkin_event");
+    let timer: ReturnType<typeof setTimeout> | null = null;
     es.onopen = () => setConnected(true);
     es.onerror = () => setConnected(false);
     es.onmessage = () => {
-      // 脏信号:收到任意核销事件即回拉最新在园数(不依赖事件 payload 形状)
-      void getOccupancySnapshot()
-        .then((c) => setCount(c))
-        .catch(() => {});
+      // 脏信号:收到任意核销事件即回拉最新在园数(不依赖事件 payload 形状);
+      // 尾部去抖,核销高峰下合并连发事件为一次查询
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        void getOccupancySnapshot()
+          .then((c) => setCount(c))
+          .catch(() => {});
+      }, 400);
     };
-    return () => es.close();
+    return () => {
+      if (timer) clearTimeout(timer);
+      es.close();
+    };
   }, []);
 
   return (

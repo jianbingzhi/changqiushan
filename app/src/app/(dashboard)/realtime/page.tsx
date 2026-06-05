@@ -3,6 +3,7 @@ import { iotRepository } from "@/modules/iot";
 import { trafficRepository } from "@/modules/traffic";
 import { analyticsRepository } from "@/modules/analytics";
 import { getInstantCapacity } from "@/shared/lib/capacity";
+import { chinaTodayDbDate } from "@/shared/lib/time";
 import { BigScreen, type SlotOccupancy, type ParkingLotView } from "./_big-screen";
 import type { BarDatum } from "@/lib/ui/charts/BarList";
 
@@ -10,8 +11,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "实时数据大屏 · 长秋山森林公园智慧景区" };
 
 export default async function RealtimeScreenPage() {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = chinaTodayDbDate();
 
   const end = new Date();
   const start = new Date();

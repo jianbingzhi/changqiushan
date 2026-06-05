@@ -32,7 +32,8 @@ model BookingSlot {
 
   bookings  Booking[]
 
-  @@index([date, startTime])
+  // 同日同开始时间唯一:杜绝并发/双提交重复建时段(C4 TOCTOU 兜底);唯一索引同时充当原 (date,start_time) 索引
+  @@unique([date, startTime])
   @@map("booking_slot")
 }
 

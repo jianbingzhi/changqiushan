@@ -2,7 +2,12 @@ import { bookingRepository, SlotFullError, DuplicateBookingError } from "../repo
 import { createBookingSchema, createSlotSchema } from "../domain/schema";
 import { assertDualElements, canBook, canCancel, isCircuitBroken } from "../domain/rules";
 import { ok, err, ErrCode, type Result } from "@/shared/result";
+import { Prisma } from "@prisma/client";
 import type { Booking, BookingSlot } from "@prisma/client";
+
+// 同日同开始时间唯一约束(booking_slot_date_start_time_key)被并发/双提交命中
+const isSlotConflict = (e: unknown) =>
+  e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002";
 
 // booking_slot.date 是 @db.Date;用 UTC 零点构造,避免本地时区把日历日挪到前一天
 // (与 seed / onsite 取数口径一致)。入参为北京日历日串 YYYY-MM-DD。
@@ -102,17 +107,23 @@ export const bookingService = {
       return err(ErrCode.CONFLICT, "该日已存在相同开始时间的时段");
     }
 
-    const slot = await bookingRepository.createSlot({
-      date,
-      name: input.name,
-      startTime: input.startTime,
-      endTime: input.endTime,
-      miniProgramQuota: input.miniProgramQuota,
-      onsiteQuota: input.onsiteQuota,
-      otaQuota: input.otaQuota,
-      adminQuota: input.adminQuota,
-    });
-    return ok(slot);
+    try {
+      const slot = await bookingRepository.createSlot({
+        date,
+        name: input.name,
+        startTime: input.startTime,
+        endTime: input.endTime,
+        miniProgramQuota: input.miniProgramQuota,
+        onsiteQuota: input.onsiteQuota,
+        otaQuota: input.otaQuota,
+        adminQuota: input.adminQuota,
+      });
+      return ok(slot);
+    } catch (e) {
+      // 并发/双提交:唯一约束兜底(check-then-insert 的 TOCTOU 窗口)
+      if (isSlotConflict(e)) return err(ErrCode.CONFLICT, "该日已存在相同开始时间的时段");
+      throw e;
+    }
   },
 
   // C4 止血:把来源日的时段结构复制到目标日(已用量归零、状态 ACTIVE)。
@@ -149,9 +160,17 @@ export const bookingService = {
         status: "ACTIVE" as const,
       }));
 
-    const created = toCreate.length
-      ? await bookingRepository.createManySlots(toCreate)
-      : 0;
-    return ok({ created, skipped: sourceSlots.length - toCreate.length });
+    try {
+      const created = toCreate.length
+        ? await bookingRepository.createManySlots(toCreate)
+        : 0;
+      return ok({ created, skipped: sourceSlots.length - toCreate.length });
+    } catch (e) {
+      // 并发:目标日时段在读取后被他人建出,唯一约束拦截整批 → 提示重试(再点即幂等跳过)
+      if (isSlotConflict(e)) {
+        return err(ErrCode.CONFLICT, "目标日时段已被并发创建，请刷新后重试");
+      }
+      throw e;
+    }
   },
 };

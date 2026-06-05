@@ -101,8 +101,9 @@ export function SlotTools({ targetDate }: { targetDate: string }) {
       {open && (
         <div className="mt-4 grid grid-cols-2 gap-3 border-t border-[#F3F4F6] pt-4 sm:grid-cols-3">
           <div className="space-y-1.5">
-            <label className="text-xs text-[#6B7280]">时段名</label>
+            <label htmlFor="slot-name" className="text-xs text-[#6B7280]">时段名</label>
             <Input
+              id="slot-name"
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               placeholder="如：上午场"
@@ -110,16 +111,18 @@ export function SlotTools({ targetDate }: { targetDate: string }) {
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs text-[#6B7280]">开始时间</label>
+            <label htmlFor="slot-start" className="text-xs text-[#6B7280]">开始时间</label>
             <Input
+              id="slot-start"
               type="time"
               value={form.startTime}
               onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))}
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs text-[#6B7280]">结束时间</label>
+            <label htmlFor="slot-end" className="text-xs text-[#6B7280]">结束时间</label>
             <Input
+              id="slot-end"
               type="time"
               value={form.endTime}
               onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))}
@@ -127,8 +130,9 @@ export function SlotTools({ targetDate }: { targetDate: string }) {
           </div>
           {QUOTA_FIELDS.map(({ key, label }) => (
             <div key={key} className="space-y-1.5">
-              <label className="text-xs text-[#6B7280]">{label}名额</label>
+              <label htmlFor={`slot-${key}`} className="text-xs text-[#6B7280]">{label}名额</label>
               <Input
+                id={`slot-${key}`}
                 type="number"
                 min={0}
                 value={form[key as QuotaKey]}

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { BarList, type BarDatum } from "@/lib/ui/charts/BarList";
+import { LiveDot } from "@/lib/ui/live-dot";
 import { getScreenOccupancy } from "./_actions";
 
 export interface SlotOccupancy {
@@ -71,14 +72,22 @@ export function BigScreen(props: BigScreenProps) {
 
   useEffect(() => {
     const es = new EventSource("/api/sse/checkin_event");
+    let timer: ReturnType<typeof setTimeout> | null = null;
     es.onopen = () => setConnected(true);
     es.onerror = () => setConnected(false);
     es.onmessage = () => {
-      void getScreenOccupancy()
-        .then((c) => setOccupancy(c))
-        .catch(() => {});
+      // 尾部去抖,核销高峰下合并连发事件为一次回拉
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        void getScreenOccupancy()
+          .then((c) => setOccupancy(c))
+          .catch(() => {});
+      }, 400);
     };
-    return () => es.close();
+    return () => {
+      if (timer) clearTimeout(timer);
+      es.close();
+    };
   }, []);
 
   const pct = instantCapacity > 0 ? Math.round((occupancy / instantCapacity) * 100) : 0;
@@ -93,7 +102,7 @@ export function BigScreen(props: BigScreenProps) {
 
   return (
     <main
-      className={`min-h-screen w-full p-8 text-white ${warn ? "animate-pulse" : ""}`}
+      className="min-h-screen w-full p-8 text-white"
       style={{ backgroundColor: warn ? "#7F1D1D" : "#0B1A2B" }}
     >
       {/* 顶部 */}
@@ -102,11 +111,7 @@ export function BigScreen(props: BigScreenProps) {
         <div className="flex items-center gap-5 text-sm">
           <span className="tabular-nums text-[#9CC4E4]">{clock}</span>
           <span className="flex items-center gap-2">
-            <span
-              className={`inline-block h-2.5 w-2.5 rounded-full ${connected ? "animate-pulse bg-green-400" : "bg-gray-500"}`}
-              role="img"
-              aria-label={connected ? "实时连接正常" : "实时连接断开"}
-            />
+            <LiveDot tone={connected ? "connected" : "disconnected"} />
             {connected ? "实时连接正常" : "实时连接断开"}
           </span>
         </div>
@@ -114,7 +119,7 @@ export function BigScreen(props: BigScreenProps) {
 
       {/* 承载预警横幅(非颜色冗余) */}
       {warn && (
-        <div className="mb-6 rounded-lg border-2 border-red-300 bg-red-900/60 px-6 py-4 text-center">
+        <div className="mb-6 animate-pulse rounded-lg border-2 border-red-300 bg-red-900/60 px-6 py-4 text-center">
           <p className="text-xl font-bold">⚠ 承载预警：在园人数已达瞬时承载量 90%，当日预约入口已自动暂停</p>
         </div>
       )}

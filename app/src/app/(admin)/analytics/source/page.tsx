@@ -34,7 +34,7 @@ export default async function AnalyticsSourcePage() {
         <div className="rounded-lg border border-[#E5E7EB] bg-white p-4">
           <p className="mb-3 text-[13px] font-medium text-[#1F2937]">渠道说明</p>
           <ul className="space-y-2 text-[13px] text-[#6B7280]">
-            {[["小程序预约", "经微信小程序入口发起"], ["现场补录", "工作人员现场补录"], ["OTA 渠道", "第三方 OTA 平台推送"], ["后台代录", "管理员 B 端后台代录"]].map(([name, desc]) => (
+            {[["微信小程序", "经微信小程序入口发起"], ["现场补录", "工作人员现场补录"], ["第三方平台", "第三方平台（美团/携程等）推送"], ["后台代录", "管理员 B 端后台代录"]].map(([name, desc]) => (
               <li key={name as string} className="flex gap-2">
                 <span className="font-medium text-[#1F2937] shrink-0">{name}</span>
                 <span>— {desc}</span>

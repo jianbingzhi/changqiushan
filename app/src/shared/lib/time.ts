@@ -23,6 +23,15 @@ export function chinaToday(): string {
 }
 
 /**
+ * 今日(北京)用于 `@db.Date` 匹配的 Date(锚 UTC 零点)。
+ * 与建时段写入口径(`new Date(dateStr+"T00:00:00Z")`)一致 → 读/写都不依赖会话时区,
+ * 不再隐式依赖 PGTZ=Asia/Shanghai。查"今日时段/在园数"一律用此值。
+ */
+export function chinaTodayDbDate(): Date {
+  return new Date(`${chinaToday()}T00:00:00Z`);
+}
+
+/**
  * 把日历日串还原成「该日北京 00:00」对应的 UTC 时刻。
  * 用于以瞬时戳(`@db.Timestamptz`)做范围比较时锚定北京当日零点。
  * 注意:与 `@db.Date` 列匹配应直接用日历日串(`chinaToday()`),无需本函数。
