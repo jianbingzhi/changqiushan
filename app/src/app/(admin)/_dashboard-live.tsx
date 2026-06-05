@@ -8,16 +8,20 @@ import {
   type ReactNode,
 } from "react";
 import { LiveDot } from "@/lib/ui/live-dot";
+import { REALTIME_ENABLED } from "@/lib/realtime-flag";
 import { getOccupancySnapshot } from "./_dashboard-actions";
 
 interface LiveState {
   connected: boolean;
   count: number;
+  /** 手动刷新在园数(实时关闭时用) */
+  refresh: () => void;
 }
 
 const DashboardLiveContext = createContext<LiveState>({
   connected: false,
   count: 0,
+  refresh: () => {},
 });
 
 export function DashboardLiveProvider({
@@ -30,7 +34,16 @@ export function DashboardLiveProvider({
   const [count, setCount] = useState(initialCount);
   const [connected, setConnected] = useState(false);
 
+  const refresh = () => {
+    void getOccupancySnapshot()
+      .then((c) => setCount(c))
+      .catch(() => {});
+  };
+
   useEffect(() => {
+    // 实时关闭(Vercel serverless):不建 EventSource,只用 SSR 首屏 + 手动刷新。
+    if (!REALTIME_ENABLED) return;
+
     const es = new EventSource("/api/sse/checkin_event");
     let timer: ReturnType<typeof setTimeout> | null = null;
     es.onopen = () => setConnected(true);
@@ -52,7 +65,7 @@ export function DashboardLiveProvider({
   }, []);
 
   return (
-    <DashboardLiveContext.Provider value={{ connected, count }}>
+    <DashboardLiveContext.Provider value={{ connected, count, refresh }}>
       {children}
     </DashboardLiveContext.Provider>
   );
@@ -60,9 +73,27 @@ export function DashboardLiveProvider({
 
 export const useDashboardLive = () => useContext(DashboardLiveContext);
 
-// 顶部实时连接态指示(B5):由真实 EventSource onopen/onerror 驱动,不再写死。
+// 顶部连接态指示(B5):实时开 → 由真实 EventSource onopen/onerror 驱动;
+// 实时关 → 显示"数据快照(手动刷新)"+ 刷新按钮,不误导为"连接断开"。
 export function HeaderLive() {
-  const { connected } = useDashboardLive();
+  const { connected, refresh } = useDashboardLive();
+
+  if (!REALTIME_ENABLED) {
+    return (
+      <div className="flex items-center gap-2">
+        <LiveDot tone="offline" label="数据快照" />
+        <span className="text-[13px] text-[#6B7280]">数据快照</span>
+        <button
+          type="button"
+          onClick={refresh}
+          className="text-[13px] text-[#2D5A27] hover:underline"
+        >
+          刷新
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center gap-2">
       <LiveDot tone={connected ? "connected" : "disconnected"} />

@@ -10,6 +10,9 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    // CLI(migrate/studio/seed)用直连:Supabase 的 transaction pooler(6543)不支持迁移,
+    // 必须走 DIRECT_URL(5432)。本地 docker 不设 DIRECT_URL → 回退 DATABASE_URL(同一库)。
+    // 运行时(client.ts 的 driver adapter)另走 DATABASE_URL(Vercel 上=pooler)。
+    url: process.env["DIRECT_URL"] ?? process.env["DATABASE_URL"],
   },
 });

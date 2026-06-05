@@ -16,11 +16,15 @@ async function loginAction(formData: FormData): Promise<string | never> {
 
   const GOTRUE_URL = process.env.GOTRUE_URL ?? "http://localhost:9999";
 
+  // Supabase 云 Auth 网关要求带 apikey(anon key)头;自托管 GoTrue 会忽略该头,故可统一发。
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (process.env.SUPABASE_ANON_KEY) headers["apikey"] = process.env.SUPABASE_ANON_KEY;
+
   let data: { access_token?: string };
   try {
     const res = await fetch(`${GOTRUE_URL}/token?grant_type=password`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({ phone, password }),
       cache: "no-store",
     });

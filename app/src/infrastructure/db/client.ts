@@ -13,7 +13,10 @@ function createPrismaClient() {
   if (!connectionString) {
     throw new Error("DATABASE_URL is not set");
   }
-  const adapter = new PrismaPg({ connectionString });
+  // serverless(Vercel)多实例各开池 → 直连会爆连接数,须走 Supabase pooler(6543)+ 小池;
+  // 本地常驻进程(docker)用默认池上限。可用 DB_POOL_MAX 覆盖。
+  const max = Number(process.env.DB_POOL_MAX) || (process.env.VERCEL ? 1 : 10);
+  const adapter = new PrismaPg({ connectionString, max });
   return new PrismaClient({
     adapter,
     log:

@@ -161,5 +161,21 @@ async function idempotentCheckin(
     circuitBroken,
   } as CheckinEventPayload);
 
+  // 熔断(红线4)内联:达 90% 立即暂停当日所有 ACTIVE 时段。
+  // 原放在 instrumentation 的 bus 监听,但 Vercel serverless 无常驻进程/跨实例 bus →
+  // 改到核销写路径内联,自托管与 serverless 都成立(幂等)。
+  // 直接 raw SQL(与本函数已有的 booking_slot 写一致),按 slotId 子查询取同日,
+  // 避免 import booking 模块(eslint-boundaries 禁模块互依)与日期类型时区来回解析。
+  if (circuitBroken) {
+    await db.$executeRaw(Prisma.sql`
+      UPDATE booking_slot
+      SET    status = 'PAUSED'::"BookingSlotStatus", updated_at = NOW()
+      WHERE  status = 'ACTIVE'::"BookingSlotStatus"
+        AND  date = (SELECT date FROM booking_slot WHERE id = ${booking.slotId}::uuid)
+    `).catch((e: unknown) => {
+      console.error("[checkin] circuit-break inline pause failed", e);
+    });
+  }
+
   return ok({ bookingId, slotId: booking.slotId, checkedInAt: now });
 }

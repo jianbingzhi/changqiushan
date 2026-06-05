@@ -2,6 +2,16 @@
 // 分支内 await import 进来——这样 webpack 不会把 pg/pg-boss(依赖 fs/path)打进 edge 包,
 // 否则 instrumentation 的 edge 编译会因 "Can't resolve 'fs'/'path'" 报错使全站 500。
 export async function registerNode() {
+  // Vercel/serverless 无常驻进程:pg-listen 的 LISTEN 长连接与 pg-boss worker 都无法可靠存活,
+  // 且会在每次冷启动开无用连接/报错。Vercel 上实时改前端门控关闭、定时改 Vercel Cron
+  // (/api/cron/refresh-mv)、熔断改核销写路径内联(checkin service)。故此处整体跳过。
+  if (process.env.VERCEL) {
+    console.log(
+      "[instrumentation] Vercel 环境,跳过 pg-listen + pg-boss(实时/定时改 Cron+门控,熔断已内联)",
+    );
+    return;
+  }
+
   const { startPgListener } = await import(
     "@/infrastructure/realtime/listener"
   );
@@ -35,19 +45,6 @@ export async function registerNode() {
     console.error("[instrumentation] pg-boss analytics refresh register failed", e);
   });
 
-  // 熔断事件监听: checkin_event → 在园达 90% 时自动暂停当日时段
-  const { bus } = await import("@/infrastructure/realtime/bus");
-  const { bookingService } = await import("@/modules/booking");
-  const { db } = await import("@/infrastructure/db/client");
-  bus.on("checkin_event", async (payload: { slotId: string; circuitBroken: boolean }) => {
-    if (!payload.circuitBroken) return;
-    const slot = await db.bookingSlot.findUnique({
-      where: { id: payload.slotId }, select: { date: true },
-    }).catch(() => null);
-    if (slot) {
-      await bookingService.pauseSlotsForCircuitBreak(slot.date).catch((e: unknown) => {
-        console.error("[instrumentation] circuit break pause failed", e);
-      });
-    }
-  });
+  // 熔断(红线4)已移到核销写路径内联(checkin service 的 pauseSlotsForCircuitBreak),
+  // 自托管与 serverless 都成立,故此处不再挂 bus 监听(避免双触发)。
 }

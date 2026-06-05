@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { BarList, type BarDatum } from "@/lib/ui/charts/BarList";
 import { LiveDot } from "@/lib/ui/live-dot";
+import { REALTIME_ENABLED } from "@/lib/realtime-flag";
 import { getScreenOccupancy } from "./_actions";
 
 export interface SlotOccupancy {
@@ -70,7 +71,16 @@ export function BigScreen(props: BigScreenProps) {
   const [connected, setConnected] = useState(false);
   const clock = useCnClock();
 
+  const refresh = () => {
+    void getScreenOccupancy()
+      .then((c) => setOccupancy(c))
+      .catch(() => {});
+  };
+
   useEffect(() => {
+    // 实时关闭(Vercel serverless):不建 EventSource,首屏快照 + 手动刷新。
+    if (!REALTIME_ENABLED) return;
+
     const es = new EventSource("/api/sse/checkin_event");
     let timer: ReturnType<typeof setTimeout> | null = null;
     es.onopen = () => setConnected(true);
@@ -110,10 +120,24 @@ export function BigScreen(props: BigScreenProps) {
         <h1 className="text-2xl font-bold tracking-wide">{scenicName} · 实时数据大屏</h1>
         <div className="flex items-center gap-5 text-sm">
           <span className="tabular-nums text-[#9CC4E4]">{clock}</span>
-          <span className="flex items-center gap-2">
-            <LiveDot tone={connected ? "connected" : "disconnected"} />
-            {connected ? "实时连接正常" : "实时连接断开"}
-          </span>
+          {REALTIME_ENABLED ? (
+            <span className="flex items-center gap-2">
+              <LiveDot tone={connected ? "connected" : "disconnected"} />
+              {connected ? "实时连接正常" : "实时连接断开"}
+            </span>
+          ) : (
+            <span className="flex items-center gap-2">
+              <LiveDot tone="offline" label="数据快照" />
+              数据快照
+              <button
+                type="button"
+                onClick={refresh}
+                className="rounded border border-[#345] px-2 py-0.5 text-[#9CC4E4] hover:bg-[#0F2236]"
+              >
+                刷新
+              </button>
+            </span>
+          )}
         </div>
       </header>
 
