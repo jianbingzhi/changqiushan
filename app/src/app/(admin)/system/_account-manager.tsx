@@ -52,13 +52,13 @@ export function CreateAdminForm() {
   return (
     <div className="mb-4 rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-4">
       <div className="grid grid-cols-2 gap-3 max-w-2xl">
-        <div className="space-y-1"><label className="text-[12px] text-[#6B7280]">手机号</label><Input value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="11 位手机号" /></div>
-        <div className="space-y-1"><label className="text-[12px] text-[#6B7280]">初始密码</label><Input type="password" value={form.password} onChange={(e) => set("password", e.target.value)} placeholder="至少 8 位" /></div>
-        <div className="space-y-1"><label className="text-[12px] text-[#6B7280]">姓名</label><Input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="真实姓名" /></div>
-        <div className="space-y-1"><label className="text-[12px] text-[#6B7280]">工号(选填)</label><Input value={form.workerId} onChange={(e) => set("workerId", e.target.value)} placeholder="如 OPS-001" /></div>
+        <div className="space-y-1"><label htmlFor="new-admin-phone" className="text-[12px] text-[#6B7280]">手机号</label><Input id="new-admin-phone" value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="11 位手机号" /></div>
+        <div className="space-y-1"><label htmlFor="new-admin-password" className="text-[12px] text-[#6B7280]">初始密码</label><Input id="new-admin-password" type="password" value={form.password} onChange={(e) => set("password", e.target.value)} placeholder="至少 8 位" /></div>
+        <div className="space-y-1"><label htmlFor="new-admin-name" className="text-[12px] text-[#6B7280]">姓名</label><Input id="new-admin-name" value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="真实姓名" /></div>
+        <div className="space-y-1"><label htmlFor="new-admin-worker" className="text-[12px] text-[#6B7280]">工号(选填)</label><Input id="new-admin-worker" value={form.workerId} onChange={(e) => set("workerId", e.target.value)} placeholder="如 OPS-001" /></div>
         <div className="space-y-1">
-          <label className="text-[12px] text-[#6B7280]">角色</label>
-          <select value={form.roleCode} onChange={(e) => set("roleCode", e.target.value)} className="h-9 w-full rounded-md border border-[#E5E7EB] bg-white px-3 text-sm text-[#1F2937]">
+          <label htmlFor="new-admin-role" className="text-[12px] text-[#6B7280]">角色</label>
+          <select id="new-admin-role" value={form.roleCode} onChange={(e) => set("roleCode", e.target.value)} className="h-9 w-full rounded-md border border-[#E5E7EB] bg-white px-3 text-sm text-[#1F2937]">
             {ROLE_OPTIONS.map((r) => <option key={r.code} value={r.code}>{r.label}</option>)}
           </select>
         </div>
@@ -76,30 +76,55 @@ export function AccountRowActions({ profileId, disabled }: { profileId: string; 
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
+  const [pwd, setPwd] = useState("");
+  const pwdInputId = `reset-pwd-${profileId}`;
 
   function run(fn: () => Promise<{ ok: boolean; message: string }>) {
     setMsg(null);
     startTransition(async () => {
       const res = await fn();
       setMsg(res.message);
-      if (res.ok) router.refresh();
+      if (res.ok) {
+        setResetting(false);
+        setPwd("");
+        router.refresh();
+      }
     });
   }
 
-  function resetPwd() {
-    const pwd = window.prompt("输入新密码(至少 8 位)");
-    if (!pwd) return;
+  function submitReset() {
+    if (pwd.length < 8) {
+      setMsg("密码至少 8 位");
+      return;
+    }
     run(() => resetPasswordAction(profileId, pwd));
   }
 
   return (
     <div className="flex flex-col items-start gap-1">
       <div className="flex gap-2">
-        <Button size="sm" variant="outline" className="text-[12px]" disabled={pending} onClick={resetPwd}>重置密码</Button>
+        <Button size="sm" variant="outline" className="text-[12px]" disabled={pending} onClick={() => { setResetting((v) => !v); setMsg(null); }}>重置密码</Button>
         {!disabled && (
           <Button size="sm" variant="outline" className="text-[12px] text-[#DC2626] border-[#FECACA]" disabled={pending} onClick={() => run(() => disableAdminAction(profileId))}>停用</Button>
         )}
       </div>
+      {resetting && (
+        <div className="flex items-center gap-2">
+          <label htmlFor={pwdInputId} className="text-[12px] text-[#6B7280]">新密码</label>
+          <Input
+            id={pwdInputId}
+            type="password"
+            value={pwd}
+            onChange={(e) => setPwd(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") submitReset(); }}
+            placeholder="至少 8 位"
+            className="h-8 w-44 text-[12px]"
+          />
+          <Button size="sm" className="text-[12px]" disabled={pending} onClick={submitReset}>{pending ? "提交中…" : "确认"}</Button>
+          <Button size="sm" variant="outline" className="text-[12px]" disabled={pending} onClick={() => { setResetting(false); setPwd(""); }}>取消</Button>
+        </div>
+      )}
       {msg && <span className="text-xs text-[#6B7280]">{msg}</span>}
     </div>
   );
