@@ -1,5 +1,5 @@
-import { jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import { verifyAccessToken } from "@/shared/auth/jwt-verify";
 
 export interface Session {
   userId: string;
@@ -10,11 +10,6 @@ export interface Session {
   phone?: string;
 }
 
-const JWT_SECRET = process.env.GOTRUE_JWT_SECRET ?? "";
-
-const JWT_ISSUER =
-  process.env.GOTRUE_JWT_ISSUER ?? process.env.GOTRUE_URL ?? "http://localhost:9999";
-
 export async function getSession(): Promise<Session | null> {
   try {
     const store = await cookies();
@@ -22,8 +17,9 @@ export async function getSession(): Promise<Session | null> {
       store.get("sb-access-token")?.value ?? store.get("access_token")?.value;
     if (!token) return null;
 
-    const secret = new TextEncoder().encode(JWT_SECRET);
-    const { payload } = await jwtVerify(token, secret, { issuer: JWT_ISSUER });
+    // 验签口径(HS256 自托管 / JWKS ES256 Supabase)收口在 shared/auth/jwt-verify
+    const payload = await verifyAccessToken(token);
+    if (!payload) return null;
 
     const sub = payload.sub;
     const role = (payload.role as string | undefined) ?? "authenticated";

@@ -55,7 +55,7 @@
 ---
 
 ## C · Vercel 环境变量清单
-`DATABASE_URL`(6543 pooler)、`DIRECT_URL`(5432)、`GOTRUE_URL`、`GOTRUE_JWT_ISSUER`、`GOTRUE_JWT_SECRET`、`SUPABASE_ANON_KEY`、`S3_ENDPOINT/S3_REGION/S3_ACCESS_KEY/S3_SECRET_KEY/S3_BUCKET`(指向 Supabase Storage S3 端点)、`COOKIE_SECURE=true`、`GOTRUE_JWT_EXP`、`PARK_INSTANT_CAPACITY`、`CRON_SECRET`、**`NEXT_PUBLIC_REALTIME_ENABLED=false`**(关实时;本地不设=保持开),加 AI/微信/支付那批。
+`DATABASE_URL`(6543 pooler)、`DIRECT_URL`(5432)、`GOTRUE_URL`、`GOTRUE_JWT_ISSUER`、**`GOTRUE_JWKS_URL`**(Supabase ES256 验签必需:`https://<ref>.supabase.co/auth/v1/.well-known/jwks.json`)、`GOTRUE_JWT_SECRET`、`SUPABASE_ANON_KEY`、`S3_ENDPOINT/S3_REGION/S3_ACCESS_KEY/S3_SECRET_KEY/S3_BUCKET`(指向 Supabase Storage S3 端点)、`COOKIE_SECURE=true`、`GOTRUE_JWT_EXP`、`PARK_INSTANT_CAPACITY`、`CRON_SECRET`、**`NEXT_PUBLIC_REALTIME_ENABLED=false`**(关实时;本地不设=保持开),加 AI/微信/支付那批。
 
 ## C2 · 可逆性 / 最终迁阿里云(国内生产)
 > 全程"env 门控 + 只加不删,自托管路径保留",切回基本是换 env + 部署到阿里云。
@@ -65,6 +65,18 @@
 - **定时**:pg-boss 给自托管保留(instrumentation 仅在 `VERCEL` 跳过);Vercel Cron 路由在自托管是闲置路由。熔断改内联两边都更稳。
 - **存储**:S3 兼容 → 改 `S3_ENDPOINT/KEY` 指向 OSS 即可,零代码改。
 - **国内现实**:Vercel/Supabase 均海外(Supabase 选 Singapore 仅够演示);**Vercel 域名无 ICP 备案 → 生产对外不合规、微信支付回调收不到**。故 Vercel+Supabase=临时演示,**最终阿里云(ECS/容器 + RDS + OSS)+ 备案域名**才是生产。
+
+## C3 · 真机验证记录(2026-06-05,项目 ref `whnjddztiikeavegwsbi`,Singapore,PG17.6)
+用 PAT 直连 Supabase 真机验证,**全链路通过**:
+- ✅ `prisma migrate deploy` 17 个迁移全部应用(**27 表 / 3 物化视图 / 13 触发器**)。迁移前经 SQL `CREATE ROLE changqiushan`(NOLOGIN)兜住 `auth_user_view` 的 GRANT;**未改迁移文件、不影响本地**。
+- ✅ 直连 5432 + pooler 6543 均连通。
+- ✅ 建管理员(service_role admin API)+ 手机号密码登录 200 + JWKS(ES256)验签通过,`app_metadata.role=SUPER_ADMIN`(R3 RBAC 可读)。
+- **踩到并已解决的 Supabase 坑**:
+  1. **DB 密码**:GitHub 登录用户常忘;此项目旧密码恰为 `changqiushan`。PAT 无法读/改 postgres 密码(superuser 限制)→ 忘了就 Dashboard 重置。
+  2. **手机号登录默认关闭**(`phone_provider_disabled`)→ 已用 PAT `PATCH config/auth {external_phone_enabled:true}` 打开;password grant 不发短信,无需 SMS provider。
+  3. **用户 token 用 ES256 非对称签发**(非 legacy HS256)→ 新增 `GOTRUE_JWKS_URL`,`session.ts`+`middleware.ts` 经 `shared/auth/jwt-verify` 支持 JWKS;不设则走 HS256(自托管不变)。
+- **测试管理员**(演示用,可改):手机 `+8613800138000` / 密码 `Cqs-demo-2026` / 角色 SUPER_ADMIN。
+- ⚠️ 验完请:撤销 PAT、按需 rotate DB 密码/key。
 
 ## D · 不影响本地 docker
 所有改动用 env 门控(`VERCEL` / `NEXT_PUBLIC_REALTIME_ENABLED` / pooler 串),**本地 docker 全栈照常**(pg-listen/pg-boss/SSE 仍跑)。一套代码两套部署。

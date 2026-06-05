@@ -1,13 +1,9 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { jwtVerify, type JWTPayload } from "jose";
 import { ADMIN_UP, SUPER_ONLY } from "@/shared/auth/roles";
+import { verifyAccessToken } from "@/shared/auth/jwt-verify";
 
 const PUBLIC_PATHS = ["/login"];
-const JWT_SECRET = process.env.GOTRUE_JWT_SECRET ?? "";
-// E5: 与 session.ts 保持一致的验签口径,补 issuer 校验,堵同 secret 他服务 token 过粗门
-const JWT_ISSUER =
-  process.env.GOTRUE_JWT_ISSUER ?? process.env.GOTRUE_URL ?? "http://localhost:9999";
 
 // 路由前缀 → 允许角色(粗粒度纵深防御)。真正的强制点在各 action 的 requireRole;
 // 此处仅在 edge 层先挡一道,未授权角色访问越权页面直接回首页,不进 RSC。
@@ -17,16 +13,6 @@ const ROUTE_ROLE_GATES: { prefix: string; allow: readonly string[] }[] = [
   { prefix: "/content", allow: ADMIN_UP },
   { prefix: "/riskcontrol", allow: ADMIN_UP },
 ];
-
-async function verifyToken(token: string): Promise<JWTPayload | null> {
-  try {
-    const secret = new TextEncoder().encode(JWT_SECRET);
-    const { payload } = await jwtVerify(token, secret, { issuer: JWT_ISSUER });
-    return payload;
-  } catch {
-    return null;
-  }
-}
 
 function matchGate(pathname: string) {
   return ROUTE_ROLE_GATES.find(
@@ -45,7 +31,7 @@ export async function middleware(request: NextRequest) {
     request.cookies.get("sb-access-token")?.value ??
     request.cookies.get("access_token")?.value;
 
-  const payload = token ? await verifyToken(token) : null;
+  const payload = token ? await verifyAccessToken(token) : null;
 
   if (!payload) {
     const loginUrl = new URL("/login", request.url);
