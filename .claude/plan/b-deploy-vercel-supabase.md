@@ -105,3 +105,17 @@
 4.(我)B6 S3 兼容存储 driver + 上传入口。
 5. push main → CI 自动 migrate + 部署 → 联调冒烟。
 6.(可选)给我**临时**连接串/anon key,我从本地跑一次 migrate/连接/登录冒烟定性后你 rotate。
+
+## G · 上线成功记录(2026-06-05)
+**线上**:https://changqiushan.vercel.app(生产域名)· 登录 `admin@changqiushan.demo` / `Cqs-demo-2026`(邮箱登录)。
+- CI/CD 全链路打通:push main → ci(lint/tsc/test)→ guard(查密钥)→ migrate(session pooler)→ vercel build → deploy。
+- 端到端验证:19 个受保护页面全 HTTP 200 + 真实渲染 + 无客户端异常;认证(JWKS ES256 验签)、读、写(Prisma 交互式事务走 transaction pooler)、实时关闭模式(数据快照)均正常。
+- 已 seed 示例数据(35 时段 / 1911 预约 / 设备 / 内容 + 刷新 3 物化视图),各数据页有内容。
+- **部署中踩平的坑(均已修)**:
+  1. **migrate P1001**:GH runner IPv4、Supabase 直连域名 IPv6-only → `DIRECT_URL` 改 **session pooler(5432,pooler 域名)**。
+  2. **Vercel cron 被拒**:Hobby 仅每天一次 → `0 0 * * *`。
+  3. **deploy 被拒**:SSE `maxDuration=600` > Hobby 上限 300 → 降 300。
+  4. **运行时 SSL**:node-pg 新版 `sslmode=require`=verify-full 撞 Supabase 自签 → 运行时连接串用 `sslmode=no-verify`。
+  5. **seed 过时**:`booking.qr_secret`(后加 NOT NULL)seed 未填 → 补 gen_random 拼 64hex。
+  6. Vercel Authentication 默认拦截 → 关 `ssoProtection`(公开演示)。
+- ⚠️ 善后:revoke 三个 token(Supabase PAT / Vercel token / GitHub PAT)+ 改 DB 密码。

@@ -102,8 +102,9 @@ async function main() {
           await pool.query(
             `INSERT INTO booking
                (id, slot_id, visitor_name, id_card, phone, plate, no_vehicle_declared,
-                channel, status, qr_code, checked_in_at, cancelled_at, no_show_at, created_at, updated_at)
+                channel, status, qr_code, qr_secret, checked_in_at, cancelled_at, no_show_at, created_at, updated_at)
              VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7::"BookingChannel", $8::"BookingStatus", $9,
+                replace(gen_random_uuid()::text,'-','') || replace(gen_random_uuid()::text,'-',''),
                 $10, $11, $12, NOW(), NOW())`,
             [
               slotId,
