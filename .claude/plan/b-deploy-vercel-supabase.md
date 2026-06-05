@@ -75,7 +75,10 @@
   1. **DB 密码**:GitHub 登录用户常忘;此项目旧密码恰为 `changqiushan`。PAT 无法读/改 postgres 密码(superuser 限制)→ 忘了就 Dashboard 重置。
   2. **手机号登录默认关闭**(`phone_provider_disabled`)→ 已用 PAT `PATCH config/auth {external_phone_enabled:true}` 打开;password grant 不发短信,无需 SMS provider。
   3. **用户 token 用 ES256 非对称签发**(非 legacy HS256)→ 新增 `GOTRUE_JWKS_URL`,`session.ts`+`middleware.ts` 经 `shared/auth/jwt-verify` 支持 JWKS;不设则走 HS256(自托管不变)。
-- **测试管理员**(演示用,可改):手机 `+8613800138000` / 密码 `Cqs-demo-2026` / 角色 SUPER_ADMIN。
+- **登录页改手机/邮箱二合一**:输入含 `@` 走邮箱登录、否则手机号。**邮箱登录免短信、最省事**(GoTrue 手机验证码链路繁琐),Supabase/自托管都默认开邮箱。已真机验证邮箱登录 200 + JWKS 验签 ✓。
+- **测试管理员**(演示用,可改):
+  - 邮箱(推荐):`admin@changqiushan.demo` / `Cqs-demo-2026` / SUPER_ADMIN
+  - 手机:`+8613800138000` / `Cqs-demo-2026` / SUPER_ADMIN(需 external_phone_enabled,已开)
 - ⚠️ 验完请:撤销 PAT、按需 rotate DB 密码/key。
 
 ## D · 不影响本地 docker

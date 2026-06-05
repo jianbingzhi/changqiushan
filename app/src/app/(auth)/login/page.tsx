@@ -9,10 +9,15 @@ export const metadata = {
 async function loginAction(formData: FormData): Promise<string | never> {
   "use server";
 
-  const phone    = (formData.get("phone") as string | null)?.trim() ?? "";
+  const account  = (formData.get("account") as string | null)?.trim() ?? "";
   const password = (formData.get("password") as string | null) ?? "";
 
-  if (!phone || !password) return "请填写手机号和密码";
+  if (!account || !password) return "请填写手机号/邮箱和密码";
+
+  // 账号含 @ 视为邮箱,走邮箱密码登录;否则按手机号登录。
+  // 邮箱登录无需短信验证,运维更省事(GoTrue 手机验证码链路繁琐)。
+  const isEmail = account.includes("@");
+  const credential = isEmail ? { email: account } : { phone: account };
 
   const GOTRUE_URL = process.env.GOTRUE_URL ?? "http://localhost:9999";
 
@@ -25,11 +30,11 @@ async function loginAction(formData: FormData): Promise<string | never> {
     const res = await fetch(`${GOTRUE_URL}/token?grant_type=password`, {
       method: "POST",
       headers,
-      body: JSON.stringify({ phone, password }),
+      body: JSON.stringify({ ...credential, password }),
       cache: "no-store",
     });
     data = await res.json();
-    if (!res.ok || !data.access_token) return "手机号或密码错误";
+    if (!res.ok || !data.access_token) return "账号或密码错误";
   } catch {
     return "服务暂时不可用，请稍后重试";
   }

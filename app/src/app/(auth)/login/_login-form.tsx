@@ -20,16 +20,15 @@ export function LoginForm({ action }: LoginFormProps) {
   return (
     <form action={formAction} className="flex flex-col gap-4" noValidate>
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="phone" className="text-[13px] font-medium text-[#1F2937]">
-          手机号
+        <label htmlFor="account" className="text-[13px] font-medium text-[#1F2937]">
+          手机号或邮箱
         </label>
         <Input
-          id="phone"
-          name="phone"
-          type="tel"
-          placeholder="请输入手机号"
-          autoComplete="tel"
-          maxLength={11}
+          id="account"
+          name="account"
+          type="text"
+          placeholder="请输入手机号或邮箱"
+          autoComplete="username"
           disabled={pending}
           className="border-[#E5E7EB] focus-visible:ring-[#2D5A27]"
         />
