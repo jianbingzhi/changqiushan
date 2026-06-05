@@ -94,7 +94,7 @@ export default async function BookingSlotsPage({ searchParams }: Props) {
               <th className="py-3 px-4 text-right font-medium text-[#6B7280]">总名额</th>
               <th className="py-3 px-4 text-right font-medium text-[#6B7280]">小程序</th>
               <th className="py-3 px-4 text-right font-medium text-[#6B7280]">现场</th>
-              <th className="py-3 px-4 text-right font-medium text-[#6B7280]">OTA</th>
+              <th className="py-3 px-4 text-right font-medium text-[#6B7280]">第三方平台</th>
               <th className="py-3 px-4 text-right font-medium text-[#6B7280]">后台</th>
               <th className="py-3 px-4 text-right font-medium text-[#6B7280]">在园</th>
               <th className="py-3 px-4 text-left font-medium text-[#6B7280]">状态</th>

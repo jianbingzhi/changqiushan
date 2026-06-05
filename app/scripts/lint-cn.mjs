@@ -54,6 +54,9 @@ function walk(dir) {
   return entries;
 }
 
+// SSE 频道名是技术标识符(含下划线,会被 snake_case 豁免漏掉),UI 文本里不得出现(C7 红线 6)。
+const CHANNEL_NAME_RE = /\b(checkin_event|slot_changed|parking_state|iot_event)\b/;
+
 // 抽 JSX 可见文本节点:同一行内 `>文本<` 之间的内容(排除标签 <…> 与表达式 {…})。
 // 前置 (?<!=) 排除箭头 `=>`,避免把 `=> Promise<T>` 这类类型/代码误当文本。
 const TEXT_NODE_RE = /(?<!=)>([^<>{}]*)</g;
@@ -138,6 +141,10 @@ for (const file of files) {
     TEXT_NODE_RE.lastIndex = 0;
     while ((m = TEXT_NODE_RE.exec(line))) {
       errors += flagAsciiWords(m[1], relPath, i + 1, line);
+      if (CHANNEL_NAME_RE.test(m[1])) {
+        console.error(`[lint:cn] ${relPath}:${i + 1} → UI 露出 SSE 频道名(技术标识) → ${line.trim()}`);
+        errors++;
+      }
     }
     VISIBLE_ATTR_RE.lastIndex = 0;
     while ((m = VISIBLE_ATTR_RE.exec(line))) {

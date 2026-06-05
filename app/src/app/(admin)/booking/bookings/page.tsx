@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { bookingRepository } from "@/modules/booking";
-import type { BookingStatus, BookingChannel } from "@/modules/booking";
+import type { BookingStatus } from "@/modules/booking";
 import { PageHeader } from "@/lib/ui/page-header";
 import { StatusChip } from "@/lib/ui/status-chip";
 import { EmptyState } from "@/lib/ui/empty-state";
@@ -9,6 +9,7 @@ import {
   Table, TableHeader, TableBody, TableHead, TableRow, TableCell,
 } from "@/lib/ui/table";
 import { formatCnDateTime } from "@/shared/format";
+import { channelLabel } from "@/shared/labels";
 import { CheckinButton } from "./_checkin-button";
 
 export const dynamic = "force-dynamic";
@@ -16,9 +17,6 @@ export const metadata = { title: "预约单查询 · 长秋山管理后台" };
 
 const VALID_STATUS = ["CONFIRMED", "CHECKED_IN", "CANCELLED", "NO_SHOW", "EXPIRED"] as const;
 
-const CHANNEL_LABELS: Record<BookingChannel, string> = {
-  MINI_PROGRAM: "小程序", ONSITE_MAKEUP: "现场补录", OTA: "OTA", ADMIN_MANUAL: "后台",
-};
 const STATUS_LABEL: Record<BookingStatus, string> = {
   CONFIRMED: "已预约", CHECKED_IN: "已核销", CANCELLED: "已取消", NO_SHOW: "爽约", EXPIRED: "已过期",
 };
@@ -128,7 +126,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
                   <TableCell className="text-[13px] text-[#6B7280]">{booking.plate ?? (booking.noVehicleDeclared ? "无车辆" : "—")}</TableCell>
                   <TableCell>
                     <span className="inline-flex items-center rounded-full border border-[#E5E7EB] bg-[#F9FAFB] px-2 py-0.5 text-xs text-[#6B7280]">
-                      {CHANNEL_LABELS[booking.channel]}
+                      {channelLabel(booking.channel)}
                     </span>
                   </TableCell>
                   <TableCell className="text-[13px] text-[#6B7280]">

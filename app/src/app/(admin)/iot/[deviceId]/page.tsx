@@ -34,7 +34,7 @@ export default async function IotDeviceDetailPage({ params }: Props) {
     <>
       <PageHeader
         title={device?.name ?? "设备详情"}
-        description={`设备 ID：${deviceId}`}
+        description={`设备编号：${deviceId.slice(0, 8)}`}
         actions={
           <Link href="/iot/devices" className="text-[13px] text-[#6B7280] hover:text-[#1F2937]">
             ← 返回设备列表

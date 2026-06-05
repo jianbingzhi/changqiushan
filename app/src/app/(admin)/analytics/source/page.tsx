@@ -4,18 +4,15 @@ import { EmptyState } from "@/lib/ui/empty-state";
 import { BarList } from "@/lib/ui/charts/BarList";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/lib/ui/table";
 import { FileDown } from "lucide-react";
+import { channelLabel } from "@/shared/labels";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "来源分析 · 长秋山管理后台" };
 
-const CHANNEL_LABELS: Record<string, string> = {
-  MINI_PROGRAM: "微信小程序", ONSITE_MAKEUP: "现场补录", OTA: "OTA 渠道", ADMIN_MANUAL: "后台代录",
-};
-
 export default async function AnalyticsSourcePage() {
   const raw = await analyticsRepository.getVisitorSource();
   const rows = raw.map((r) => ({
-    channel: CHANNEL_LABELS[r.source_channel] ?? r.source_channel,
+    channel: channelLabel(r.source_channel),
     count: Number(r.visitor_count),
     percentage: r.percentage,
   }));

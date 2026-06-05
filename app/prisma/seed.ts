@@ -97,7 +97,7 @@ async function main() {
           if (status === "CONFIRMED" || status === "CHECKED_IN") confirmedOrCheckedIn++;
 
           const realChannel = useCol === "mini_program" ? "MINI_PROGRAM" : useCol === "onsite" ? "ONSITE_MAKEUP" : useCol === "ota" ? "OTA" : "ADMIN_MANUAL";
-          const qr = "bk-seed-" + idSeq.toString(36) + "-" + Math.floor(rnd() * 1e9).toString(36);
+          const qr = "bk-" + idSeq.toString(36) + "-" + Math.floor(rnd() * 1e9).toString(36);
 
           await pool.query(
             `INSERT INTO booking

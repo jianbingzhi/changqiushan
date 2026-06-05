@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { getSession } from "@/infrastructure/auth/session";
 import { exportToExcel } from "@/lib/excel";
 import { chinaToday, formatCnDate } from "@/shared/lib/time";
+import { channelLabel } from "@/shared/labels";
 
 export const dynamic = "force-dynamic";
 export const runtime  = "nodejs";
@@ -11,14 +12,6 @@ type ExportModule = (typeof ALLOWED_MODULES)[number];
 
 // E1: 可导出报表的业务角色(app_metadata.role)
 const EXPORT_ROLES: readonly string[] = ["SUPER_ADMIN", "ADMIN"];
-
-// 渠道枚举 → 中文标签(导出列 100% 中文)
-const CHANNEL_LABELS: Record<string, string> = {
-  MINI_PROGRAM:  "微信小程序",
-  ONSITE_MAKEUP: "现场补录",
-  OTA:           "OTA 渠道",
-  ADMIN_MANUAL:  "后台手工",
-};
 
 const MODULE_NAMES: Record<ExportModule, string> = {
   traffic: "客流分析",
@@ -78,7 +71,7 @@ export async function GET(
     case "source": {
       headers = ["来源渠道", "游客数量", "占比(%)"];
       const data = await analyticsRepository.getVisitorSource();
-      rows = data.map((r) => [CHANNEL_LABELS[r.source_channel] ?? r.source_channel, Number(r.visitor_count), r.percentage]);
+      rows = data.map((r) => [channelLabel(r.source_channel), Number(r.visitor_count), r.percentage]);
       break;
     }
     case "profile": {
