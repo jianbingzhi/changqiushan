@@ -59,6 +59,23 @@ export const systemRepository = {
     return db.sysAuditLog.findMany({ orderBy: { createdAt: "desc" }, take: limit });
   },
 
+  // 运营配置(SysConfig)— 通用 KV
+  findConfig(key: string) {
+    return db.sysConfig.findUnique({ where: { key } });
+  },
+
+  findAllConfig() {
+    return db.sysConfig.findMany({ orderBy: { key: "asc" } });
+  },
+
+  upsertConfig(data: { key: string; value: string; valueType: string; label: string }) {
+    return db.sysConfig.upsert({
+      where: { key: data.key },
+      create: data,
+      update: { value: data.value, valueType: data.valueType, label: data.label },
+    });
+  },
+
   writeAudit(data: {
     actorId: string;
     action: string;

@@ -2,7 +2,8 @@ import { bookingRepository } from "@/modules/booking";
 import { iotRepository } from "@/modules/iot";
 import { trafficRepository } from "@/modules/traffic";
 import { analyticsRepository } from "@/modules/analytics";
-import { getInstantCapacity } from "@/shared/lib/capacity";
+import { configService } from "@/modules/system";
+import { resolveInstantCapacity } from "@/shared/lib/capacity";
 import { chinaTodayDbDate } from "@/shared/lib/time";
 import { BigScreen, type SlotOccupancy, type ParkingLotView } from "./_big-screen";
 import type { BarDatum } from "@/lib/ui/charts/BarList";
@@ -17,11 +18,12 @@ export default async function RealtimeScreenPage() {
   const start = new Date();
   start.setDate(start.getDate() - 6); // 近 7 日(含今日)
 
-  const [slots, devices, lots, daily] = await Promise.all([
+  const [slots, devices, lots, daily, instantCapacity] = await Promise.all([
     bookingRepository.listSlotsByDate(today).catch(() => []),
     iotRepository.listDevices().catch(() => []),
     trafficRepository.listParkingLots().catch(() => []),
     analyticsRepository.getDailyTraffic(start, end).catch(() => []),
+    configService.getInstantCapacity().catch(() => resolveInstantCapacity()),
   ]);
 
   const todayBookings = slots.reduce((s, sl) => s + sl.bookedCount, 0);
@@ -58,7 +60,7 @@ export default async function RealtimeScreenPage() {
   return (
     <BigScreen
       scenicName="长秋山森林公园"
-      instantCapacity={getInstantCapacity()}
+      instantCapacity={instantCapacity}
       initialOccupancy={initialOccupancy}
       todayBookings={todayBookings}
       device={device}

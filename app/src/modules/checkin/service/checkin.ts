@@ -3,6 +3,7 @@ import type { Booking, BookingSlot } from "@prisma/client";
 import { db } from "@/infrastructure/db/client";
 import { bus } from "@/infrastructure/realtime/bus";
 import { ok, err, ErrCode, type Result } from "@/shared/result";
+import { CIRCUIT_BREAK_RATIO } from "@/shared/lib/capacity";
 import {
   QR_PREFIX,
   isCurrentSlotValid,
@@ -152,7 +153,7 @@ async function idempotentCheckin(
   }
 
   const checkedInCount = Number(result.checked_in_count);
-  const circuitBroken = result.capacity > 0 && checkedInCount / result.capacity >= 0.9;
+  const circuitBroken = result.capacity > 0 && checkedInCount / result.capacity >= CIRCUIT_BREAK_RATIO;
 
   bus.publish("checkin_event", {
     slotId: booking.slotId,

@@ -1,6 +1,7 @@
 import type { BookingSlot, BookingChannel } from "@prisma/client";
 import { err, ok, ErrCode, type Result } from "@/shared/result";
 import { isValidIdCard, isValidPlate } from "@/shared/validators";
+import { CIRCUIT_BREAK_RATIO, CIRCUIT_RESUME_RATIO } from "@/shared/lib/capacity";
 
 const CHANNEL_FIELD_MAP: Record<
   BookingChannel,
@@ -42,11 +43,11 @@ export function canBook(slot: BookingSlot, channel: BookingChannel): boolean {
 }
 
 export function isCircuitBroken(checkedInCount: number, capacity: number): boolean {
-  return capacity > 0 && checkedInCount / capacity >= 0.9;
+  return capacity > 0 && checkedInCount / capacity >= CIRCUIT_BREAK_RATIO;
 }
 
 export function canResume(checkedInCount: number, capacity: number): boolean {
-  return capacity <= 0 || checkedInCount / capacity < 0.8;
+  return capacity <= 0 || checkedInCount / capacity < CIRCUIT_RESUME_RATIO;
 }
 
 export function canCancel(slot: BookingSlot, now: Date): boolean {

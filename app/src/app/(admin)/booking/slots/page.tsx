@@ -1,4 +1,5 @@
 import { bookingRepository } from "@/modules/booking";
+import { CIRCUIT_BREAK_RATIO } from "@/shared/lib/capacity";
 import { requireRole, ADMIN_UP } from "@/infrastructure/auth/guard";
 import { getSession } from "@/infrastructure/auth/session";
 import { PageHeader } from "@/lib/ui/page-header";
@@ -33,7 +34,7 @@ export default async function BookingSlotsPage({ searchParams }: Props) {
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
   // 仅当在园人数真正达到 90% 时显示熔断警告(不依赖 PAUSED 状态以避免误报)
-  const hasCircuitBreaker = slots.some((s) => s.capacity > 0 && s.checkedInCount / s.capacity >= 0.9);
+  const hasCircuitBreaker = slots.some((s) => s.capacity > 0 && s.checkedInCount / s.capacity >= CIRCUIT_BREAK_RATIO);
 
   return (
     <>
@@ -109,7 +110,7 @@ export default async function BookingSlotsPage({ searchParams }: Props) {
               </tr>
             ) : (
               slots.map((s) => {
-                const circuitRed = s.capacity > 0 && s.checkedInCount / s.capacity >= 0.9;
+                const circuitRed = s.capacity > 0 && s.checkedInCount / s.capacity >= CIRCUIT_BREAK_RATIO;
                 return (
                   <tr
                     key={s.id}

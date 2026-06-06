@@ -4,9 +4,10 @@ import { StatusChip } from "@/lib/ui/status-chip";
 import { LiveDot } from "@/lib/ui/live-dot";
 import { bookingRepository } from "@/modules/booking";
 import { iotRepository } from "@/modules/iot";
+import { configService } from "@/modules/system";
 import { formatCnDate } from "@/shared/format";
 import { chinaToday, chinaTodayDbDate } from "@/shared/lib/time";
-import { getInstantCapacity } from "@/shared/lib/capacity";
+import { resolveInstantCapacity } from "@/shared/lib/capacity";
 import Link from "next/link";
 import { OccupancyCard } from "./_occupancy-card";
 import { DashboardLiveProvider, HeaderLive } from "./_dashboard-live";
@@ -17,9 +18,10 @@ export const metadata = { title: "仪表盘 · 长秋山森林公园智慧景区
 export default async function DashboardPage() {
   const today = chinaTodayDbDate();
 
-  const [slots, devices] = await Promise.all([
+  const [slots, devices, instantCapacity] = await Promise.all([
     bookingRepository.listSlotsByDate(today).catch(() => []),
     iotRepository.listDevices().catch(() => []),
+    configService.getInstantCapacity().catch(() => resolveInstantCapacity()),
   ]);
 
   const todayBookings   = slots.reduce((s, sl) => s + sl.bookedCount, 0);
@@ -40,7 +42,7 @@ export default async function DashboardPage() {
       {/* 在园人数卡：脏信号 + 回拉实时更新；分母为瞬时承载量(D1) */}
       <div className="mb-5">
         <KpiRow>
-          <OccupancyCard capacity={getInstantCapacity()} />
+          <OccupancyCard capacity={instantCapacity} />
           <StatCard label="今日预约" value={todayBookings} unit="人次" />
           <StatCard label="时段状态"
             value={pausedCount > 0 ? `${pausedCount} 个暂停` : "正常"}
