@@ -1,37 +1,150 @@
 @import "tailwindcss";
 
+/* 深色主题变体:.dark 类挂在 <html>,其下后代生效。配合 layout 内联脚本水合前预置防 FOUC。 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Tailwind v4 双主题命门:@theme 里只放 var() 引用(写死 hex 会被编译期固化、主题切不动);
+   实值放 :root(浅)/.dark(深)。组件用语义工具类(bg-muted/ring-ring/border-input…),
+   不在组件里写死 hex,即可随主题切换。 */
 @theme {
-  /* 品牌色 */
-  --color-primary: #2D5A27;
-  --color-primary-hover: #3a7232;
-  --color-sidebar: #1F3F1A;
-  --color-sidebar-text: #E8EFE3;
-  --color-sidebar-section: #A8C09A;
-  --color-sidebar-active: #2D5A27;
+  /* —— 结构 —— */
+  --color-background: var(--bg);
+  --color-foreground: var(--fg);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-fg);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-fg);
 
-  /* 页面结构 */
-  --color-topbar: #FFFFFF;
-  --color-background: #F9FAFB;
-  --color-card: #FFFFFF;
-  --color-border: #E5E7EB;
-  --color-border-light: #EEEEEE;
+  /* —— 品牌 / 主色 —— */
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-fg);
 
-  /* 文字 */
-  --color-text-primary: #1F2937;
-  --color-text-secondary: #6B7280;
-  --color-text-muted: #9CA3AF;
+  /* —— 次级 / 弱化 / 强调(shadcn 抽象语义,组件已在引用) —— */
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-fg);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-fg);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-fg);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-fg);
 
-  /* 语义状态 */
-  --color-success: #16A34A;
-  --color-warning: #D97706;
-  --color-danger: #DC2626;
-  --color-info: #2563EB;
+  /* —— 边框 / 输入 / 焦点环 —— */
+  --color-border: var(--border);
+  --color-border-light: var(--border-light);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* —— 侧栏 / 顶栏 —— */
+  --color-topbar: var(--topbar);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-text: var(--sidebar-text);
+  --color-sidebar-section: var(--sidebar-section);
+  --color-sidebar-active: var(--sidebar-active);
+
+  /* —— 文字别名(向后兼容现有 text-primary/secondary/muted 调用) —— */
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+
+  /* —— 语义状态 —— */
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
 
   /* 字体:西文优先(数字/英文用更清爽的西文字形)+ 中文(苹方/鸿蒙/雅黑/思源)兜底 */
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial,
     "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei UI", "Microsoft YaHei",
     "Source Han Sans SC", "Noto Sans CJK SC", "WenQuanYi Micro Hei",
     sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+/* 浅色(默认)实值 */
+:root {
+  --bg: #F9FAFB;
+  --fg: #1F2937;
+  --card: #FFFFFF;
+  --card-fg: #1F2937;
+  --popover: #FFFFFF;
+  --popover-fg: #1F2937;
+
+  --primary: #2D5A27;
+  --primary-hover: #3A7232;
+  --primary-fg: #FFFFFF;
+
+  --secondary: #F3F4F6;
+  --secondary-fg: #1F2937;
+  --muted: #F3F4F6;
+  --muted-fg: #6B7280;
+  --accent: #F1F5F0;
+  --accent-fg: #1F2937;
+  --destructive: #DC2626;
+  --destructive-fg: #FFFFFF;
+
+  --border: #E5E7EB;
+  --border-light: #EEEEEE;
+  --input: #D1D5DB;
+  --ring: #2D5A27;
+
+  --topbar: #FFFFFF;
+  --sidebar: #1F3F1A;
+  --sidebar-text: #E8EFE3;
+  --sidebar-section: #A8C09A;
+  --sidebar-active: #2D5A27;
+
+  --text-primary: #1F2937;
+  --text-secondary: #6B7280;
+  --text-muted: #9CA3AF;
+
+  --success: #16A34A;
+  --warning: #D97706;
+  --danger: #DC2626;
+  --info: #2563EB;
+}
+
+/* 深色实值 */
+.dark {
+  --bg: #0F1713;
+  --fg: #E8EFE3;
+  --card: #16201A;
+  --card-fg: #E8EFE3;
+  --popover: #16201A;
+  --popover-fg: #E8EFE3;
+
+  --primary: #4C8C43;
+  --primary-hover: #5BA052;
+  --primary-fg: #FFFFFF;
+
+  --secondary: #1A241E;
+  --secondary-fg: #E8EFE3;
+  --muted: #1A241E;
+  --muted-fg: #9CA3AF;
+  --accent: #243029;
+  --accent-fg: #E8EFE3;
+  --destructive: #EF4444;
+  --destructive-fg: #FFFFFF;
+
+  --border: #2A3A30;
+  --border-light: #243029;
+  --input: #374151;
+  --ring: #5BA052;
+
+  --topbar: #16201A;
+  --sidebar: #0C140F;
+  --sidebar-text: #E8EFE3;
+  --sidebar-section: #A8C09A;
+  --sidebar-active: #2D5A27;
+
+  --text-primary: #E8EFE3;
+  --text-secondary: #A8B5AC;
+  --text-muted: #7C8A82;
+
+  --success: #22C55E;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --info: #3B82F6;
 }
 
 body {
@@ -47,11 +160,11 @@ body {
 }
 
 /* 富文本编辑器 + 渲染内容(.richtext-content 编辑态 / .richtext-view 展示态)
-   Tailwind preflight 会清掉标题/列表样式,这里显式补回 */
+   Tailwind preflight 会清掉标题/列表样式,这里显式补回。颜色走 token 随主题切换。 */
 .richtext-content h2,
-.richtext-view h2 { font-size: 1.25rem; font-weight: 600; margin: 0.75em 0 0.4em; color: #1F2937; }
+.richtext-view h2 { font-size: 1.25rem; font-weight: 600; margin: 0.75em 0 0.4em; color: var(--color-foreground); }
 .richtext-content h3,
-.richtext-view h3 { font-size: 1.05rem; font-weight: 600; margin: 0.7em 0 0.35em; color: #1F2937; }
+.richtext-view h3 { font-size: 1.05rem; font-weight: 600; margin: 0.7em 0 0.35em; color: var(--color-foreground); }
 .richtext-content p,
 .richtext-view p { margin: 0.4em 0; line-height: 1.7; }
 .richtext-content ul,
@@ -59,16 +172,16 @@ body {
 .richtext-content ol,
 .richtext-view ol { list-style: decimal; padding-left: 1.4em; margin: 0.4em 0; }
 .richtext-content blockquote,
-.richtext-view blockquote { border-left: 3px solid #2D5A27; padding-left: 0.8em; color: #6B7280; margin: 0.6em 0; }
+.richtext-view blockquote { border-left: 3px solid var(--color-primary); padding-left: 0.8em; color: var(--color-muted-foreground); margin: 0.6em 0; }
 .richtext-content a,
-.richtext-view a { color: #2D5A27; text-decoration: underline; }
+.richtext-view a { color: var(--color-primary); text-decoration: underline; }
 .richtext-content img,
 .richtext-view img { max-width: 100%; border-radius: 0.5rem; margin: 0.5em 0; }
 .richtext-content:focus { outline: none; }
 /* 空编辑器占位 */
 .richtext-content p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
-  color: #9CA3AF;
+  color: var(--color-text-muted);
   float: left;
   height: 0;
   pointer-events: none;
