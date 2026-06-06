@@ -68,4 +68,16 @@ export const contentRepository = {
   getNews(id: string) { return db.contentNews.findUnique({ where: { id } }); },
   createNews(data: Prisma.ContentNewsCreateInput) { return db.contentNews.create({ data }); },
   updateNews(id: string, data: Prisma.ContentNewsUpdateInput) { return db.contentNews.update({ where: { id }, data }); },
+
+  // ── 媒体素材库(R-素材) ──────────────────────────────────────────────────
+  listAssets(activityId?: string) {
+    return db.contentAsset.findMany({
+      where: activityId ? { activityId } : undefined,
+      orderBy: { createdAt: "desc" },
+      take: 200,
+    });
+  },
+  getAsset(id: string) { return db.contentAsset.findUnique({ where: { id } }); },
+  createAsset(data: Prisma.ContentAssetCreateInput) { return db.contentAsset.create({ data }); },
+  deleteAsset(id: string) { return db.contentAsset.delete({ where: { id } }); },
 };

@@ -44,6 +44,40 @@ export interface WxPayCredentials {
   notifyUrl: string;
 }
 
+export interface StorageCredentials {
+  /** 服务端自用端点(docker 内网如 http://minio:9000) */
+  endpoint: string;
+  /** 浏览器直传/预签名用端点(主机可达如 http://localhost:9000);默认回退 endpoint */
+  publicEndpoint: string;
+  region: string;
+  accessKey: string;
+  secretKey: string;
+  bucket: string;
+  /** MinIO/Supabase 需 path-style(true);OSS/COS 视设定 */
+  forcePathStyle: boolean;
+  /** 公网读基址(CDN/桶域名);留空则由 publicEndpoint+bucket 拼 path-style URL */
+  publicBaseUrl: string;
+}
+
+/** 读取 S3 兼容存储凭据(MinIO 本地 / Supabase 临时 / 阿里云 OSS 生产,仅改 env 切端点)。仅服务端调用。 */
+export function getStorageCredentials(): StorageCredentials {
+  const endpoint = process.env.S3_ENDPOINT ?? "http://localhost:9000";
+  return {
+    endpoint,
+    // docker 内网与浏览器端点不同时(minio:9000 vs localhost:9000),预签名须用主机可达端点。
+    publicEndpoint: process.env.S3_PUBLIC_ENDPOINT ?? endpoint,
+    region: process.env.S3_REGION ?? "us-east-1",
+    accessKey: process.env.S3_ACCESS_KEY ?? "",
+    secretKey: process.env.S3_SECRET_KEY ?? "",
+    bucket: process.env.S3_BUCKET ?? "changqiushan-media",
+    forcePathStyle:
+      process.env.S3_FORCE_PATH_STYLE != null
+        ? process.env.S3_FORCE_PATH_STYLE === "true"
+        : true,
+    publicBaseUrl: process.env.S3_PUBLIC_BASE_URL ?? "",
+  };
+}
+
 /** 读取微信支付 APIv3 凭据(活动报名费,隔离)。证书/密钥仅服务端持有,绝不下发。 */
 export function getWxPayCredentials(): WxPayCredentials {
   return {

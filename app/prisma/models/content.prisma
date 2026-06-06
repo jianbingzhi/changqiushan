@@ -136,3 +136,20 @@ model ContentNews {
   @@index([status, publishedAt(sort: Desc)])
   @@map("content_news")
 }
+
+// R-素材 媒体素材库 — 上传后归档,活动/资讯封面可引用。activityId 可空 → 通用素材库。
+model ContentAsset {
+  id         String   @id @default(uuid()) @db.Uuid
+  activityId String?  @map("activity_id") @db.Uuid
+  name       String   @db.VarChar(120)
+  key        String   @unique @db.VarChar(255)  // 对象存储 key(public/assets/<uuid>.<ext>)
+  url        String   @db.VarChar(512)           // 公网读 URL
+  type       String   @db.VarChar(40)            // contentType
+  size       Int                                 // 字节
+  createdBy  String?  @map("created_by") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([activityId, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+  @@map("content_asset")
+}

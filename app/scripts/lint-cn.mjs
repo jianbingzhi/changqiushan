@@ -35,8 +35,10 @@ const ASCII_ALLOW = new Set([
   "AI", "VR", "AR", "SDK", "CPU", "GPU", "OK", "WIFI", "HTTP", "HTTPS", "JWT", "RBAC",
   // 品牌 / 产品
   "EXCEL", "PDF", "CSV", "MINIO", "COS", "OSS", "AMAP", "GOTRUE", "POSTGRES", "NOTIFY",
+  // 图片 / 文件格式
+  "JPG", "JPEG", "PNG", "WEBP", "GIF",
   // 计量单位
-  "KM", "KG", "MG", "PM", "AQI", "CO", "NO", "SO", "UV", "HPA", "DB", "MS", "CM", "MM",
+  "KM", "KG", "MG", "PM", "AQI", "CO", "NO", "SO", "UV", "HPA", "DB", "MS", "CM", "MM", "KB", "MB", "GB",
   // 示例编码前缀(占位符里的工号样例 如 OPS-001)
   "OPS",
 ]);

@@ -23,6 +23,7 @@ import {
   Activity,
   FileSearch,
   Settings,
+  Image as ImageIcon,
   HelpCircle,
   LogOut,
   ChevronDown,
@@ -51,6 +52,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Activity,
   FileSearch,
   Settings,
+  Image: ImageIcon,
 };
 
 function writeCollapsedCookie(titles: string[]) {

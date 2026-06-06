@@ -21,6 +21,7 @@ export const MENU_GROUPS: MenuGroup[] = [
       { label: "活动运营管理", href: "/content/activities",  icon: "CalendarDays" },
       { label: "AI问答知识库", href: "/content/knowledge",   icon: "BrainCircuit" },
       { label: "资讯模块",     href: "/content/news",        icon: "Newspaper" },
+      { label: "媒体素材库",   href: "/content/assets",      icon: "Image" },
     ],
   },
   {
