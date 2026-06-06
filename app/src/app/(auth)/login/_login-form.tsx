@@ -20,7 +20,7 @@ export function LoginForm({ action }: LoginFormProps) {
   return (
     <form action={formAction} className="flex flex-col gap-4" noValidate>
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="account" className="text-[13px] font-medium text-[#1F2937]">
+        <label htmlFor="account" className="text-[13px] font-medium text-foreground">
           手机号或邮箱
         </label>
         <Input
@@ -30,12 +30,11 @@ export function LoginForm({ action }: LoginFormProps) {
           placeholder="请输入手机号或邮箱"
           autoComplete="username"
           disabled={pending}
-          className="border-[#E5E7EB] focus-visible:ring-[#2D5A27]"
         />
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="password" className="text-[13px] font-medium text-[#1F2937]">
+        <label htmlFor="password" className="text-[13px] font-medium text-foreground">
           密码
         </label>
         <Input
@@ -45,12 +44,11 @@ export function LoginForm({ action }: LoginFormProps) {
           placeholder="请输入密码"
           autoComplete="current-password"
           disabled={pending}
-          className="border-[#E5E7EB] focus-visible:ring-[#2D5A27]"
         />
       </div>
 
       {error && (
-        <p className="text-[13px] text-[#DC2626]" role="alert">
+        <p className="text-[13px] text-destructive" role="alert">
           {error}
         </p>
       )}
@@ -59,7 +57,6 @@ export function LoginForm({ action }: LoginFormProps) {
         type="submit"
         disabled={pending}
         className="w-full mt-1 font-medium tracking-widest"
-        style={{ backgroundColor: "#2D5A27", color: "#FFFFFF" }}
       >
         {pending ? "登录中…" : "登 录"}
       </Button>

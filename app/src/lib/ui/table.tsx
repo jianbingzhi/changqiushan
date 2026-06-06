@@ -2,18 +2,73 @@ import * as React from "react"
 
 import { cn } from "@/lib/ui/utils"
 
-const Table = React.forwardRef<
-  HTMLTableElement,
-  React.HTMLAttributes<HTMLTableElement>
->(({ className, ...props }, ref) => (
-  <div className="relative w-full overflow-auto">
-    <table
+// FE-2(B19):密度 + 斑马纹。密度经 context 下传给 TableHead/TableCell 调内边距;
+// 斑马纹在 Table 容器一处用 token(bg-muted)着色偶数行,随主题切换。
+// 对齐约定(作者侧):数字/金额/时间列加 `text-right tabular-nums`,状态/操作列 `text-center`。
+type Density = "comfortable" | "compact"
+const TableContext = React.createContext<Density>("comfortable")
+
+const TableHead = React.forwardRef<
+  HTMLTableCellElement,
+  React.ThHTMLAttributes<HTMLTableCellElement>
+>(({ className, ...props }, ref) => {
+  const density = React.useContext(TableContext)
+  return (
+    <th
       ref={ref}
-      className={cn("w-full caption-bottom text-sm", className)}
+      className={cn(
+        "text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0",
+        density === "compact" ? "h-9 px-3" : "h-12 px-4",
+        className
+      )}
       {...props}
     />
-  </div>
-))
+  )
+})
+TableHead.displayName = "TableHead"
+
+const TableCell = React.forwardRef<
+  HTMLTableCellElement,
+  React.TdHTMLAttributes<HTMLTableCellElement>
+>(({ className, ...props }, ref) => {
+  const density = React.useContext(TableContext)
+  return (
+    <td
+      ref={ref}
+      className={cn(
+        "align-middle [&:has([role=checkbox])]:pr-0",
+        density === "compact" ? "px-3 py-2" : "p-4",
+        className
+      )}
+      {...props}
+    />
+  )
+})
+TableCell.displayName = "TableCell"
+
+interface TableProps extends React.HTMLAttributes<HTMLTableElement> {
+  density?: Density
+  /** 偶数行浅底斑马纹(token bg-muted,随主题切换) */
+  zebra?: boolean
+}
+
+const Table = React.forwardRef<HTMLTableElement, TableProps>(
+  ({ className, density = "comfortable", zebra = false, ...props }, ref) => (
+    <TableContext.Provider value={density}>
+      <div className="relative w-full overflow-auto">
+        <table
+          ref={ref}
+          className={cn(
+            "w-full caption-bottom text-sm",
+            zebra && "[&_tbody_tr:nth-child(even)]:bg-muted/40",
+            className
+          )}
+          {...props}
+        />
+      </div>
+    </TableContext.Provider>
+  )
+)
 Table.displayName = "Table"
 
 const TableHeader = React.forwardRef<
@@ -65,33 +120,6 @@ const TableRow = React.forwardRef<
   />
 ))
 TableRow.displayName = "TableRow"
-
-const TableHead = React.forwardRef<
-  HTMLTableCellElement,
-  React.ThHTMLAttributes<HTMLTableCellElement>
->(({ className, ...props }, ref) => (
-  <th
-    ref={ref}
-    className={cn(
-      "h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0",
-      className
-    )}
-    {...props}
-  />
-))
-TableHead.displayName = "TableHead"
-
-const TableCell = React.forwardRef<
-  HTMLTableCellElement,
-  React.TdHTMLAttributes<HTMLTableCellElement>
->(({ className, ...props }, ref) => (
-  <td
-    ref={ref}
-    className={cn("p-4 align-middle [&:has([role=checkbox])]:pr-0", className)}
-    {...props}
-  />
-))
-TableCell.displayName = "TableCell"
 
 const TableCaption = React.forwardRef<
   HTMLTableCaptionElement,
