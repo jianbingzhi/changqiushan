@@ -27,6 +27,7 @@ export const MENU_GROUPS: MenuGroup[] = [
     title: "预约管理中心",
     items: [
       { label: "分时预约配额配置", href: "/booking/slots",        icon: "Clock" },
+      { label: "配额规则与日历",   href: "/booking/quota-rules",  icon: "CalendarCog" },
       { label: "预约单查询",       href: "/booking/bookings",     icon: "FileSearch" },
       { label: "渠道预约接入",     href: "/booking/channels",     icon: "Network" },
       { label: "现场补录面板",     href: "/booking/onsite",       icon: "ClipboardList" },

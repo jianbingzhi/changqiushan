@@ -84,6 +84,61 @@ export const bookingRepository = {
     return db.bookingSlot.createMany({ data: rows }).then((r) => r.count);
   },
 
+  // BE-A3:幂等批量建时段。skipDuplicates → ON CONFLICT (date,start_time) DO NOTHING,
+  // 重复跑 cron + 与手动建时段共存安全;绝不 UPDATE 已存在时段(免冲掉运营手调)。
+  createManySlotsIdempotent(
+    rows: Prisma.BookingSlotCreateManyInput[],
+  ): Promise<number> {
+    return db.bookingSlot
+      .createMany({ data: rows, skipDuplicates: true })
+      .then((r) => r.count);
+  },
+
+  // BE-A2 时段模板 CRUD
+  listSlotTemplates() {
+    return db.sysSlotTemplate.findMany({ orderBy: [{ dayType: "asc" }, { startTime: "asc" }] });
+  },
+
+  listEnabledTemplates() {
+    return db.sysSlotTemplate.findMany({ where: { enabled: true } });
+  },
+
+  createSlotTemplate(data: Prisma.SysSlotTemplateCreateInput) {
+    return db.sysSlotTemplate.create({ data });
+  },
+
+  updateSlotTemplate(id: string, data: Prisma.SysSlotTemplateUpdateInput) {
+    return db.sysSlotTemplate.update({ where: { id }, data });
+  },
+
+  deleteSlotTemplate(id: string) {
+    return db.sysSlotTemplate.delete({ where: { id } });
+  },
+
+  // BE-A2 节假日日历(主键即日期 → upsert)
+  listHolidayCalendar(from: Date, to: Date) {
+    return db.sysHolidayCalendar.findMany({
+      where: { date: { gte: from, lte: to } },
+      orderBy: { date: "asc" },
+    });
+  },
+
+  listHolidays() {
+    return db.sysHolidayCalendar.findMany({ orderBy: { date: "asc" } });
+  },
+
+  upsertHoliday(data: { date: Date; dayType: Prisma.SysHolidayCalendarCreateInput["dayType"]; closed: boolean; note?: string | null }) {
+    return db.sysHolidayCalendar.upsert({
+      where: { date: data.date },
+      create: data,
+      update: { dayType: data.dayType, closed: data.closed, note: data.note },
+    });
+  },
+
+  deleteHoliday(date: Date) {
+    return db.sysHolidayCalendar.delete({ where: { date } });
+  },
+
   getBookingWithSlot(id: string) {
     return db.booking.findUnique({
       where: { id },

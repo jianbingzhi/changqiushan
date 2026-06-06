@@ -88,3 +88,40 @@ enum BookingStatus {
   NO_SHOW
   EXPIRED
 }
+
+// BE-A2 配额规则:按「日期类型」定义的时段模板(定义端)。
+// B23 每日滚动 cron 按 dayType 选模板展开成 booking_slot;各渠道配额随模板带出,capacity = 四渠道之和。
+model SysSlotTemplate {
+  id               String   @id @default(uuid()) @db.Uuid
+  dayType          DayType  @map("day_type")
+  name             String   @db.VarChar(80)
+  startTime        String   @map("start_time") @db.VarChar(5)
+  endTime          String   @map("end_time") @db.VarChar(5)
+  miniProgramQuota Int      @default(0) @map("mini_program_quota")
+  onsiteQuota      Int      @default(0) @map("onsite_quota")
+  otaQuota         Int      @default(0) @map("ota_quota")
+  adminQuota       Int      @default(0) @map("admin_quota")
+  enabled          Boolean  @default(true)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@unique([dayType, startTime])
+  @@map("booking_slot_template")
+}
+
+// BE-A2 节假日/调休/闭园覆盖。中国调休不可纯星期推算 → 运营手录,覆盖 inferDayType 的星期推断。
+model SysHolidayCalendar {
+  date      DateTime @id @db.Date
+  dayType   DayType  @map("day_type")
+  closed    Boolean  @default(false)   // 闭园日:cron 跳过不生成
+  note      String?  @db.VarChar(80)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("booking_holiday_calendar")
+}
+
+enum DayType {
+  WEEKDAY
+  WEEKEND
+  HOLIDAY
+}
