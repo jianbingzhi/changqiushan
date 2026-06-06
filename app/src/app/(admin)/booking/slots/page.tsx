@@ -5,6 +5,7 @@ import { getSession } from "@/infrastructure/auth/session";
 import { PageHeader } from "@/lib/ui/page-header";
 import { StatusChip } from "@/lib/ui/status-chip";
 import { formatCnDate } from "@/shared/format";
+import { chinaTodayDbDate } from "@/shared/lib/time";
 import { SlotTools } from "./_slot-tools";
 import Link from "next/link";
 
@@ -15,8 +16,9 @@ type Props = { searchParams: Promise<{ date?: string }> };
 
 export default async function BookingSlotsPage({ searchParams }: Props) {
   const params = await searchParams;
-  const target = params.date ? new Date(params.date + "T00:00:00+08:00") : new Date();
-  target.setHours(0, 0, 0, 0);
+  // target 锚 UTC 零点,与 @db.Date 存储口径(new Date(dateStr+"T00:00:00Z"))一致,
+  // 不依赖服务器时区(Vercel=UTC 下原 setHours 本地零点会回退一天导致查空)。
+  const target = params.date ? new Date(params.date + "T00:00:00Z") : chinaTodayDbDate();
 
   const slots = await bookingRepository.listSlotsByDate(target);
 
@@ -25,13 +27,13 @@ export default async function BookingSlotsPage({ searchParams }: Props) {
     session?.appRole != null && (ADMIN_UP as readonly string[]).includes(session.appRole);
 
   const prevDate = new Date(target);
-  prevDate.setDate(prevDate.getDate() - 1);
+  prevDate.setUTCDate(prevDate.getUTCDate() - 1);
   const nextDate = new Date(target);
-  nextDate.setDate(nextDate.getDate() + 1);
+  nextDate.setUTCDate(nextDate.getUTCDate() + 1);
 
-  // 使用本地日期(CST)避免 toISOString 返回 UTC 日期导致午前跨日错误
+  // target 锚 UTC 零点,日期参数一律走 UTC 方法,不依赖服务器时区
   const toDateParam = (d: Date) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
 
   // 仅当在园人数真正达到 90% 时显示熔断警告(不依赖 PAUSED 状态以避免误报)
   const hasCircuitBreaker = slots.some((s) => s.capacity > 0 && s.checkedInCount / s.capacity >= CIRCUIT_BREAK_RATIO);
@@ -142,6 +144,8 @@ export default async function BookingSlotsPage({ searchParams }: Props) {
                             ? "ACTIVE"
                             : s.status === "PAUSED"
                             ? "PAUSED"
+                            : s.status === "CLOSED"
+                            ? "CLOSED"
                             : "CANCELLED"
                         }
                       />

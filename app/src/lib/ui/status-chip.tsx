@@ -3,6 +3,7 @@ type StatusKey =
   | "ACTIVE"
   | "CONFIRMED"
   | "PAUSED"
+  | "CLOSED"
   | "CANCELLED"
   | "PENDING"
   | "CHECKED_IN"
@@ -36,6 +37,7 @@ const STATUS_CONFIG: Record<
   ACTIVE:        { label: "启用",   bg: "#F0FDF4", text: "#16A34A", border: "#BBF7D0" },
   CONFIRMED:     { label: "已预约", bg: "#F0FDF4", text: "#16A34A", border: "#BBF7D0" },
   PAUSED:        { label: "已暂停", bg: "#F9FAFB", text: "#6B7280", border: "#E5E7EB" },
+  CLOSED:        { label: "已关闭", bg: "#F9FAFB", text: "#6B7280", border: "#E5E7EB" },
   CANCELLED:     { label: "已取消", bg: "#F9FAFB", text: "#6B7280", border: "#E5E7EB" },
   PENDING:       { label: "待审核", bg: "#FFFBEB", text: "#D97706", border: "#FDE68A" },
   CHECKED_IN:    { label: "已核销", bg: "#EFF6FF", text: "#2563EB", border: "#BFDBFE" },

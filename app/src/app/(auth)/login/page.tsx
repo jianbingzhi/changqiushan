@@ -40,8 +40,11 @@ async function loginAction(formData: FormData): Promise<string | never> {
       body: JSON.stringify({ ...credential, password }),
       cache: "no-store",
     });
+    // 先判 res.ok:反代返回非 JSON 错误体(如 502 HTML)时 res.json() 会抛,
+    // 不先判会把"服务不可用"误并入"密码错误";结构化 JSON error(invalid_grant)走 res.ok=false 正常返回。
+    if (!res.ok) return "账号或密码错误";
     data = await res.json();
-    if (!res.ok || !data.access_token) return "账号或密码错误";
+    if (!data.access_token) return "账号或密码错误";
   } catch {
     return "服务暂时不可用，请稍后重试";
   }

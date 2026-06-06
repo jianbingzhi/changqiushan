@@ -53,15 +53,15 @@ export default async function DashboardPage() {
       </div>
 
       {/* 今日时段状态 */}
-      <div className="mb-5 rounded-lg border border-[#E5E7EB] bg-white">
-        <div className="flex items-center justify-between border-b border-[#E5E7EB] px-4 py-3">
-          <p className="text-[13px] font-semibold text-[#1F2937]">今日预约时段</p>
-          <Link href="/booking/slots" className="text-[13px] text-[#2D5A27] hover:underline">查看全部 →</Link>
+      <div className="mb-5 rounded-lg border border-border bg-card">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <p className="text-[13px] font-semibold text-foreground">今日预约时段</p>
+          <Link href="/booking/slots" className="text-[13px] text-primary hover:underline">查看全部 →</Link>
         </div>
         {slots.length === 0 ? (
-          <div className="py-8 text-center text-[13px] text-[#6B7280]">今日暂无时段数据</div>
+          <div className="py-8 text-center text-[13px] text-muted-foreground">今日暂无时段数据</div>
         ) : (
-          <div className="divide-y divide-[#F3F4F6]">
+          <div className="divide-y divide-muted">
             {slots.map((s) => {
               const pct = s.capacity > 0 ? Math.round(s.checkedInCount / s.capacity * 100) : 0;
               const warn = pct >= 90;
@@ -75,7 +75,7 @@ export default async function DashboardPage() {
                     <span className={`text-[13px] ${warn ? "text-danger" : "text-muted-foreground"}`}>
                       在园 {s.checkedInCount}/{s.capacity}（{pct}%）
                     </span>
-                    <StatusChip status={s.status === "ACTIVE" ? "ACTIVE" : s.status === "PAUSED" ? "PAUSED" : "CANCELLED"} />
+                    <StatusChip status={s.status === "ACTIVE" ? "ACTIVE" : s.status === "PAUSED" ? "PAUSED" : s.status === "CLOSED" ? "CLOSED" : "CANCELLED"} />
                   </div>
                 </div>
               );
@@ -85,20 +85,20 @@ export default async function DashboardPage() {
       </div>
 
       {/* 设备状态摘要 */}
-      <div className="rounded-lg border border-[#E5E7EB] bg-white">
-        <div className="flex items-center justify-between border-b border-[#E5E7EB] px-4 py-3">
-          <p className="text-[13px] font-semibold text-[#1F2937]">设备在线状态</p>
-          <Link href="/iot/devices" className="text-[13px] text-[#2D5A27] hover:underline">查看全部 →</Link>
+      <div className="rounded-lg border border-border bg-card">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <p className="text-[13px] font-semibold text-foreground">设备在线状态</p>
+          <Link href="/iot/devices" className="text-[13px] text-primary hover:underline">查看全部 →</Link>
         </div>
         {devices.length === 0 ? (
-          <div className="py-8 text-center text-[13px] text-[#6B7280]">暂无设备数据</div>
+          <div className="py-8 text-center text-[13px] text-muted-foreground">暂无设备数据</div>
         ) : (
-          <div className="grid grid-cols-2 gap-0 divide-y divide-[#F3F4F6] md:grid-cols-3">
+          <div className="grid grid-cols-2 gap-0 divide-y divide-muted md:grid-cols-3">
             {devices.slice(0, 6).map((d) => (
               <div key={d.id} className="flex items-center gap-2 px-4 py-3">
                 <LiveDot tone={d.status === "ONLINE" ? "online" : d.status === "ALERT" ? "alert" : "offline"} />
-                <span className="text-[13px] font-medium text-[#1F2937] truncate">{d.name}</span>
-                <span className="ml-auto text-xs text-[#6B7280]">{d.type}</span>
+                <span className="text-[13px] font-medium text-foreground truncate">{d.name}</span>
+                <span className="ml-auto text-xs text-muted-foreground">{d.type}</span>
               </div>
             ))}
           </div>

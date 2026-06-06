@@ -1,6 +1,7 @@
 // 集成配置中心(占位实现)
 // 第三方密钥(微信 AppSecret / 支付 mch / AI key / 存储 key)一律服务端读取,
 // 绝不下发前端(红线#7)。上线切真正的配置中心/密钥管理服务时,仅替换本文件实现,接口不变。
+import "server-only"; // 误在客户端组件引入即编译期报错,兜底防密钥进客户端包。
 
 export interface WechatCredentials {
   appId: string;

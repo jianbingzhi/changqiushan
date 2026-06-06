@@ -12,7 +12,11 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const raw = (await cookies()).get("cqs-nav-collapsed")?.value;
   let collapsedGroups: string[] = [];
   try {
-    if (raw) collapsedGroups = JSON.parse(raw);
+    // 写端用 encodeURIComponent(JSON.stringify(...));读端必须先 decode 再 parse,否则 JSON.parse 必抛。
+    if (raw) {
+      const parsed = JSON.parse(decodeURIComponent(raw));
+      if (Array.isArray(parsed)) collapsedGroups = parsed.filter((x): x is string => typeof x === "string");
+    }
   } catch {
     collapsedGroups = [];
   }
