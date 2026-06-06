@@ -30,10 +30,10 @@ export default async function TrafficParkingPage() {
         </KpiRow>
       </div>
       {/* 地图占位 */}
-      <div className="mb-4 rounded-lg border border-[#E5E7EB] bg-white p-4">
-        <p className="mb-3 text-[13px] font-medium text-[#6B7280]">停车场分布地图</p>
-        <div className="flex items-center justify-center rounded bg-[#E5E7EB]" style={{ height: 300 }} role="img" aria-label="地图加载中">
-          <span className="text-[14px] text-[#9CA3AF]">地图加载中…</span>
+      <div className="mb-4 rounded-lg border border-border bg-card p-4">
+        <p className="mb-3 text-[13px] font-medium text-muted-foreground">停车场分布地图</p>
+        <div className="flex h-[300px] items-center justify-center rounded bg-muted" role="img" aria-label="地图加载中">
+          <span className="text-[14px] text-text-muted">地图加载中…</span>
         </div>
       </div>
 
@@ -54,9 +54,9 @@ export default async function TrafficParkingPage() {
               return (
                 <TableRow key={lot.id} className="hover:bg-[#F9FAFB]">
                   <TableCell className="font-medium text-[#1F2937]">{lot.name}</TableCell>
-                  <TableCell className="text-[13px] text-[#6B7280]">{lot.capacity}</TableCell>
-                  <TableCell className="text-[13px] text-[#6B7280]">{lot.occupied}</TableCell>
-                  <TableCell className="text-[13px] font-medium" style={{ color: remaining === 0 ? "#DC2626" : "#1F2937" }}>{remaining}</TableCell>
+                  <TableCell className="text-[13px] text-muted-foreground">{lot.capacity}</TableCell>
+                  <TableCell className="text-[13px] text-muted-foreground">{lot.occupied}</TableCell>
+                  <TableCell className={`text-[13px] font-medium ${remaining === 0 ? "text-danger" : "text-foreground"}`}>{remaining}</TableCell>
                   <TableCell>
                     <StatusChip status={lot.status === "OPEN" ? "LOT_OPEN" : lot.status === "FULL" ? "LOT_FULL" : "LOT_CLOSED"} />
                   </TableCell>

@@ -18,11 +18,11 @@ function DimensionTable({ rows, emptyText }: { rows: ProfileRow[]; emptyText: st
     <div className="divide-y divide-[#F3F4F6]">
       {rows.map((r) => (
         <div key={r.dimension} className="flex items-center gap-4 px-4 py-3">
-          <span className="w-40 shrink-0 text-[13px] text-[#1F2937]">{r.dimension}</span>
-          <div className="relative h-5 flex-1 rounded bg-[#F3F4F6]">
-            <div className="absolute inset-y-0 left-0 rounded bg-[#2D5A27]" style={{ width: `${Math.round((r.value / max) * 100)}%`, minWidth: r.value > 0 ? 2 : 0 }} />
+          <span className="w-40 shrink-0 text-[13px] text-foreground">{r.dimension}</span>
+          <div className="relative h-5 flex-1 rounded bg-muted">
+            <div className="absolute inset-y-0 left-0 rounded bg-primary" style={{ width: `${Math.round((r.value / max) * 100)}%`, minWidth: r.value > 0 ? 2 : 0 }} />
           </div>
-          <span className="w-16 shrink-0 text-right text-[13px] font-medium text-[#1F2937]">{r.value}</span>
+          <span className="w-16 shrink-0 text-right text-[13px] font-medium text-foreground">{r.value}</span>
           <span className="w-16 shrink-0 text-right text-[12px] text-[#6B7280]">{r.percentage}%</span>
         </div>
       ))}

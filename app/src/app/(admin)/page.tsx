@@ -66,13 +66,13 @@ export default async function DashboardPage() {
               const pct = s.capacity > 0 ? Math.round(s.checkedInCount / s.capacity * 100) : 0;
               const warn = pct >= 90;
               return (
-                <div key={s.id} className={`flex items-center justify-between px-4 py-3 ${warn ? "bg-[#FEF2F2]" : ""}`}>
+                <div key={s.id} className={`flex items-center justify-between px-4 py-3 ${warn ? "bg-danger/10" : ""}`}>
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-[#1F2937]">{s.name}</span>
-                    <span className="text-[13px] text-[#6B7280]">{s.startTime}–{s.endTime}</span>
+                    <span className="text-sm font-medium text-foreground">{s.name}</span>
+                    <span className="text-[13px] text-muted-foreground">{s.startTime}–{s.endTime}</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-[13px]" style={{ color: warn ? "#DC2626" : "#6B7280" }}>
+                    <span className={`text-[13px] ${warn ? "text-danger" : "text-muted-foreground"}`}>
                       在园 {s.checkedInCount}/{s.capacity}（{pct}%）
                     </span>
                     <StatusChip status={s.status === "ACTIVE" ? "ACTIVE" : s.status === "PAUSED" ? "PAUSED" : "CANCELLED"} />

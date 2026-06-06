@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import {
   MapPin,
   CalendarDays,
@@ -24,6 +25,7 @@ import {
   Settings,
   HelpCircle,
   LogOut,
+  ChevronDown,
   type LucideIcon,
 } from "lucide-react";
 import { MENU_GROUPS } from "@/lib/ui/nav/menu";
@@ -51,8 +53,30 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Settings,
 };
 
-export function Sidebar({ appRole }: { appRole?: string | null }) {
+function writeCollapsedCookie(titles: string[]) {
+  document.cookie = `cqs-nav-collapsed=${encodeURIComponent(JSON.stringify(titles))}; path=/; max-age=31536000; samesite=lax`;
+}
+
+export function Sidebar({
+  appRole,
+  collapsedGroups = [],
+}: {
+  appRole?: string | null;
+  collapsedGroups?: string[];
+}) {
   const pathname = usePathname();
+  // B14 折叠记忆:初始态来自 cookie(SSR 已读、随 props 注入),故首屏与水合一致无闪烁。
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(collapsedGroups));
+
+  function toggle(title: string) {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(title)) next.delete(title);
+      else next.add(title);
+      writeCollapsedCookie([...next]);
+      return next;
+    });
+  }
 
   // 按角色过滤(R3 路由级 RBAC 同源):item.roles 缺省=所有员工可见;过滤后空分组不渲染
   const groups = MENU_GROUPS.map((group) => ({
@@ -63,7 +87,7 @@ export function Sidebar({ appRole }: { appRole?: string | null }) {
   })).filter((group) => group.items.length > 0);
 
   return (
-    <aside className="flex h-full w-60 shrink-0 flex-col overflow-y-auto bg-sidebar">
+    <aside className="flex w-60 shrink-0 flex-col overflow-y-auto bg-sidebar">
       {/* Logo — 点击返回仪表盘首页(N3/B13) */}
       <Link
         href="/"
@@ -86,37 +110,65 @@ export function Sidebar({ appRole }: { appRole?: string | null }) {
 
       {/* Navigation */}
       <nav className="flex-1 px-2">
-        {groups.map((group) => (
-          <div key={group.title} className="mb-4">
-            <p className="px-2 pt-2 pb-1 text-xs text-sidebar-section">{group.title}</p>
-            {group.items.map((item) => {
-              const isActive =
-                pathname === item.href || pathname.startsWith(item.href + "/");
-              const Icon = ICON_MAP[item.icon];
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "mb-0.5 flex items-center gap-3 rounded-md border-l-[3px] px-3 py-2 text-sm transition-colors",
-                    isActive
-                      ? "border-[#4a8f42] bg-sidebar-active font-semibold text-white"
-                      : "border-transparent font-normal text-sidebar-text",
-                  )}
-                >
-                  {Icon && (
-                    <Icon
-                      size={20}
-                      strokeWidth={1.5}
-                      className={cn("shrink-0", isActive ? "text-white" : "text-sidebar-section")}
-                    />
-                  )}
-                  {item.label}
-                </Link>
-              );
-            })}
-          </div>
-        ))}
+        {groups.map((group) => {
+          const hasActive = group.items.some(
+            (item) => pathname === item.href || pathname.startsWith(item.href + "/"),
+          );
+          // 激活项所在分组强制展开(pathname 命中覆盖折叠记忆)
+          const isCollapsed = !hasActive && collapsed.has(group.title);
+          const sectionId = `nav-section-${group.title}`;
+          return (
+            <div key={group.title} className="mb-3">
+              <button
+                type="button"
+                onClick={() => !hasActive && toggle(group.title)}
+                aria-expanded={!isCollapsed}
+                aria-controls={sectionId}
+                disabled={hasActive}
+                className="flex w-full items-center justify-between rounded-md px-2 pt-2 pb-1 text-xs text-sidebar-section transition-colors hover:text-sidebar-text disabled:cursor-default"
+              >
+                <span>{group.title}</span>
+                <ChevronDown
+                  size={14}
+                  className={cn("shrink-0 transition-transform", isCollapsed && "-rotate-90")}
+                  aria-hidden="true"
+                />
+              </button>
+              {!isCollapsed && (
+                <ul id={sectionId}>
+                  {group.items.map((item) => {
+                    const isActive =
+                      pathname === item.href || pathname.startsWith(item.href + "/");
+                    const Icon = ICON_MAP[item.icon];
+                    return (
+                      <li key={item.href}>
+                        <Link
+                          href={item.href}
+                          aria-current={isActive ? "page" : undefined}
+                          className={cn(
+                            "mb-0.5 flex items-center gap-3 rounded-md border-l-[3px] px-3 py-2 text-sm transition-colors",
+                            isActive
+                              ? "border-primary-hover bg-sidebar-active font-semibold text-white"
+                              : "border-transparent font-normal text-sidebar-text hover:bg-white/5",
+                          )}
+                        >
+                          {Icon && (
+                            <Icon
+                              size={20}
+                              strokeWidth={1.5}
+                              className={cn("shrink-0", isActive ? "text-white" : "text-sidebar-section")}
+                            />
+                          )}
+                          {item.label}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          );
+        })}
       </nav>
 
       {/* Bottom */}

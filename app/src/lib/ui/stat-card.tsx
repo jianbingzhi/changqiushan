@@ -9,20 +9,19 @@ interface StatCardProps {
 }
 
 export function StatCard({ label, value, unit, trend, trendLabel }: StatCardProps) {
-  const trendColor = trend === undefined ? undefined : trend >= 0 ? "#16A34A" : "#DC2626";
   const trendSign = trend !== undefined && trend > 0 ? "+" : "";
 
   return (
-    <div className="rounded-lg shadow-sm p-6 bg-white border border-[#E5E7EB]">
-      <p className="text-[13px] text-[#6B7280]">{label}</p>
+    <div className="rounded-lg shadow-sm p-6 bg-card border border-border">
+      <p className="text-[13px] text-muted-foreground">{label}</p>
       <div className="mt-2 flex items-baseline gap-1">
-        <span className="text-[32px] font-bold leading-none text-[#1F2937]">{value}</span>
-        {unit && <span className="text-sm text-[#6B7280]">{unit}</span>}
+        <span className="text-[32px] font-bold leading-none text-foreground">{value}</span>
+        {unit && <span className="text-sm text-muted-foreground">{unit}</span>}
       </div>
       {trend !== undefined && (
-        <p className="mt-2 text-[13px]" style={{ color: trendColor }}>
+        <p className={`mt-2 text-[13px] ${trend >= 0 ? "text-success" : "text-danger"}`}>
           {trendSign}{trend}
-          {trendLabel && <span className="ml-1 text-[#6B7280]">{trendLabel}</span>}
+          {trendLabel && <span className="ml-1 text-muted-foreground">{trendLabel}</span>}
         </p>
       )}
     </div>

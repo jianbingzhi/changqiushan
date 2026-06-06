@@ -30,8 +30,8 @@ export default async function TrafficRoadPage() {
       </div>
 
       {/* 地图占位 */}
-      <div className="mb-4 rounded-lg border border-[#E5E7EB] bg-[#F3F4F6] flex items-center justify-center" style={{ height: 300 }}>
-        <p className="text-[#6B7280] text-sm">高德实时路况地图待阶段5地图组件接入后展示</p>
+      <div className="mb-4 flex h-[300px] items-center justify-center rounded-lg border border-border bg-muted">
+        <p className="text-muted-foreground text-sm">高德实时路况地图待阶段5地图组件接入后展示</p>
       </div>
 
       {/* a11y 数据表 */}

@@ -62,7 +62,7 @@ export default async function IotDevicesPage() {
                   <TableCell className="text-[13px] text-[#6B7280]">
                     {device.lastSeen ? formatCnDateTime(device.lastSeen) : "—"}
                   </TableCell>
-                  <TableCell className="text-[13px] font-medium tabular-nums" style={{ color: "#9CA3AF" }}>—</TableCell>
+                  <TableCell className="text-[13px] font-medium tabular-nums text-text-muted">—</TableCell>
                   <TableCell>
                     <Link href={`/iot/${device.id}`} className="text-[13px] text-[#2D5A27] hover:underline">查看详情</Link>
                   </TableCell>
