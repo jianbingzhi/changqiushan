@@ -1,5 +1,6 @@
 export { bookingService } from "./service/booking";
 export { quotaRuleService } from "./service/quota-rule";
+export { slotRollService } from "./service/slot-roll";
 export { inferDayType } from "./domain/quota-rule";
 export { bookingRepository } from "./repository";
 export type {

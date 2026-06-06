@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, CalendarPlus } from "lucide-react";
 import { Button } from "@/lib/ui/button";
 import { Input } from "@/lib/ui/input";
 import { formatCnDate } from "@/shared/format";
@@ -11,6 +11,7 @@ import {
   deleteTemplateAction,
   saveHolidayAction,
   deleteHolidayAction,
+  generateSlotsNowAction,
   type RuleActionResult,
   type TemplatePayload,
 } from "./actions";
@@ -160,18 +161,30 @@ export function QuotaRules({
       <section className="rounded-lg border border-[#E5E7EB] bg-white p-4">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-[15px] font-semibold text-[#1F2937]">时段模板</h2>
-          <Button
-            size="sm"
-            onClick={() => {
-              setTplForm({ ...EMPTY_TEMPLATE });
-              setTplOpen((v) => !v || tplForm.id != null);
-              setTplMsg(null);
-            }}
-            className="gap-1"
-          >
-            <Plus className="h-4 w-4" />
-            新建模板
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={pending}
+              onClick={() => run(() => generateSlotsNowAction(), setTplMsg)}
+              className="gap-1"
+            >
+              <CalendarPlus className="h-4 w-4" />
+              立即生成未来时段
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                setTplForm({ ...EMPTY_TEMPLATE });
+                setTplOpen((v) => !v || tplForm.id != null);
+                setTplMsg(null);
+              }}
+              className="gap-1"
+            >
+              <Plus className="h-4 w-4" />
+              新建模板
+            </Button>
+          </div>
         </div>
         <p className="mb-3 text-xs text-[#9CA3AF]">
           按日期类型(工作日 / 周末 / 节假日)定义时段;每日滚动生成按当日类型选用对应模板,各渠道名额随模板带出。

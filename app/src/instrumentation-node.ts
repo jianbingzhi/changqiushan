@@ -45,6 +45,20 @@ export async function registerNode() {
     console.error("[instrumentation] pg-boss analytics refresh register failed", e);
   });
 
+  // BE-A3 每日滚动生成时段(每天 18:00)。薄壳:读 horizon 配置 → 调 rollGenerateSlots
+  // (与 Vercel Cron /api/cron/roll-slots 共用一份逻辑,两入口)。
+  await boss.createQueue("roll-slots").catch(() => {});
+  await boss.schedule("roll-slots", "0 18 * * *", {}).catch(() => {});
+  await boss.work("roll-slots", async () => {
+    const { slotRollService } = await import("@/modules/booking");
+    const { configService } = await import("@/modules/system");
+    const horizon = await configService.getInt("slot.horizon_days", 14);
+    const res = await slotRollService.rollGenerateSlots(horizon);
+    if (!res.ok) console.error("[instrumentation] roll-slots failed", res.message);
+  }).catch((e: unknown) => {
+    console.error("[instrumentation] pg-boss roll-slots register failed", e);
+  });
+
   // 熔断(红线4)已移到核销写路径内联(checkin service 的 pauseSlotsForCircuitBreak),
   // 自托管与 serverless 都成立,故此处不再挂 bus 监听(避免双触发)。
 }

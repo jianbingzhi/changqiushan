@@ -1,6 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "crons": [
-    { "path": "/api/cron/refresh-mv", "schedule": "0 0 * * *" }
+    { "path": "/api/cron/refresh-mv", "schedule": "0 0 * * *" },
+    { "path": "/api/cron/roll-slots", "schedule": "0 18 * * *" }
   ]
 }
