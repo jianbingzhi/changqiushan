@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { User, Lock } from "lucide-react";
 import { Input } from "@/lib/ui/input";
 import { Button } from "@/lib/ui/button";
 
@@ -30,6 +31,7 @@ export function LoginForm({ action }: LoginFormProps) {
           placeholder="请输入手机号或邮箱"
           autoComplete="username"
           disabled={pending}
+          startIcon={<User />}
         />
       </div>
 
@@ -44,6 +46,7 @@ export function LoginForm({ action }: LoginFormProps) {
           placeholder="请输入密码"
           autoComplete="current-password"
           disabled={pending}
+          startIcon={<Lock />}
         />
       </div>
 

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { LoginForm } from "./_login-form";
@@ -58,20 +59,40 @@ async function loginAction(formData: FormData): Promise<string | never> {
 
 export default function LoginPage() {
   return (
-    <div className="w-[400px] bg-white rounded-xl shadow-sm border border-[#E5E7EB] p-8">
-      <div className="mb-8 text-center">
-        <div
-          className="w-12 h-12 rounded-full mx-auto mb-4 flex items-center justify-center"
-          style={{ backgroundColor: "#2D5A27" }}
-        >
-          <svg width="28" height="22" viewBox="0 0 28 22" fill="none" aria-hidden="true">
-            <path d="M2 20L8 8L14 15L19 7L26 20H2Z" fill="white" fillOpacity="0.92" />
-          </svg>
+    <div className="grid min-h-screen lg:grid-cols-[1fr_480px]">
+      {/* 左:导览图背景(桌面显示,移动端隐藏不下载) */}
+      <div className="relative hidden lg:block">
+        <Image
+          src="/login-bg.webp"
+          alt="长秋山森林公园导览图"
+          fill
+          priority
+          sizes="(max-width: 1024px) 0px, 65vw"
+          className="object-cover"
+        />
+        {/* 压暗遮罩:浅色轻压保证叠字可读,深色再加一层 */}
+        <div className="absolute inset-0 bg-black/25 dark:bg-black/45" />
+        <div className="absolute bottom-12 left-12 max-w-md text-white">
+          <h2 className="text-3xl font-bold tracking-wide drop-shadow">长秋山森林公园智慧景区</h2>
+          <p className="mt-3 text-base text-white/85 drop-shadow">全园免费 · 预约入园 · 智慧景区一体化管理</p>
         </div>
-        <h1 className="text-xl font-bold text-[#1F2937]">长秋山森林公园智慧景区</h1>
-        <p className="mt-1 text-[13px] text-[#6B7280]">管理后台</p>
       </div>
-      <LoginForm action={loginAction} />
+
+      {/* 右:登录表单 */}
+      <div className="flex items-center justify-center bg-background px-6 py-12">
+        <div className="w-full max-w-[360px]">
+          <div className="mb-8 text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary">
+              <svg width="28" height="22" viewBox="0 0 28 22" fill="none" aria-hidden="true">
+                <path d="M2 20L8 8L14 15L19 7L26 20H2Z" fill="white" fillOpacity="0.92" />
+              </svg>
+            </div>
+            <h1 className="text-xl font-bold text-foreground">长秋山森林公园智慧景区</h1>
+            <p className="mt-1 text-[13px] text-muted-foreground">管理后台</p>
+          </div>
+          <LoginForm action={loginAction} />
+        </div>
+      </div>
     </div>
   );
 }
