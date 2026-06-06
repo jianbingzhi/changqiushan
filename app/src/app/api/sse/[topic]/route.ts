@@ -19,6 +19,12 @@ const ALLOWED_TOPICS = new Set([
 ]);
 
 export async function GET(req: NextRequest, ctx: { params: Promise<{ topic: string }> }) {
+  // R2 Vercel 短路:serverless 无常驻 pg-listen,实时本就前端门控关闭。直接 503(语义=本环境
+  // 暂不可用,非 500 错误),不挂长连、不耗 maxDuration;前端已 gate 不会连,双保险。
+  if (process.env.VERCEL || process.env.NEXT_PUBLIC_REALTIME_ENABLED === "false") {
+    return new Response("实时功能在此环境关闭", { status: 503 });
+  }
+
   // 鉴权门:四路实时流(核销/IoT/车位/时段)均为 B 端管理数据,须登录员工态。
   // /api/* 不经 middleware(matcher 负向排除 api/),故各 route handler 自带鉴权。
   // 访客 token 走独立密钥(VISITOR_JWT_SECRET),getSession 用 B 端密钥验签,天然排除游客。
