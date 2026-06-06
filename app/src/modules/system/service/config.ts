@@ -26,7 +26,8 @@ export const configService = {
   async getInt(key: string, fallback: number): Promise<number> {
     const raw = await readRaw(key);
     const v = Number(raw);
-    return raw != null && Number.isFinite(v) ? v : fallback;
+    // 契约保证整数:库里存了 "14.5" 也截断,免下游误用小数。
+    return raw != null && Number.isFinite(v) ? Math.trunc(v) : fallback;
   },
 
   async getFloat(key: string, fallback: number): Promise<number> {
@@ -44,6 +45,8 @@ export const configService = {
     return systemRepository.findAllConfig();
   },
 
+  // 注:cache.delete 仅清本进程缓存;多实例(Vercel 多函数实例/docker 扩容)下其他实例
+  // 最多沿用旧值至 TTL(60s)过期 —— 进程内 TTL 缓存的既定取舍,非强一致。
   async setConfig(input: { key: string; value: string; valueType?: string; label?: string }) {
     const row = await systemRepository.upsertConfig({
       key: input.key,

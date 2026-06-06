@@ -45,8 +45,8 @@ export async function registerNode() {
     console.error("[instrumentation] pg-boss analytics refresh register failed", e);
   });
 
-  // BE-A3 每日滚动生成时段(每天 18:00)。薄壳:读 horizon 配置 → 调 rollGenerateSlots
-  // (与 Vercel Cron /api/cron/roll-slots 共用一份逻辑,两入口)。
+  // BE-A3 每日滚动生成时段。cron 走 UTC:`0 18 * * *` = UTC 18:00 = 北京次日 02:00(凌晨低峰,
+  // 与 vercel.json 同一墙钟,两入口一致)。薄壳:读 horizon 配置 → 调 rollGenerateSlots。
   await boss.createQueue("roll-slots").catch(() => {});
   await boss.schedule("roll-slots", "0 18 * * *", {}).catch(() => {});
   await boss.work("roll-slots", async () => {
