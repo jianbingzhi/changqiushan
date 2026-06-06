@@ -35,12 +35,12 @@ export default async function TrafficRoadPage() {
       </div>
 
       {/* a11y 数据表 */}
-      <div className="rounded-lg border border-[#E5E7EB] bg-white">
+      <div className="rounded-lg border border-border bg-card">
         <Table>
           <TableHeader>
-            <TableRow className="bg-[#F9FAFB]">
+            <TableRow className="bg-muted/50">
               {["路段名", "拥堵等级", "描述", "更新时间"].map((h) => (
-                <TableHead key={h} className="text-xs font-semibold text-[#6B7280]">{h}</TableHead>
+                <TableHead key={h} className="text-xs font-semibold text-muted-foreground">{h}</TableHead>
               ))}
             </TableRow>
           </TableHeader>
@@ -48,13 +48,13 @@ export default async function TrafficRoadPage() {
             {conditions.length === 0 ? (
               <TableRow><TableCell colSpan={4} className="p-0"><EmptyState message="暂无路况数据" /></TableCell></TableRow>
             ) : conditions.map((c, i) => (
-              <TableRow key={i} className="hover:bg-[#F9FAFB]">
-                <TableCell className="font-medium text-[#1F2937]">{c.name}</TableCell>
+              <TableRow key={i} className="hover:bg-muted/50">
+                <TableCell className="font-medium text-foreground">{c.name}</TableCell>
                 <TableCell>
                   <StatusChip status={c.congestion === "畅通" ? "ROAD_SMOOTH" : c.congestion === "缓行" ? "ROAD_SLOW" : "ROAD_JAM"} />
                 </TableCell>
-                <TableCell className="text-[13px] text-[#6B7280]">{c.description}</TableCell>
-                <TableCell className="text-[13px] text-[#6B7280]">{c.updatedAt ? formatCnDateTime(new Date(c.updatedAt)) : "—"}</TableCell>
+                <TableCell className="text-[13px] text-muted-foreground">{c.description}</TableCell>
+                <TableCell className="text-[13px] text-muted-foreground">{c.updatedAt ? formatCnDateTime(new Date(c.updatedAt)) : "—"}</TableCell>
               </TableRow>
             ))}
           </TableBody>

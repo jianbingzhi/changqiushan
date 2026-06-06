@@ -22,7 +22,7 @@ export default async function IotDevicesPage() {
   return (
     <>
       <PageHeader title="实时设备列表" description="物联网设备在线状态监控"
-        actions={<span className="text-[13px] text-[#9CA3AF]">数据定时刷新</span>}
+        actions={<span className="text-[13px] text-text-muted">数据定时刷新</span>}
       />
       <div className="mb-5">
         <KpiRow>
@@ -32,12 +32,12 @@ export default async function IotDevicesPage() {
           <StatCard label="告警"     value={alert}   unit="台" />
         </KpiRow>
       </div>
-      <div className="rounded-lg border border-[#E5E7EB] bg-white">
+      <div className="rounded-lg border border-border bg-card">
         <Table>
           <TableHeader>
-            <TableRow className="bg-[#F9FAFB]">
+            <TableRow className="bg-muted/50">
               {["设备名称", "设备类型", "位置", "状态", "最后心跳时间", "延迟(ms)", "操作"].map((h) => (
-                <TableHead key={h} className="text-xs font-semibold text-[#6B7280]">{h}</TableHead>
+                <TableHead key={h} className="text-xs font-semibold text-muted-foreground">{h}</TableHead>
               ))}
             </TableRow>
           </TableHeader>
@@ -47,24 +47,24 @@ export default async function IotDevicesPage() {
             ) : devices.map((device) => {
               const isOffline = device.status === "OFFLINE";
               return (
-                <TableRow key={device.id} className="hover:bg-[#F9FAFB]" style={isOffline ? { backgroundColor: "#FEF2F2" } : undefined}>
+                <TableRow key={device.id} className={`hover:bg-muted/50 ${isOffline ? "bg-danger/10" : ""}`}>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <LiveDot tone={device.status === "ONLINE" ? "online" : device.status === "ALERT" ? "alert" : "offline"} />
-                      <span className="font-medium text-[#1F2937]">{device.name}</span>
+                      <span className="font-medium text-foreground">{device.name}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-[13px] text-[#6B7280]">{device.type}</TableCell>
-                  <TableCell className="text-[13px] text-[#6B7280]">{device.location ?? "—"}</TableCell>
+                  <TableCell className="text-[13px] text-muted-foreground">{device.type}</TableCell>
+                  <TableCell className="text-[13px] text-muted-foreground">{device.location ?? "—"}</TableCell>
                   <TableCell>
                     <StatusChip status={device.status === "ONLINE" ? "DEVICE_ONLINE" : device.status === "ALERT" ? "DEVICE_ALERT" : "DEVICE_OFFLINE"} />
                   </TableCell>
-                  <TableCell className="text-[13px] text-[#6B7280]">
+                  <TableCell className="text-[13px] text-muted-foreground">
                     {device.lastSeen ? formatCnDateTime(device.lastSeen) : "—"}
                   </TableCell>
                   <TableCell className="text-[13px] font-medium tabular-nums text-text-muted">—</TableCell>
                   <TableCell>
-                    <Link href={`/iot/${device.id}`} className="text-[13px] text-[#2D5A27] hover:underline">查看详情</Link>
+                    <Link href={`/iot/${device.id}`} className="text-[13px] text-primary hover:underline">查看详情</Link>
                   </TableCell>
                 </TableRow>
               );

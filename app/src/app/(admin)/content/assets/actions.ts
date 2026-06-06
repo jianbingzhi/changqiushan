@@ -38,7 +38,9 @@ export async function presignUploadAction(input: {
 
   const key = `${STAGING_PREFIX}${randomUUID()}.${extForContentType(input.contentType)}`;
   try {
-    const { uploadUrl } = await getSignedUploadUrl(key, input.contentType);
+    const { uploadUrl } = await getSignedUploadUrl(key, input.contentType, {
+      contentLength: input.size,
+    });
     return { ok: true, uploadUrl, key };
   } catch {
     return { ok: false, message: "存储服务暂不可用,请稍后重试" };
@@ -56,14 +58,22 @@ export async function commitAssetAction(input: {
   const auth = await requireRole(ADMIN_UP);
   if (!auth.ok) return { ok: false, message: auth.message };
 
-  if (!input.stagingKey.startsWith(STAGING_PREFIX)) {
-    return { ok: false, message: "上传凭据无效" };
-  }
   if (!isAllowedImageType(input.contentType)) {
     return { ok: false, message: "图片类型不合法" };
   }
+  if (!Number.isFinite(input.size) || input.size <= 0 || input.size > MAX_UPLOAD_BYTES) {
+    return { ok: false, message: "图片大小须在 10MB 以内" };
+  }
+  // 防路径穿越:stagingKey 后缀必须是 presign 派生的 <uuid>.<ext> 形态,杜绝 "../" 改写任意 key。
+  if (!input.stagingKey.startsWith(STAGING_PREFIX)) {
+    return { ok: false, message: "上传凭据无效" };
+  }
+  const suffix = input.stagingKey.slice(STAGING_PREFIX.length);
+  if (!/^[\w-]+\.(jpg|png|webp|gif)$/i.test(suffix)) {
+    return { ok: false, message: "上传凭据无效" };
+  }
 
-  const finalKey = `public/assets/${input.stagingKey.slice(STAGING_PREFIX.length)}`;
+  const finalKey = `public/assets/${suffix}`;
   try {
     await moveObject(input.stagingKey, finalKey);
   } catch {

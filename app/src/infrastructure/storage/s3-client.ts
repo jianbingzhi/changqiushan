@@ -39,16 +39,25 @@ function bucket(): string {
   return getStorageCredentials().bucket;
 }
 
-/** 预签名 PUT 直传 URL(浏览器直传,不耗服务端内存/时长)。默认 5 分钟过期。 */
+/**
+ * 预签名 PUT 直传 URL(浏览器直传,不耗服务端内存/时长)。默认 5 分钟过期。
+ * 传 contentLength 则签进 Content-Length:浏览器 PUT 须精确匹配该字节数,
+ * 把"声明大小"硬约束到对象存储层(预签名 PUT 本身不限大小的兜底)。
+ */
 export async function getSignedUploadUrl(
   key: string,
   contentType: string,
-  expiresIn = 300,
+  opts?: { contentLength?: number; expiresIn?: number },
 ): Promise<PresignResult> {
   const url = await getSignedUrl(
     presignClient(),
-    new PutObjectCommand({ Bucket: bucket(), Key: key, ContentType: contentType }),
-    { expiresIn },
+    new PutObjectCommand({
+      Bucket: bucket(),
+      Key: key,
+      ContentType: contentType,
+      ContentLength: opts?.contentLength,
+    }),
+    { expiresIn: opts?.expiresIn ?? 300 },
   );
   return { uploadUrl: url, key };
 }

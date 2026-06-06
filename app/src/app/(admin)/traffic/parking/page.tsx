@@ -19,7 +19,7 @@ export default async function TrafficParkingPage() {
   return (
     <>
       <PageHeader title="停车场动静态上图" description="景区停车场状态监控"
-        actions={<span className="text-[13px] text-[#9CA3AF]">数据定时刷新</span>}
+        actions={<span className="text-[13px] text-text-muted">数据定时刷新</span>}
       />
       <div className="mb-5">
         <KpiRow>
@@ -37,12 +37,12 @@ export default async function TrafficParkingPage() {
         </div>
       </div>
 
-      <div className="rounded-lg border border-[#E5E7EB] bg-white">
+      <div className="rounded-lg border border-border bg-card">
         <Table>
           <TableHeader>
-            <TableRow className="bg-[#F9FAFB]">
+            <TableRow className="bg-muted/50">
               {["停车场名称", "总车位", "已占用", "剩余", "状态", "更新时间"].map((h) => (
-                <TableHead key={h} className="text-xs font-semibold text-[#6B7280]">{h}</TableHead>
+                <TableHead key={h} className="text-xs font-semibold text-muted-foreground">{h}</TableHead>
               ))}
             </TableRow>
           </TableHeader>
@@ -52,15 +52,15 @@ export default async function TrafficParkingPage() {
             ) : lots.map((lot) => {
               const remaining = lot.capacity - lot.occupied;
               return (
-                <TableRow key={lot.id} className="hover:bg-[#F9FAFB]">
-                  <TableCell className="font-medium text-[#1F2937]">{lot.name}</TableCell>
+                <TableRow key={lot.id} className="hover:bg-muted/50">
+                  <TableCell className="font-medium text-foreground">{lot.name}</TableCell>
                   <TableCell className="text-[13px] text-muted-foreground">{lot.capacity}</TableCell>
                   <TableCell className="text-[13px] text-muted-foreground">{lot.occupied}</TableCell>
                   <TableCell className={`text-[13px] font-medium ${remaining === 0 ? "text-danger" : "text-foreground"}`}>{remaining}</TableCell>
                   <TableCell>
                     <StatusChip status={lot.status === "OPEN" ? "LOT_OPEN" : lot.status === "FULL" ? "LOT_FULL" : "LOT_CLOSED"} />
                   </TableCell>
-                  <TableCell className="text-[13px] text-[#6B7280]">{formatCnDateTime(lot.updatedAt)}</TableCell>
+                  <TableCell className="text-[13px] text-muted-foreground">{formatCnDateTime(lot.updatedAt)}</TableCell>
                 </TableRow>
               );
             })}

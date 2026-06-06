@@ -45,14 +45,14 @@ export default async function BookingSlotsPage({ searchParams }: Props) {
           <div className="flex items-center gap-2">
             <Link
               href={`/booking/slots?date=${toDateParam(prevDate)}`}
-              className="px-3 py-1.5 text-sm border border-[#E5E7EB] rounded-md hover:bg-gray-50 text-[#1F2937]"
+              className="px-3 py-1.5 text-sm border border-border rounded-md hover:bg-muted/50 text-foreground"
             >
               ‹ 前一天
             </Link>
-            <span className="text-sm font-medium text-[#1F2937]">{formatCnDate(target)}</span>
+            <span className="text-sm font-medium text-foreground">{formatCnDate(target)}</span>
             <Link
               href={`/booking/slots?date=${toDateParam(nextDate)}`}
-              className="px-3 py-1.5 text-sm border border-[#E5E7EB] rounded-md hover:bg-gray-50 text-[#1F2937]"
+              className="px-3 py-1.5 text-sm border border-border rounded-md hover:bg-muted/50 text-foreground"
             >
               后一天 ›
             </Link>
@@ -61,8 +61,8 @@ export default async function BookingSlotsPage({ searchParams }: Props) {
       />
 
       {hasCircuitBreaker && (
-        <div className="mb-4 flex items-center justify-between rounded-lg border border-[#FECACA] bg-[#FEF2F2] px-4 py-3">
-          <p className="text-sm font-medium text-[#DC2626]">
+        <div className="mb-4 flex items-center justify-between rounded-lg border border-danger/30 bg-danger/10 px-4 py-3">
+          <p className="text-sm font-medium text-danger">
             承载量达 90%，入园预约已自动暂停
           </p>
           <form>
@@ -75,7 +75,7 @@ export default async function BookingSlotsPage({ searchParams }: Props) {
                 const { bookingService } = await import("@/modules/booking");
                 await bookingService.resumePausedSlots(target);
               }}
-              className="rounded-md bg-[#DC2626] px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700"
+              className="rounded-md bg-danger px-3 py-1.5 text-xs font-medium text-white hover:bg-danger/90"
             >
               手动恢复
             </button>
@@ -85,26 +85,26 @@ export default async function BookingSlotsPage({ searchParams }: Props) {
 
       {canManage && <SlotTools targetDate={toDateParam(target)} />}
 
-      <div className="bg-white rounded-lg border border-[#E5E7EB] overflow-auto">
+      <div className="bg-card rounded-lg border border-border overflow-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB]">
-              <th className="py-3 px-4 text-left font-medium text-[#6B7280]">时段名</th>
-              <th className="py-3 px-4 text-left font-medium text-[#6B7280]">开始</th>
-              <th className="py-3 px-4 text-left font-medium text-[#6B7280]">结束</th>
-              <th className="py-3 px-4 text-right font-medium text-[#6B7280]">总名额</th>
-              <th className="py-3 px-4 text-right font-medium text-[#6B7280]">小程序</th>
-              <th className="py-3 px-4 text-right font-medium text-[#6B7280]">现场</th>
-              <th className="py-3 px-4 text-right font-medium text-[#6B7280]">第三方平台</th>
-              <th className="py-3 px-4 text-right font-medium text-[#6B7280]">后台</th>
-              <th className="py-3 px-4 text-right font-medium text-[#6B7280]">在园</th>
-              <th className="py-3 px-4 text-left font-medium text-[#6B7280]">状态</th>
+            <tr className="border-b border-border bg-muted/50">
+              <th className="py-3 px-4 text-left font-medium text-muted-foreground">时段名</th>
+              <th className="py-3 px-4 text-left font-medium text-muted-foreground">开始</th>
+              <th className="py-3 px-4 text-left font-medium text-muted-foreground">结束</th>
+              <th className="py-3 px-4 text-right font-medium text-muted-foreground">总名额</th>
+              <th className="py-3 px-4 text-right font-medium text-muted-foreground">小程序</th>
+              <th className="py-3 px-4 text-right font-medium text-muted-foreground">现场</th>
+              <th className="py-3 px-4 text-right font-medium text-muted-foreground">第三方平台</th>
+              <th className="py-3 px-4 text-right font-medium text-muted-foreground">后台</th>
+              <th className="py-3 px-4 text-right font-medium text-muted-foreground">在园</th>
+              <th className="py-3 px-4 text-left font-medium text-muted-foreground">状态</th>
             </tr>
           </thead>
           <tbody>
             {slots.length === 0 ? (
               <tr>
-                <td colSpan={10} className="py-12 text-center text-[13px] text-[#6B7280]">
+                <td colSpan={10} className="py-12 text-center text-[13px] text-muted-foreground">
                   当日暂无时段数据
                 </td>
               </tr>
@@ -114,12 +114,11 @@ export default async function BookingSlotsPage({ searchParams }: Props) {
                 return (
                   <tr
                     key={s.id}
-                    className="border-b border-[#E5E7EB] last:border-0 hover:bg-gray-50"
-                    style={circuitRed ? { backgroundColor: "#FEF2F2" } : undefined}
+                    className={`border-b border-border last:border-0 hover:bg-muted/50 ${circuitRed ? "bg-danger/10" : ""}`}
                   >
-                    <td className="py-3 px-4 font-medium text-[#1F2937]">{s.name}</td>
-                    <td className="py-3 px-4 text-[#6B7280]">{s.startTime}</td>
-                    <td className="py-3 px-4 text-[#6B7280]">{s.endTime}</td>
+                    <td className="py-3 px-4 font-medium text-foreground">{s.name}</td>
+                    <td className="py-3 px-4 text-muted-foreground">{s.startTime}</td>
+                    <td className="py-3 px-4 text-muted-foreground">{s.endTime}</td>
                     <td className="py-3 px-4 text-right">{s.capacity}</td>
                     <td className="py-3 px-4 text-right text-xs">
                       {s.miniProgramBooked}/{s.miniProgramQuota}
@@ -133,10 +132,7 @@ export default async function BookingSlotsPage({ searchParams }: Props) {
                     <td className="py-3 px-4 text-right text-xs">
                       {s.adminBooked}/{s.adminQuota}
                     </td>
-                    <td
-                      className="py-3 px-4 text-right text-xs font-medium"
-                      style={circuitRed ? { color: "#DC2626" } : undefined}
-                    >
+                    <td className={`py-3 px-4 text-right text-xs font-medium ${circuitRed ? "text-danger" : ""}`}>
                       {s.checkedInCount}/{s.capacity}
                     </td>
                     <td className="py-3 px-4">

@@ -125,7 +125,7 @@ export function Sidebar({
                 type="button"
                 onClick={() => !hasActive && toggle(group.title)}
                 aria-expanded={!isCollapsed}
-                aria-controls={sectionId}
+                aria-controls={!isCollapsed ? sectionId : undefined}
                 disabled={hasActive}
                 className="flex w-full items-center justify-between rounded-md px-2 pt-2 pb-1 text-xs text-sidebar-section transition-colors hover:text-sidebar-text disabled:cursor-default"
               >
