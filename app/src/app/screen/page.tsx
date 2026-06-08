@@ -10,7 +10,7 @@ const SCREENS = [
   { slug: "trend", code: "C3", title: "客流与预约趋势", desc: "多曲线 · 时段堆叠 · 地域占比", ready: true },
   { slug: "heatmap", code: "C4", title: "预约分时热力", desc: "7×24 热力矩阵 · POI 阈值", ready: true },
   { slug: "overview", code: "C5", title: "数据概览首屏", desc: "8 卡矩阵 · 画像快照 · 同期对比", ready: true },
-  { slug: "twin", code: "C6", title: "数字孪生导览图", desc: "三维导览 · 设备运维孪生面板", ready: false },
+  { slug: "twin", code: "C6", title: "数字孪生导览图", desc: "三维导览 · 设备运维孪生面板", ready: true },
   { slug: "poster", code: "C7", title: "运营宣传一张图", desc: "运营 KPI · 设施调度 · 多维分析", ready: false },
 ];
 
