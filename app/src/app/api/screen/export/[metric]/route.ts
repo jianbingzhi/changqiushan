@@ -19,6 +19,8 @@ function cnDateLabel(ymd: string): string {
   return `${Number(m)} 月 ${Number(d)} 日`;
 }
 
+const DOW_CN = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
+
 const EXPORTERS: Record<
   string,
   () => Promise<{ filename: string; sheetName: string; headers: string[]; rows: (string | number)[][] }>
@@ -39,6 +41,22 @@ const EXPORTERS: Record<
         const rate = total > 0 ? `${Math.round((checked / total) * 1000) / 10}%` : "—";
         return [cnDateLabel(r.date), total, checked, Number(r.cancelled_count), Number(r.noshow_count), rate];
       }),
+    };
+  },
+
+  // 7×24 分时预约量热力矩阵(行=星期,列=小时)
+  heatmap: async () => {
+    const heat = await analyticsRepository.getWeeklyHourlyHeat().catch(() => []);
+    const matrix = Array.from({ length: 7 }, () => Array<number>(24).fill(0));
+    heat.forEach((r) => {
+      if (r.dow >= 0 && r.dow < 7 && r.hour >= 0 && r.hour < 24) matrix[r.dow][r.hour] = Number(r.bookings);
+    });
+    const today = new Date();
+    return {
+      filename: `预约分时热力矩阵_${toCstDateStr(today)}.xlsx`,
+      sheetName: "预约分时热力",
+      headers: ["星期", ...Array.from({ length: 24 }, (_, h) => `${h}时`)],
+      rows: matrix.map((row, dow) => [DOW_CN[dow], ...row]),
     };
   },
 };
