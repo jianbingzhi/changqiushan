@@ -31,6 +31,13 @@ export interface ProfileOverviewRow {
   percentage: number;
 }
 
+export interface WeeklyHourlyHeatRow {
+  dow:      number; // 0=周一 .. 6=周日
+  hour:     number; // 0..23
+  bookings: bigint;
+  checkins: bigint;
+}
+
 export const analyticsRepository = {
   getDailyTraffic(startDate: Date, endDate: Date): Promise<DailyTrafficRow[]> {
     const start = toCstDateStr(startDate);
@@ -57,6 +64,15 @@ export const analyticsRepository = {
       SELECT hour, avg_visitors, max_visitors
       FROM analytics_hourly_peak
       ORDER BY hour ASC
+    `);
+  },
+
+  // C4 7×24 分时热力(星期×小时)。MV 见 migration 20260608000000。
+  getWeeklyHourlyHeat(): Promise<WeeklyHourlyHeatRow[]> {
+    return db.$queryRaw<WeeklyHourlyHeatRow[]>(Prisma.sql`
+      SELECT dow, hour, bookings, checkins
+      FROM analytics_weekly_hourly_heat
+      ORDER BY dow, hour
     `);
   },
 

@@ -27,6 +27,7 @@ export async function GET(req: NextRequest) {
   await db.$executeRaw`REFRESH MATERIALIZED VIEW CONCURRENTLY analytics_daily_traffic`.catch(() => {});
   await db.$executeRaw`REFRESH MATERIALIZED VIEW CONCURRENTLY analytics_visitor_source`.catch(() => {});
   await db.$executeRaw`REFRESH MATERIALIZED VIEW CONCURRENTLY analytics_hourly_peak`.catch(() => {});
+  await db.$executeRaw`REFRESH MATERIALIZED VIEW CONCURRENTLY analytics_weekly_hourly_heat`.catch(() => {});
 
   return Response.json({ ok: true });
 }
