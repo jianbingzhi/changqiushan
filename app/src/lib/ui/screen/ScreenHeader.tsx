@@ -14,8 +14,9 @@ interface Props {
 
 function enterFullscreen() {
   const el = document.documentElement;
-  if (document.fullscreenElement) void document.exitFullscreen();
-  else void el.requestFullscreen?.();
+  // iframe 无 allowfullscreen / 权限被拒时 requestFullscreen 返回 reject 的 Promise,需吞掉防 unhandled rejection
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  else el.requestFullscreen?.().catch(() => {});
 }
 
 // 大屏统一标题栏(高 72):左 Logo+墙钟 / 中 大标题 / 右 天气?+数据源状态+全屏。

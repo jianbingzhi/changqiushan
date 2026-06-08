@@ -45,7 +45,8 @@ export function Heatmap724({ matrix, dowLabels = DEFAULT_DOW, max, height }: Pro
       left: "center",
       bottom: 8,
       textStyle: { color: "rgba(232,245,233,0.7)" },
-      inRange: { color: ["#0A1F0A", "#2D5A27", "#4A8E3F", "#D97706"] },
+      // 绿系连续渐变(深→亮),末色用亮绿白而非警示橙,避免「热点=告警」误读
+      inRange: { color: ["#0A1F0A", "#2D5A27", "#4A8E3F", "#9AD6B0", "#E8F5E9"] },
     },
     series: [
       {

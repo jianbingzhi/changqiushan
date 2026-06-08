@@ -48,10 +48,12 @@ function screenGate(request: NextRequest): NextResponseType | null {
   const fromCookie = request.cookies.get(SCREEN_TOKEN_COOKIE)?.value;
   if (fromQuery === expected) {
     const res = NextResponse.next();
+    // path 必须为 "/":cookie 要同时随页面 /screen/* 与轮询 /api/screen/* 发送,
+    // 否则配了 SCREEN_TOKEN 后首屏正常但轮询读不到 cookie → 全部 401。
     res.cookies.set(SCREEN_TOKEN_COOKIE, expected, {
       httpOnly: true,
       sameSite: "lax",
-      path: "/screen",
+      path: "/",
       maxAge: 60 * 60 * 24 * 30,
     });
     return res;

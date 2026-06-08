@@ -111,8 +111,12 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ metric: str
   try {
     const data = await resolver();
     cache.set(metric, { at: now, data });
+    // 启用软门时数据受门控,标 private 防中间缓存/CDN 跨用户复用;否则可公开缓存。
+    const cacheControl = process.env.SCREEN_TOKEN
+      ? "private, max-age=15"
+      : "public, max-age=15";
     return NextResponse.json(data, {
-      headers: { "cache-control": "public, max-age=15", "x-screen-cache": "miss" },
+      headers: { "cache-control": cacheControl, "x-screen-cache": "miss" },
     });
   } catch {
     return NextResponse.json({ error: "取数失败" }, { status: 500 });

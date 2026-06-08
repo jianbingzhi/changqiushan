@@ -130,7 +130,15 @@ export default async function OverviewScreenPage() {
               valueSize={44}
               danger={capacityPct >= 90}
               tone={capacityPct >= 80 ? "warn" : "primary"}
-              sub={`承载率 ${capacityPct}% / 红线 ${capacity.toLocaleString("zh-CN")} 人`}
+              sub={
+                capacityPct >= 90 ? (
+                  <span style={{ color: "var(--screen-red)" }}>
+                    ⚠ 承载率 {capacityPct}% · 已达熔断阈值 · 已停当日预约
+                  </span>
+                ) : (
+                  `承载率 ${capacityPct}% / 红线 ${capacity.toLocaleString("zh-CN")} 人`
+                )
+              }
             />
             <KpiTile
               title="今日剩余可预约名额"
@@ -171,39 +179,36 @@ export default async function OverviewScreenPage() {
             />
           </section>
 
-          {/* 画像快照 */}
+          {/* 画像快照(大屏固定画布:图表给确定 px 高度,不依赖多层 flex 解析 100% 高) */}
           <ScreenCard title="当前在园游客画像快照" className="flex-1">
-            <div className="grid h-full grid-cols-3 gap-4">
-              <div className="flex flex-col">
+            <div className="grid grid-cols-3 gap-4">
+              <div>
                 <p className="mb-1 text-[14px]" style={{ color: "var(--screen-text-dim)" }}>性别比例</p>
-                <div className="min-h-0 flex-1">
-                  <DonutChart
-                    data={[
-                      { name: "男", value: men },
-                      { name: "女", value: women },
-                    ]}
-                    centerValue={`${men + women}`}
-                    centerLabel="抽样人数"
-                  />
-                </div>
+                <DonutChart
+                  height={240}
+                  data={[
+                    { name: "男", value: men },
+                    { name: "女", value: women },
+                  ]}
+                  centerValue={`${men + women}`}
+                  centerLabel="抽样人数"
+                />
               </div>
-              <div className="flex flex-col">
+              <div>
                 <p className="mb-2 text-[14px]" style={{ color: "var(--screen-text-dim)" }}>年龄段分布</p>
-                <div className="min-h-0 flex-1">
+                <div style={{ height: 240 }}>
                   <DarkBarList data={ageBars} emptyText="暂无画像数据" />
                 </div>
               </div>
-              <div className="flex flex-col">
+              <div>
                 <p className="mb-1 text-[14px]" style={{ color: "var(--screen-text-dim)" }}>在园游客出行偏好</p>
-                <div className="min-h-0 flex-1">
-                  {prefIndicators.length > 0 ? (
-                    <RadarChart indicators={prefIndicators} series={[{ name: "出行偏好", values: prefValues }]} />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-[14px]" style={{ color: "var(--screen-text-faint)" }}>
-                      暂无偏好数据
-                    </div>
-                  )}
-                </div>
+                {prefIndicators.length > 0 ? (
+                  <RadarChart height={240} indicators={prefIndicators} series={[{ name: "出行偏好", values: prefValues }]} />
+                ) : (
+                  <div className="flex items-center justify-center text-[14px]" style={{ height: 240, color: "var(--screen-text-faint)" }}>
+                    暂无偏好数据
+                  </div>
+                )}
               </div>
             </div>
             <p className="mt-1 text-[12px]" style={{ color: "var(--screen-text-faint)" }}>
