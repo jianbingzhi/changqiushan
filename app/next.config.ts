@@ -4,6 +4,13 @@ const nextConfig: NextConfig = {
   // 让 Node 原生 require 这些包,而不是让 Turbopack/webpack 打包(pg-format 有动态 require)
   serverExternalPackages: ["pg", "pg-listen", "pg-format", "pg-native", "pg-boss", "@prisma/client", "@prisma/adapter-pg"],
 
+  // 旧实时大屏地址永久迁到无登录的 C1 综合态势主屏。
+  // 必须走 config 级 redirect(在 middleware 之前执行):否则 /realtime 会先被
+  // middleware fail-closed 拦去 /login,页面级 redirect 没机会跑。
+  async redirects() {
+    return [{ source: "/realtime", destination: "/screen/situation", permanent: true }];
+  },
+
   // Turbopack 的项目根目录(避免被父目录的 package-lock.json 误导)
   turbopack: {
     root: __dirname,
