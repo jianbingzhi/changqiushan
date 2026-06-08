@@ -2,11 +2,9 @@ import Link from "next/link";
 import { contentRepository } from "@/modules/content";
 import { PageHeader } from "@/lib/ui/page-header";
 import { Button } from "@/lib/ui/button";
-import { StatusChip } from "@/lib/ui/status-chip";
 import { EmptyState } from "@/lib/ui/empty-state";
-import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/lib/ui/table";
 import { formatCnDate } from "@/shared/format";
-import { StatusToggle } from "../_status-toggle";
+import { SortableContentRows } from "../_sortable-rows";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "景区介绍维护 · 长秋山管理后台" };
@@ -16,38 +14,24 @@ export default async function ContentIntroPage() {
 
   return (
     <>
-      <PageHeader title="景区介绍维护" description="管理景区文字/图片介绍内容"
+      <PageHeader title="景区介绍维护" description="管理景区文字/图片介绍内容;拖动左侧手柄可调整展示顺序"
         actions={<Link href="/content/intro/new"><Button>新建介绍</Button></Link>}
       />
-      <div className="rounded-lg border border-[#E5E7EB] bg-white">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-[#F9FAFB]">
-              {["标题", "状态", "排序", "发布时间", "操作"].map((h) => (
-                <TableHead key={h} className="text-xs font-semibold text-[#6B7280]">{h}</TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="p-0"><EmptyState message="暂无景区介绍内容" /></TableCell></TableRow>
-            ) : items.map((item) => (
-              <TableRow key={item.id} className="hover:bg-[#F9FAFB]">
-                <TableCell className="font-medium text-[#1F2937]">{item.title}</TableCell>
-                <TableCell><StatusChip status={item.status === "PUBLISHED" ? "PUBLISHED_OK" : item.status === "ARCHIVED" ? "OFFLINE_CONTENT" : "DRAFT"} /></TableCell>
-                <TableCell className="text-[#6B7280]">{item.sortOrder}</TableCell>
-                <TableCell className="text-[13px] text-[#6B7280]">{item.publishedAt ? formatCnDate(item.publishedAt) : "—"}</TableCell>
-                <TableCell>
-                  <div className="flex gap-2">
-                    <Link href={`/content/intro/${item.id}/edit`}><Button size="sm" variant="outline" className="text-[12px]">编辑</Button></Link>
-                    <StatusToggle model="intro" id={item.id} status={item.status} revalidate="/content/intro" />
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      {items.length === 0 ? (
+        <div className="rounded-lg border border-[#E5E7EB] bg-white"><EmptyState message="暂无景区介绍内容" /></div>
+      ) : (
+        <SortableContentRows
+          model="intro"
+          listPath="/content/intro"
+          editBase="/content/intro"
+          items={items.map((i) => ({
+            id: i.id,
+            title: i.title,
+            status: i.status,
+            publishedAtText: i.publishedAt ? formatCnDate(i.publishedAt) : null,
+          }))}
+        />
+      )}
     </>
   );
 }

@@ -5,10 +5,13 @@ import { useRouter } from "next/navigation";
 import { PageHeader } from "@/lib/ui/page-header";
 import { Button } from "@/lib/ui/button";
 import { Input } from "@/lib/ui/input";
+import { formatCnDate } from "@/shared/format";
 import { RichTextEditor } from "@/lib/ui/editor/RichTextEditor";
+import { ImageUploadField } from "./_image-upload-field";
+import { useImageUpload } from "./_use-image-upload";
 import { saveContentAction, type ContentModel } from "./_actions";
 
-type FieldKind = "text" | "textarea" | "url" | "number" | "date";
+type FieldKind = "text" | "textarea" | "url" | "number" | "date" | "cover";
 interface MetaField { key: string; label: string; kind: FieldKind; required?: boolean }
 
 // 各模型的富正文字段 + 标题文案
@@ -22,15 +25,14 @@ const RICH_FIELD: Record<ContentModel, { key: string; label: string }> = {
 // 富正文外的元数据字段(按表单顺序)
 const META_FIELDS: Record<ContentModel, MetaField[]> = {
   intro: [
-    { key: "coverImage", label: "封面图地址(URL,选填)", kind: "url" },
-    { key: "sortOrder",  label: "排序(数字越小越靠前)", kind: "number" },
+    { key: "coverImage", label: "封面图(选填)", kind: "cover" },
   ],
   news: [
     { key: "summary",    label: "摘要(选填)", kind: "textarea" },
-    { key: "coverImage", label: "封面图地址(URL,选填)", kind: "url" },
+    { key: "coverImage", label: "封面图(选填)", kind: "cover" },
   ],
   activity: [
-    { key: "coverImage",      label: "封面图地址(URL,选填)", kind: "url" },
+    { key: "coverImage",      label: "封面图(选填)", kind: "cover" },
     { key: "startDate",       label: "开始日期", kind: "date", required: true },
     { key: "endDate",         label: "结束日期", kind: "date", required: true },
     { key: "maxParticipants", label: "人数上限(选填)", kind: "number" },
@@ -38,7 +40,6 @@ const META_FIELDS: Record<ContentModel, MetaField[]> = {
   ],
   knowledge: [
     { key: "category",  label: "分类(选填)", kind: "text" },
-    { key: "sortOrder", label: "排序(数字越小越靠前)", kind: "number" },
   ],
 };
 
@@ -68,6 +69,7 @@ export function ContentForm({
   initial?: Record<string, unknown> | null;
 }) {
   const router = useRouter();
+  const { uploadImage } = useImageUpload();
   const richKey = RICH_FIELD[model].key;
   const metaFields = META_FIELDS[model];
 
@@ -102,59 +104,91 @@ export function ContentForm({
     });
   }
 
+  const coverField = metaFields.find((f) => f.kind === "cover");
+  const summaryField = metaFields.find((f) => f.kind === "textarea");
+  const sidebarFields = metaFields.filter((f) => f.kind !== "cover" && f.kind !== "textarea");
+
   return (
-    <div className="max-w-3xl">
+    <div className="mx-auto max-w-5xl">
       <PageHeader
         title={`${id ? "编辑" : "新建"}${MODEL_TITLE[model]}`}
-        description="正文支持富文本(加粗/标题/列表/链接/图片);保存后为草稿,需在列表中发布"
+        description="文档式编辑:封面 + 标题 + 正文连贯撰写,右侧设置属性。保存后为草稿,需在列表中发布"
       />
-      <div className="space-y-5 rounded-xl border border-[#E5E7EB] bg-white p-6">
-        <div className="space-y-1.5">
-          <label htmlFor="cf-title" className="text-sm font-medium text-[#1F2937]">标题</label>
-          <Input id="cf-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="请输入标题" maxLength={80} />
-        </div>
-
-        {metaFields.filter((f) => f.kind === "textarea").map((f) => (
-          <div key={f.key} className="space-y-1.5">
-            <label htmlFor={`cf-${f.key}`} className="text-sm font-medium text-[#1F2937]">{f.label}</label>
-            <textarea
-              id={`cf-${f.key}`}
-              value={meta[f.key]}
-              onChange={(e) => setMetaVal(f.key, e.target.value)}
-              rows={2}
-              className="w-full rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-sm text-[#1F2937] focus:outline-none focus:ring-2 focus:ring-[#2D5A27]/30"
-            />
-          </div>
-        ))}
-
-        <div className="space-y-1.5">
-          <span className="text-sm font-medium text-[#1F2937]">{RICH_FIELD[model].label}</span>
-          <RichTextEditor value={rich} onChange={setRich} placeholder={`请输入${RICH_FIELD[model].label}…`} />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          {metaFields.filter((f) => f.kind !== "textarea").map((f) => (
-            <div key={f.key} className="space-y-1.5">
-              <label htmlFor={`cf-${f.key}`} className="text-sm font-medium text-[#1F2937]">{f.label}</label>
-              <Input
-                id={`cf-${f.key}`}
-                type={f.kind === "number" ? "number" : f.kind === "date" ? "date" : "text"}
-                value={meta[f.key]}
-                onChange={(e) => setMetaVal(f.key, e.target.value)}
-                placeholder={f.kind === "url" ? "https://…" : undefined}
-              />
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+        {/* 文档画布 */}
+        <div className="min-w-0 flex-1 rounded-xl border border-[#E5E7EB] bg-white px-6 py-7 shadow-sm sm:px-10 sm:py-9">
+          {coverField && (
+            <div className="mb-7">
+              <ImageUploadField variant="banner" value={meta[coverField.key]} onChange={(url) => setMetaVal(coverField.key, url)} />
             </div>
-          ))}
+          )}
+
+          <input
+            aria-label="标题"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="请输入标题"
+            maxLength={80}
+            className="w-full border-0 bg-transparent p-0 text-3xl font-bold leading-snug text-[#1F2937] placeholder:text-[#C0C4CC] focus:outline-none focus:ring-0"
+          />
+
+          {summaryField && (
+            <textarea
+              aria-label={summaryField.label}
+              value={meta[summaryField.key]}
+              onChange={(e) => setMetaVal(summaryField.key, e.target.value)}
+              placeholder="添加摘要(选填)…"
+              rows={2}
+              className="mt-3 w-full resize-none border-0 bg-transparent p-0 text-base leading-relaxed text-[#6B7280] placeholder:text-[#C0C4CC] focus:outline-none focus:ring-0"
+            />
+          )}
+
+          <div className="my-5 h-px bg-[#F0F0F0]" />
+
+          <RichTextEditor
+            variant="document"
+            value={rich}
+            onChange={setRich}
+            onUploadImage={uploadImage}
+            placeholder={`开始撰写${RICH_FIELD[model].label}…`}
+          />
         </div>
 
-        {error && <p className="rounded-lg border border-[#FECACA] bg-[#FEF2F2] px-3 py-2 text-[13px] text-[#DC2626]">{error}</p>}
+        {/* 属性侧栏 */}
+        <aside className="w-full shrink-0 lg:sticky lg:top-6 lg:w-72">
+          <div className="space-y-4 rounded-xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
+            <h3 className="text-sm font-semibold text-[#1F2937]">文档属性</h3>
 
-        <div className="flex items-center gap-2 pt-1">
-          <Button onClick={submit} disabled={pending}>
-            {pending ? "保存中…" : "保存"}
-          </Button>
-          <Button variant="outline" onClick={() => router.back()} disabled={pending}>取消</Button>
-        </div>
+            {sidebarFields.map((f) => (
+              <div key={f.key} className="space-y-1.5">
+                <label htmlFor={`cf-${f.key}`} className="text-[13px] font-medium text-[#374151]">
+                  {f.label}{f.required && <span className="text-[#DC2626]">*</span>}
+                </label>
+                <Input
+                  id={`cf-${f.key}`}
+                  type={f.kind === "number" ? "number" : f.kind === "date" ? "date" : "text"}
+                  value={meta[f.key]}
+                  onChange={(e) => setMetaVal(f.key, e.target.value)}
+                  placeholder={f.kind === "url" ? "https://…" : undefined}
+                />
+                {f.kind === "date" && meta[f.key] && (
+                  <p className="text-xs text-[#9CA3AF]">{formatCnDate(meta[f.key])}</p>
+                )}
+              </div>
+            ))}
+
+            <p className="text-xs leading-relaxed text-[#9CA3AF]">保存后为草稿,需在列表中点「发布」上线。</p>
+
+            {error && (
+              <p className="rounded-lg border border-[#FECACA] bg-[#FEF2F2] px-3 py-2 text-[13px] text-[#DC2626]">{error}</p>
+            )}
+
+            <div className="flex items-center gap-2 pt-1">
+              <Button onClick={submit} disabled={pending}>{pending ? "保存中…" : "保存"}</Button>
+              <Button variant="outline" onClick={() => router.back()} disabled={pending}>取消</Button>
+            </div>
+          </div>
+        </aside>
       </div>
     </div>
   );

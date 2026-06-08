@@ -8,8 +8,23 @@ import {
   createSignupSchema,
 } from "../domain/schema";
 import { contentRepository } from "../repository";
+import { sanitizeRichText } from "../domain/sanitize";
 
 type ContentModel = "intro" | "activity" | "knowledge" | "news";
+
+// 各模型的富正文(HTML)字段名:存盘前必须过白名单消毒(R-mp 护栏)。
+const RICH_HTML_FIELD: Record<ContentModel, string> = {
+  intro: "body", news: "body", activity: "description", knowledge: "content",
+};
+
+// 就地消毒 data 上的富正文字段(若存在且为字符串)。create/update 共用。
+function sanitizeRichField<T extends Record<string, unknown>>(model: ContentModel, data: T): T {
+  const key = RICH_HTML_FIELD[model];
+  if (typeof data[key] === "string") {
+    (data as Record<string, unknown>)[key] = sanitizeRichText(data[key] as string);
+  }
+  return data;
+}
 
 const CREATE_SCHEMAS = {
   intro: createIntroSchema,
@@ -72,7 +87,7 @@ export const contentService = {
   async createContent(model: ContentModel, raw: unknown): Promise<Result<{ id: string }>> {
     const parsed = CREATE_SCHEMAS[model].safeParse(raw);
     if (!parsed.success) return err(ErrCode.INVALID_INPUT, parsed.error.issues[0].message);
-    const d = parsed.data;
+    const d = sanitizeRichField(model, parsed.data as Record<string, unknown>);
     let row: { id: string };
     switch (model) {
       case "intro":     row = await contentRepository.createIntro(d as never); break;
@@ -126,13 +141,26 @@ export const contentService = {
     return ok(undefined);
   },
 
+  // 列表拖拽排序:整表传全序,按下标写 sortOrder。仅 intro/knowledge 有手动排序。
+  async reorderContent(model: ContentModel, orderedIds: string[]): Promise<Result<void>> {
+    if (model !== "intro" && model !== "knowledge") {
+      return err(ErrCode.INVALID_INPUT, "该内容不支持手动排序");
+    }
+    if (!Array.isArray(orderedIds) || orderedIds.some((x) => typeof x !== "string")) {
+      return err(ErrCode.INVALID_INPUT, "排序参数非法");
+    }
+    if (model === "intro") await contentRepository.reorderIntros(orderedIds);
+    else await contentRepository.reorderKnowledge(orderedIds);
+    return ok(undefined);
+  },
+
   // B04: 编辑内容(部分更新)。
   async updateContent(model: ContentModel, id: string, raw: unknown): Promise<Result<void>> {
     const existing = await getById(model, id);
     if (!existing) return err(ErrCode.NOT_FOUND, "内容不存在");
     const parsed = UPDATE_SCHEMAS[model].safeParse(raw);
     if (!parsed.success) return err(ErrCode.INVALID_INPUT, parsed.error.issues[0].message);
-    await setStatus(model, id, parsed.data);
+    await setStatus(model, id, sanitizeRichField(model, parsed.data as Record<string, unknown>));
     return ok(undefined);
   },
 };

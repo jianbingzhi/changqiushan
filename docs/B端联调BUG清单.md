@@ -50,6 +50,23 @@
 
 ---
 
+## ✅ QA 二轮复核(2026-06-08 · CDP 真登录线上逐页)
+
+> 手段:**CDP 真登录态**(账号 `+8613800138000` / `Cqs-demo-2026`,邮箱 `admin@changqiushan.demo` 同密;`13900000000` 为本地 seed 账号、线上无效)逐页实测线上 https://changqiushan.vercel.app + 代码核查。只记录、不改代码。
+> 触发:用户发现"富文本完全不是之前检查里的要求"——核出 06-06 那轮把 **B1 仅按"editor 挂载"判通过**,漏核"经典版"功能完整度,据此二轮复核。
+
+**✅ 二轮确认仍成立(线上实测)**:B4(分母改瞬时承载量 5000、非 1050 时段累加)· B5(顶栏"数据快照"灰点,非写死绿点)· B6(设备三态:在线绿/告警**红**/离线灰,观景台摄像头-01 红点可辨)· B7(iot/traffic/详情/仪表盘均无 `checkin_event`/`parking_state`/`iot_event` 英文频道名)· B10(状态标签 草稿/已发布,四类内容动词统一"发布/下线",knowledge 不再"启用/停用")· 红线2(预约单查询出 身份证脱敏+车牌+「无车辆」,补录第3步"车辆信息")· 红线5(4 张分析报表"导出 Excel" **实测下载有效**:`/api/export/{traffic,profile,source,heatmap}` 均 200 + `application/vnd.openxmlformats…sheet` + xlsx 魔数 `50 4b 03 04`)· 内容编辑页正确回填正文(测试清单 #11 补通过)· 黑名单累计爽约 3 次自动加入。
+
+**🆕 二轮新发现(详见下方 B25–B28)**:
+| # | 严重度 | 摘要 |
+|---|---|---|
+| **B25** | 🟠 高 | 富文本编辑器**未达"经典版"要求**:插图仅粘 URL、无本地上传、**无视频**、封面为纯 URL 框、无素材库选择器;`/content/assets` 上传基建已独立存在但**没接进编辑器/封面**。四类内容通病。← 本轮触发项 |
+| **B26** | 🔴 高 | 线上**今日(06-08)无任何可用时段**:仪表盘"今日暂无时段数据"、今日预约 0、在园 0;`/booking/quota-rules` **暂无模板**;`/booking/onsite` 卡在"当日暂无可预约时段"。B23 的结构性修复(滚动生成 cron)**在 Vercel 部署未生效 + 线上零时段模板** → 当天补录/在线预约链路再次瘫痪 |
+| **B27** | 🟡 中 | 红线6:原生 `<input type=date>` 显示**英文格式**——`/analytics/traffic` 筛选 `mm/dd/yyyy`、`/booking/onsite` 预约日期 `06/08/2026`(下方有中文 helper 兜底)。受浏览器 locale 控制 |
+| **B28** | 🔵 低 | `/traffic/parking` 停车场地图区永久显示"**地图加载中…**"(高德 key 未配时永不加载完、误导);对比 `/traffic/road` 用诚实占位"高德实时路况地图待阶段5接入后展示"。属 R6 占位文案 |
+
+---
+
 ### 🎨 设计系统统一策略〔用户决策 2026-06-04，框住所有 UI 类问题〕
 
 后续 UI/样式类问题（B18 登录页、B19 表格+token、B20 按钮，及之后所有视觉项）**不逐页逐组件改**，统一收口到 **theme**，最后一次性调：
@@ -264,3 +281,55 @@
 - **建议**：侧边栏改 **`sticky top-0 h-screen`**（钉住、恰为视口高、内部滚动，永不露白），或外层 flex 去掉 aside 的 `h-full`、靠 `items-stretch` 拉满容器高。
 - **附带**：`(admin)/layout.tsx` 还有内联 `style={{backgroundColor:"#F9FAFB"}}`、`style={{padding:24}}`（B9 内联 style 实例，可转 Tailwind）。
 - **证据**：CDP 量得 layout=1053px / aside=999px / viewport=825px；`/tmp/sidebar-full.jpg`。
+
+## B25 · 富文本编辑器未达"经典版"要求——传图仅 URL、无视频、无封面选择器〔2026-06-08 用户发现·功能缺口〕
+- **严重度** 🟠 高（内容生产核心能力缺失，违 PRD 覆盖 A 档·经典版）　**状态** 🆕 新登记（线上实测确认）　**页面** `/content/{news,activities,intro,knowledge}/{new,[id]/edit}`（四类内容共用 `src/lib/ui/editor/RichTextEditor.tsx` + `_content-form.tsx`）
+- **要求**（`docs/B端PRD需求覆盖对照.md` L106/117/118，A 档·经典版）：TipTap **接传图/传视频**（预签名直传对象存储）、**封面图选择器**（从素材库挑/上传）、输出受限 HTML 白名单 + 存盘消毒，支持 图片**/视频**/链接。
+- **线上实况**（四类内容一致，CDP 实测）：工具栏 12 按钮=加粗/斜体/删除线/H2/H3/无序/有序/引用/链接/**插图(仅 URL)**/撤销/重做。
+  1. **插图仅能粘 URL**（按钮 label「插入图片(URL)」），**不能本地上传、不能从素材库挑**；
+  2. **完全无视频**支持（工具栏无视频按钮、`page=0` file input）；
+  3. **封面为纯 URL 文本框**（`_content-form.tsx` 三处 `coverImage` 均 `kind:"url"`，label「封面图地址(URL,选填)」），**无选择器**；knowledge 无封面字段；
+  4. **素材库 `/content/assets` 已独立可用**（预签名直传/网格/复制链接/删，`input[type=file]`×1），副标题自称"封面选择器可引用"，但**根本没接进编辑器与封面字段**。
+- **根因**：`待办清单.md` 已知推迟项——R-素材「**封面选择器深集成(活动表单内挑选)留后续**」+ R-storage 工作量表「编辑器**接传图/传视频**」从未接线。非回归 bug，是**实现欠账**：上传基建(B6/R-存储)与素材库做完了，编辑器侧集成没做。
+- **关联**：纠正 06-06 那轮 **B1「✅ 关闭」只覆盖"editor 挂载正常"，不代表功能达标**——挂载 OK 与 满足经典版要求 是两件事。
+- **证据**：`/tmp/editor-news-new.jpg`（编辑器）、`/tmp/assets.jpg`（素材库）；四类 new 页工具栏 label 全一致、`fileInputs=0`、`hasVideo=false`。
+- **建议**（待用户定，本轮只记录）：① 插图按钮接素材库预签名直传 + 加视频扩展；② 封面字段换素材选择器（复用 `/content/assets`）；③ 落输出白名单消毒（R-mp 护栏，产真内容前必须）。最小起步可先只补封面选择器。
+
+## B26 · 线上今日无可用时段 + 零时段模板——B23 滚动生成在 Vercel 未生效〔2026-06-08 prod 实测·链路瘫痪〕
+- **严重度** 🔴 高（当天补录/在线预约链路再次瘫痪）　**状态** 🆕 新登记（B23 结构性修复线上失效，升级登记）　**页面** `/`、`/booking/slots`、`/booking/quota-rules`、`/booking/onsite`
+- **现象**（线上 2026-06-08 实测）：
+  - 仪表盘「今日预约时段」=「**今日暂无时段数据**」；今日预约 0 人次、在园 0；
+  - `/booking/slots`「**当日暂无时段数据**」（有手动"为本日补建时段"入口=C4 止血，但需先有模板/手录）；
+  - `/booking/quota-rules`「**暂无模板,点击「新建模板」开始配置**」——**零时段模板**；
+  - `/booking/onsite` step1 时段下拉「**当日暂无可预约时段**」，无法进入后续步骤。
+- **根因**：B23 的根治方案=SysSlotTemplate(按日期类型) + 节假日日历 + `rollGenerateSlots` 每日滚动生成 + 双触发(pg-boss 18:00 / Vercel Cron)。线上两处断点:① **零时段模板** → 即便"立即生成"也生不出 slot;② Vercel serverless **pg-boss 18:00 常驻 job 不会跑**,Vercel Cron 是否配置/触发存疑 → 没有任何机制为当天产 slot。seed slot 过期(库 max date 早于今日)后,当天彻底无时段。
+- **影响**:演示态下**当天既不能现场补录、也不能在线预约**(真实在线下单同样因当天无 slot 失败);仪表盘/大屏当日客流全 0。
+- **建议**(待用户定):① 给线上 seed/配置**至少一套时段模板** + 触发一次滚动生成(或手动补建当天时段)止血;② 定性 Vercel Cron 是否生效、或改由外部定时器/自托管 pg-boss 承担每日生成;③ 与 B23 合并跟踪。
+- **证据**:`/tmp/dash.jpg`(今日暂无时段数据)、`/tmp/onsite.jpg`(当日暂无可预约时段);quota-rules「暂无模板」。
+
+## B27 · 原生日期控件显示英文格式 mm/dd/yyyy〔2026-06-08 实测·红线6〕
+- **严重度** 🟡 中（违 PRD 红线 6：日期禁 ISO/英文，用「2026 年 6 月 8 日」）　**状态** 🆕 新登记（U1/B23-④ 同源未尽）　**页面** `/analytics/traffic`（开始/结束日期筛选）、`/booking/onsite`（预约日期），及其它用原生 `<input type=date>` 处
+- **现象**（CDP 实测）：`/analytics/traffic` 筛选框 placeholder「**mm/dd/yyyy**」「未选择」；`/booking/onsite` 预约日期控件显示「**06/08/2026**」（其下另有中文 helper「2026 年 6 月 8 日」兜底）。表格/图表内的日期均已中文（达标），**仅原生日期输入控件**露英文。
+- **根因**：原生 `<input type=date>` 的显示格式由**浏览器 locale**决定，应用层无法纯 CSS/属性改。
+- **建议**（待用户定）：① 换自定义中文日期选择器（如已在栈的组件库 DatePicker）统一中文化；② 或保留原生但补可见中文 helper（onsite 已这么做，analytics 筛选未做）。属"统一 theme/组件 pass"可一并处理。
+- **证据**：`/tmp/an-traffic.jpg`（筛选 mm/dd/yyyy）、`/tmp/onsite.jpg`（06/08/2026 + 中文 helper）。
+
+## B28 · 停车场分布地图永久"地图加载中…"占位文案误导〔2026-06-08 实测·R6 占位〕
+- **严重度** 🔵 低（观感/文案）　**状态** 🆕 新登记　**页面** `/traffic/parking`
+- **现象**：高德 key 未配（R6 阻塞）下，停车场分布地图区永久显示「**地图加载中…**」——暗示稍后会加载完，实则永不加载。对比 `/traffic/road` 用**诚实占位**「高德实时路况地图待阶段5地图组件接入后展示」，体验更清楚。
+- **建议**：停车场地图占位文案与路况页对齐，改诚实占位（如"地图待高德组件接入后展示"），勿用"加载中…"。随 R6 一并。
+- **证据**：`/tmp/an-...` 不适用；`/traffic/parking` body「停车场分布地图 地图加载中…」。
+
+## B29 · docker-compose app 服务缺全部 S3_* env → 预签名直传永远失败〔2026-06-08 实测·配置缺失·已修〕
+- **严重度** 🟠 高(媒体直传链路在 docker 全不可用)　**状态** ✅ 已修(补 env,无需重打包)　**页面** `/content/assets`(媒体素材库)+ 内容编辑封面/编辑器插图(B25 接入后)
+- **现象**:CDP 实测封面上传报「直传失败,请检查存储服务可达性」。排查:`docker exec changqiushan-app env` 无任何 `S3_*` 变量。
+- **根因**:`integration.ts` 默认 `endpoint/publicEndpoint=http://localhost:9000`、`accessKey/secretKey=""`;而 `docker-compose.yml` app 服务 `environment` **从未配置 S3_***。后果:① 预签名 URL 用 `localhost:9000`(浏览器=Windows 本机,非服务器 MinIO)→ 浏览器 PUT 直传连不上;② 空凭据签名 MinIO 也会拒。**媒体素材库上传同样从未在 docker 跑通**(对应 R-storage「待 QA」一直没做)。
+- **修复**:`docker-compose.yml` app 服务补(均可被宿主 env 覆盖):`S3_ENDPOINT=http://minio:9000`(服务端内网)、`S3_PUBLIC_ENDPOINT=http://10.7.0.1:9000`(浏览器经 VPN 可达)、`S3_ACCESS_KEY/SECRET=MinIO root`、`S3_BUCKET=changqiushan-media`、`S3_FORCE_PATH_STYLE=true`。`docker compose up -d` 重建容器即生效(env 改动无需重打包)。
+- **实测**:补后 CDP 注入图片→封面预览成功载入 `http://10.7.0.1:9000/changqiushan-media/public/assets/<uuid>.png`(presign→PUT→commit→public 读全通)。
+- **附**:`S3_PUBLIC_ENDPOINT` 硬指 VPN `10.7.0.1`,仅适配当前 QA 网络;上线换公网/COS/OSS 域名。
+
+## B30 · 内容编辑仍为表单模式、非"文档/Word"式〔2026-06-08 用户反馈〕
+- **严重度** 🟡 中(体验,用户明确要求)　**状态** ✅ 首版 docker 实测通过(b-101 P2-③;CDP 实测 news/activity 文档画布+banner封面+内联标题+正文输入+属性侧栏均正常,证据 `/tmp/docmode-news.jpg`、`/tmp/docmode-activity.jpg`)　**页面** 四类内容 `*/new`、`*/edit`(共用 `_content-form.tsx`)
+- **现象**:用户反馈"没有做成类似 word 的效果""看来没有文档化"。P1 只做了图片,文档范式(P2-③)此前按"先做图片"推迟,故仍是 标题/摘要/封面/正文 分字段表单。
+- **首版改造(已落,待 docker 实测)**:`_content-form` 改**文档画布 + 属性侧栏**——封面 banner → 内联大号标题 → 内联摘要 → 全宽正文(`RichTextEditor variant="document"`:无框/工具栏吸顶/正文加高);结构化字段(活动日期/名额/报名费、知识分类、排序)收进右侧「文档属性」侧栏;日期带中文 helper(搭车解 B27)。
+- **仍待**:① 正文白名单消毒护栏(R-mp,装 sanitize-html);② 气泡工具栏(TipTap v3 BubbleMenu);③ 列表拖拽排序(P1-②)。见 `.claude/plan/b-101-内容编辑文档化改造方案.md`。

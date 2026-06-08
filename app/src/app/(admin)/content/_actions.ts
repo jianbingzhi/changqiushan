@@ -48,6 +48,19 @@ export async function publishContentAction(
   return { ok: true, message: "已发布" };
 }
 
+/** 列表拖拽排序(仅 景区介绍 / 知识库):传当前完整顺序的 id 数组。 */
+export async function reorderContentAction(
+  model: ContentModel,
+  orderedIds: string[],
+): Promise<ContentActionResult> {
+  const auth = await requireRole(ADMIN_UP);
+  if (!auth.ok) return auth;
+  const r = await contentService.reorderContent(model, orderedIds);
+  if (!r.ok) return { ok: false, message: r.message };
+  revalidatePath(LIST_PATH[model]);
+  return { ok: true, message: "排序已保存" };
+}
+
 /** 内容下线(已发布→已归档) */
 export async function archiveContentAction(
   model: ContentModel,

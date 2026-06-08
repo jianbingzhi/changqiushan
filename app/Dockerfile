@@ -14,6 +14,11 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # pnpm-workspace.yaml 带 dangerouslyAllowAllBuilds:true(放行 prisma/sharp/esbuild 等 build 脚本),
 # .npmrc 带 verify-deps-before-run=false;二者必须在 install 前就位,否则 pnpm11 报 ERR_PNPM_IGNORED_BUILDS。
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+# 根 package.json 的 postinstall=`prisma generate` 在 install 阶段触发,需要 schema 在场;
+# 多阶段构建里 install 早于 `COPY . .`,故先把 prisma 配置/schema 拷进来,否则 postinstall 找不到 schema 而失败。
+# (本地/Vercel 安装时整仓已在场,无此问题;此拷贝仅修 Docker 多阶段顺序。)
+COPY prisma.config.ts ./
+COPY prisma ./prisma
 RUN pnpm install --frozen-lockfile
 COPY . .
 # Prisma 7 客户端(走 @prisma/adapter-pg,无原生引擎二进制,默认输出到 node_modules)

@@ -2,6 +2,14 @@ import { db } from "@/infrastructure/db/client";
 import type { Prisma } from "@prisma/client";
 
 export const contentRepository = {
+  // ── 排序(整表重排,按数组下标写 sortOrder;事务保证一致) ──────────────────
+  reorderIntros(ids: string[]) {
+    return db.$transaction(ids.map((id, i) => db.contentIntro.update({ where: { id }, data: { sortOrder: i } })));
+  },
+  reorderKnowledge(ids: string[]) {
+    return db.$transaction(ids.map((id, i) => db.contentKnowledge.update({ where: { id }, data: { sortOrder: i } })));
+  },
+
   // ── 景区介绍 ─────────────────────────────────────────────────────────────
   listIntros()  { return db.contentIntro.findMany({ orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }] }); },
   getIntro(id: string) { return db.contentIntro.findUnique({ where: { id } }); },

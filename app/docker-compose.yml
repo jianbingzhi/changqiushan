@@ -31,6 +31,14 @@ services:
       # B21:内网 http(VPN)QA 必须 false,否则浏览器不回传 secure cookie → 登录"没反应";
       # 生产经 https 反代时置 true(D4)。
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      # R-storage:媒体直传必须的 S3/MinIO 配置(此前缺失→预签名直传永远失败)。
+      # 服务端走容器内网 minio:9000;预签名给浏览器的 URL 必须用主机可达端点(VPN 10.7.0.1:9000)。
+      S3_ENDPOINT: ${S3_ENDPOINT:-http://minio:9000}
+      S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-http://10.7.0.1:9000}
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER:-changqiushan}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-changqiushan_minio_dev}
+      S3_BUCKET: ${S3_BUCKET:-changqiushan-media}
+      S3_FORCE_PATH_STYLE: "true"
     # 绑 0.0.0.0 以便经 VPN(10.7.0.1)访问;pg/gotrue 仅 127.0.0.1 不外露
     ports:
       - "3000:3000"

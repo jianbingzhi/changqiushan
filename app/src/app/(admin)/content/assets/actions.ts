@@ -14,7 +14,14 @@ import {
   MAX_UPLOAD_BYTES,
 } from "@/infrastructure/storage";
 
-export type AssetActionResult = { ok: boolean; message: string };
+export type AssetActionResult = { ok: boolean; message: string; url?: string };
+export type AssetPickRow = {
+  id: string;
+  name: string;
+  url: string;
+  size: number;
+  createdAt: string;
+};
 export type PresignActionResult =
   | { ok: true; uploadUrl: string; key: string }
   | { ok: false; message: string };
@@ -96,7 +103,21 @@ export async function commitAssetAction(input: {
   }
 
   revalidatePath("/content/assets");
-  return { ok: true, message: `已上传素材「${res.value.name}」` };
+  return { ok: true, message: `已上传素材「${res.value.name}」`, url: res.value.url };
+}
+
+// 封面/编辑器的「从素材库选择」用:返回已归档图片素材(轻量行)。
+export async function listAssetsAction(): Promise<AssetPickRow[]> {
+  const auth = await requireRole(ADMIN_UP);
+  if (!auth.ok) return [];
+  const assets = await assetService.listAssets().catch(() => []);
+  return assets.map((a) => ({
+    id: a.id,
+    name: a.name,
+    url: a.url,
+    size: a.size,
+    createdAt: a.createdAt.toISOString(),
+  }));
 }
 
 export async function deleteAssetAction(id: string): Promise<AssetActionResult> {
