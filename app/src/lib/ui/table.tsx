@@ -1,3 +1,8 @@
+"use client"
+// 用 React.createContext 做密度下传(TableHead/TableCell 读 context)。
+// 必须标 "use client":createContext 在 RSC(react-server)构建里不存在,
+// 否则被服务端组件 import 时 next build 在 page-data 收集阶段抛
+// "createContext is not a function"(服务端渲染的行作为 children 传入,仍正常)。
 import * as React from "react"
 
 import { cn } from "@/lib/ui/utils"
