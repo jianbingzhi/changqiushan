@@ -142,8 +142,8 @@
 
 | 阶段 | 子步 | Done | Commit |
 |---|---|---|---|
-| 0 地基 | 0.1 middleware 放行 + `(screen)` 暗色 layout + theme.css + 软门 | [x] | _见下_ |
-| | 0.2 ScreenShell/useScreenScale/useCnClock/ScreenHeader/StatusBar | [ ] | — |
+| 0 地基 | 0.1 middleware 放行 + `(screen)` 暗色 layout + theme.css + 软门 | [x] | 9398559 |
+| | 0.2 ScreenShell/useScreenScale/useCnClock/ScreenHeader/StatusBar | [x] | _见下_ |
 | | 0.3 echarts setup+theme + 8 封装图表 + DarkBarList/ScreenCard/KpiTile | [ ] | — |
 | | 0.4 `/api/screen/[metric]` 公开端点骨架 | [ ] | — |
 | 1 数据页 | 1.1 C5 数据概览首屏 | [ ] | — |
