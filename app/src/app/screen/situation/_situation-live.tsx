@@ -78,7 +78,7 @@ export function SituationLive({ data }: { data: SituationData }) {
 
           <KpiTile title="今日累计入园核销" value={data.checkedIn.toLocaleString("zh-CN")} unit="人次" valueSize={40} tone="highlight" sub={`履约率 ${fulfillRate}%`} />
 
-          <ScreenCard title="今日预约 vs 实际入园">
+          <ScreenCard title="今日预约 / 实际入园">
             <div className="flex items-center justify-around">
               <div className="text-center">
                 <p className="text-[26px] font-bold tabular-nums" style={{ color: "var(--screen-text)" }}>{occ.bookings.toLocaleString("zh-CN")}</p>
@@ -177,7 +177,7 @@ export function SituationLive({ data }: { data: SituationData }) {
             )}
           </ScreenCard>
 
-          <ScreenCard title="客源地 TOP 5">
+          <ScreenCard title="客源地 前 5 名">
             <div className="flex h-full flex-col items-center justify-center gap-2 text-[14px]" style={{ color: "var(--screen-text-faint)" }}>
               需行政区划码表派生
               <PlaceholderTag text="客源地画像待接入" />

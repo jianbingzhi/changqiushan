@@ -22,7 +22,8 @@ export default async function HeatmapScreenPage() {
 
   const matrix = Array.from({ length: 7 }, () => Array<number>(24).fill(0));
   heat.forEach((r) => {
-    if (r.dow >= 0 && r.dow < 7 && r.hour >= 0 && r.hour < 24) matrix[r.dow][r.hour] = N(r.bookings);
+    const inRange = r.dow >= 0 && r.dow <= 6 && r.hour >= 0 && r.hour <= 23;
+    if (inRange) matrix[r.dow][r.hour] = N(r.bookings);
   });
 
   // 今日熔断状态(真实:被动反映 slot.status,大屏不触发任何写入)

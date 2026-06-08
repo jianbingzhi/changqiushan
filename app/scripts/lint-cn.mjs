@@ -33,6 +33,10 @@ const ASCII_ALLOW = new Set([
   // 技术缩写 / 渠道
   "SSE", "OTA", "APP", "API", "URL", "ID", "IP", "QR", "GPS", "IOT", "NFC", "RFID",
   "AI", "VR", "AR", "SDK", "CPU", "GPU", "OK", "WIFI", "HTTP", "HTTPS", "JWT", "RBAC",
+  // 数字大屏:GIS / 数据可视化领域缩写
+  "POI", "KPI", "GIS",
+  // C6 导览图中英对照标题「导览图 / Tour Map」—— PRD 明确允许的唯一英文例外
+  "TOUR", "MAP",
   // 品牌 / 产品
   "EXCEL", "PDF", "CSV", "MINIO", "COS", "OSS", "AMAP", "GOTRUE", "POSTGRES", "NOTIFY",
   // 图片 / 文件格式

@@ -34,7 +34,8 @@ export default async function PosterScreenPage() {
 
   const matrix = Array.from({ length: 7 }, () => Array<number>(24).fill(0));
   heat.forEach((r) => {
-    if (r.dow >= 0 && r.dow < 7 && r.hour >= 0 && r.hour < 24) matrix[r.dow][r.hour] = N(r.bookings);
+    const inRange = r.dow >= 0 && r.dow <= 6 && r.hour >= 0 && r.hour <= 23;
+    if (inRange) matrix[r.dow][r.hour] = N(r.bookings);
   });
 
   const checkedIn = slots.reduce((s, sl) => s + sl.checkedInCount, 0);

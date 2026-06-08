@@ -109,7 +109,7 @@ export default async function OperationScreenPage() {
               </div>
             </ScreenCard>
 
-            <ScreenCard title="30 天爽约态势（实际 vs 目标）">
+            <ScreenCard title="30 天爽约态势（实际 与 目标）">
               <div className="flex h-full">
                 <div className="flex-1">
                   <RadarChart
@@ -140,7 +140,7 @@ export default async function OperationScreenPage() {
           </div>
 
           {/* 下半:历史趋势对比 */}
-          <ScreenCard title="近 30 天 预约 vs 入园 vs 爽约 趋势对比" className="flex-1">
+          <ScreenCard title="近 30 天 预约、入园、爽约 趋势对比" className="flex-1">
             <LineTrend
               height={440}
               categories={categories}
