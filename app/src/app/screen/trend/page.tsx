@@ -127,7 +127,7 @@ export default async function TrendScreenPage() {
             </ScreenCard>
             <ScreenCard title="周末 / 工作日占比">
               <DonutChart
-                height={170}
+                height={150}
                 data={[
                   { name: "周末", value: weekend },
                   { name: "工作日", value: weekday },

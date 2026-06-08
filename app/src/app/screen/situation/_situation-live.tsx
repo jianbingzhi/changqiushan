@@ -45,7 +45,10 @@ export function SituationLive({ data }: { data: SituationData }) {
   const pct = occ.pct;
   const warn = pct >= 90;
   const onlineRate = data.device.total > 0 ? Math.round((data.device.online / data.device.total) * 100) : 0;
-  const fulfillRate = occ.bookings > 0 ? Math.round((data.checkedIn / occ.bookings) * 1000) / 10 : 0;
+  // occ.occupancy 即在园=今日累计入园核销(checkedInCount 之和),随轮询刷新;
+  // 故入园/履约一律用 occ.occupancy,避免与冻结的 SSR 初值在长时间挂墙时漂移(审计 P2)。
+  const liveCheckedIn = occ.occupancy;
+  const fulfillRate = occ.bookings > 0 ? Math.round((liveCheckedIn / occ.bookings) * 1000) / 10 : 0;
 
   return (
     <div className="flex h-full flex-col">
@@ -76,7 +79,7 @@ export function SituationLive({ data }: { data: SituationData }) {
             {updatedAt && <p className="mt-1 text-right text-[11px]" style={{ color: "var(--screen-text-faint)" }}>更新于 {updatedAt}</p>}
           </ScreenCard>
 
-          <KpiTile title="今日累计入园核销" value={data.checkedIn.toLocaleString("zh-CN")} unit="人次" valueSize={40} tone="highlight" sub={`履约率 ${fulfillRate}%`} />
+          <KpiTile title="今日累计入园核销" value={liveCheckedIn.toLocaleString("zh-CN")} unit="人次" valueSize={40} tone="highlight" sub={`履约率 ${fulfillRate}%`} />
 
           <ScreenCard title="今日预约 / 实际入园">
             <div className="flex items-center justify-around">
@@ -85,7 +88,7 @@ export function SituationLive({ data }: { data: SituationData }) {
                 <p className="text-[12px]" style={{ color: "var(--screen-text-dim)" }}>预约</p>
               </div>
               <div className="text-center">
-                <p className="text-[26px] font-bold tabular-nums" style={{ color: "var(--screen-blue)" }}>{data.checkedIn.toLocaleString("zh-CN")}</p>
+                <p className="text-[26px] font-bold tabular-nums" style={{ color: "var(--screen-blue)" }}>{liveCheckedIn.toLocaleString("zh-CN")}</p>
                 <p className="text-[12px]" style={{ color: "var(--screen-text-dim)" }}>实际</p>
               </div>
               <div className="text-center">

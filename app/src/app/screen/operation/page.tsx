@@ -113,7 +113,7 @@ export default async function OperationScreenPage() {
               <div className="flex h-full">
                 <div className="flex-1">
                   <RadarChart
-                    height={300}
+                    height={280}
                     indicators={radarIndicators}
                     series={[
                       { name: "实际", values: radarActual },
