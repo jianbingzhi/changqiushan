@@ -6,6 +6,7 @@ import { trafficRepository } from "@/modules/traffic";
 import { configService } from "@/modules/system";
 import { resolveInstantCapacity, CIRCUIT_BREAK_RATIO } from "@/shared/lib/capacity";
 import { chinaTodayDbDate } from "@/shared/lib/time";
+import { screenGatePassed } from "@/shared/auth/screen-gate";
 
 // 大屏公开只读轮询端点。/api/* 不过 middleware → 软门在此自校验。
 // PII 白名单铁律:只出聚合 / 计数 / 状态枚举,绝不返回 Booking/黑名单/申诉 原始行。
@@ -82,16 +83,17 @@ const RESOLVERS: Record<string, () => Promise<unknown>> = {
   },
 };
 
-function gatePassed(req: NextRequest): boolean {
-  const expected = process.env.SCREEN_TOKEN;
-  if (!expected) return true; // 未配置 → 完全开放
-  const fromQuery = req.nextUrl.searchParams.get("k");
-  const fromCookie = req.cookies.get("screen_token")?.value;
-  return fromQuery === expected || fromCookie === expected;
+// 启用软门时数据受门控,标 private 防中间缓存/CDN 跨用户复用;否则可公开缓存。
+// 命中/未命中两条路径必须带同一头,否则 hit 响应丢头会被代理按默认(public)缓存。
+function cacheControl(): string {
+  return process.env.SCREEN_TOKEN ? "private, max-age=15" : "public, max-age=15";
 }
 
-export async function GET(req: NextRequest, ctx: { params: Promise<{ metric: string }> }) {
-  if (!gatePassed(req)) {
+export async function GET(
+  req: NextRequest,
+  ctx: { params: Promise<{ metric: string }> },
+) {
+  if (!screenGatePassed(req.nextUrl.searchParams.get("k"), req.cookies.get("screen_token")?.value)) {
     return NextResponse.json({ error: "缺少有效访问凭据" }, { status: 401 });
   }
 
@@ -105,18 +107,16 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ metric: str
   const hit = cache.get(metric);
   const now = Date.now();
   if (hit && now - hit.at < TTL_MS) {
-    return NextResponse.json(hit.data, { headers: { "x-screen-cache": "hit" } });
+    return NextResponse.json(hit.data, {
+      headers: { "cache-control": cacheControl(), "x-screen-cache": "hit" },
+    });
   }
 
   try {
     const data = await resolver();
     cache.set(metric, { at: now, data });
-    // 启用软门时数据受门控,标 private 防中间缓存/CDN 跨用户复用;否则可公开缓存。
-    const cacheControl = process.env.SCREEN_TOKEN
-      ? "private, max-age=15"
-      : "public, max-age=15";
     return NextResponse.json(data, {
-      headers: { "cache-control": cacheControl, "x-screen-cache": "miss" },
+      headers: { "cache-control": cacheControl(), "x-screen-cache": "miss" },
     });
   } catch {
     return NextResponse.json({ error: "取数失败" }, { status: 500 });

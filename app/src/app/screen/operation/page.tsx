@@ -26,16 +26,14 @@ export default async function OperationScreenPage() {
   const start = new Date();
   start.setDate(start.getDate() - 29);
 
-  const [daily, blacklist, appeals] = await Promise.all([
+  // PII 白名单:直接取计数,绝不为求数量而全量载入含身份证/车牌的黑名单/申诉原始行。
+  const [daily, blacklistCount, appealCounts] = await Promise.all([
     analyticsRepository.getDailyTraffic(start, end).catch(() => []),
-    riskcontrolRepository.findBlacklistAll().catch(() => []),
-    riskcontrolRepository.listAppeals().catch(() => []),
+    riskcontrolRepository.countBlacklist().catch(() => 0),
+    riskcontrolRepository.countAppeals().catch(() => ({ total: 0, pending: 0 })),
   ]);
-
-  // —— 仅取计数,绝不外泄黑名单/申诉原始行(PII 白名单) ——
-  const blacklistCount = blacklist.length;
-  const pendingAppeals = appeals.filter((a) => a.status === "PENDING").length;
-  const totalAppeals = appeals.length;
+  const pendingAppeals = appealCounts.pending;
+  const totalAppeals = appealCounts.total;
 
   const bookings = daily.reduce((s, r) => s + N(r.total_visitors), 0);
   const checked = daily.reduce((s, r) => s + N(r.checked_in_count), 0);
@@ -159,7 +157,7 @@ export default async function OperationScreenPage() {
               <LiveDot tone="connected" label="数据源在线" />
               在线 {DATA_SOURCES.length} 个数据源：{DATA_SOURCES.join(" / ")}
             </span>
-            <span>数据按 15 分钟物化刷新 · 大屏每 20 秒轮询</span>
+            <span>数据按 15 分钟物化刷新 · 进入页面即取最新</span>
           </div>
         </div>
       </div>

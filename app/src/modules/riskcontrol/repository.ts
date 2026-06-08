@@ -46,6 +46,20 @@ export const riskcontrolRepository = {
     return db.riskBlacklist.findMany({ orderBy: { blacklistedAt: "desc" } });
   },
 
+  // 大屏/统计专用:只取计数,避免为求 .length 全量载入含 PII(idCard/plate)的黑名单行。
+  countBlacklist(): Promise<number> {
+    return db.riskBlacklist.count();
+  },
+
+  // 申诉计数:总数 + 待处理数(同样避免全量载入含 PII 的申诉/关联黑名单行)。
+  async countAppeals(): Promise<{ total: number; pending: number }> {
+    const [total, pending] = await Promise.all([
+      db.riskAppeal.count(),
+      db.riskAppeal.count({ where: { status: "PENDING" } }),
+    ]);
+    return { total, pending };
+  },
+
   findBlacklistByUserId(userId: string) {
     return db.riskBlacklist.findUnique({ where: { userId } });
   },

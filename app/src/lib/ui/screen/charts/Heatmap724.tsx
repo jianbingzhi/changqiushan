@@ -31,8 +31,10 @@ export function Heatmap724({ matrix, dowLabels = DEFAULT_DOW, max, height }: Pro
     tooltip: {
       position: "top",
       formatter: (p) => {
-        const d = (p as unknown as { data: [number, number, number] }).data;
-        return `${dowLabels[d[1]]} ${d[0]}时<br/>${d[2]}`;
+        const d = (p as { data?: [number, number, number] }).data;
+        if (!Array.isArray(d)) return "";
+        const [hour, dow, count] = d;
+        return `${dowLabels[dow] ?? "?"} ${hour}时<br/>预约 ${count}`;
       },
     },
     xAxis: { type: "category", data: HOURS, splitArea: { show: true }, axisLabel: { interval: 1 } },

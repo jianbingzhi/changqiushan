@@ -9,8 +9,14 @@ import {
   refreshCookieOptions,
   refreshSession,
   shouldRefresh,
+  cookieSecure,
   type RefreshedSession,
 } from "@/shared/auth/refresh";
+import {
+  SCREEN_TOKEN_COOKIE,
+  expectedScreenToken,
+  screenTokenMatches,
+} from "@/shared/auth/screen-gate";
 
 const PUBLIC_PATHS = ["/login"];
 
@@ -37,28 +43,29 @@ function matchGate(pathname: string) {
 
 // 大屏软门:仅当配置了 SCREEN_TOKEN 才校验(未配置→完全开放,本地/演示零摩擦)。
 // 凭据来源:URL `?k=<token>`(首次进入)或先前写入的 screen_token cookie(后续导航/轮询)。
-// 命中 `?k=` 即把 token 写 cookie,免去每次带 query。生产以 Nginx IP 白名单为主、此为应用层兜底。
-const SCREEN_TOKEN_COOKIE = "screen_token";
-
+// 命中 `?k=` 即把 token 写 cookie,免去每次带 query。逻辑收口于 shared/auth/screen-gate。
+// 生产以 Nginx IP 白名单为主、此为应用层兜底。
 function screenGate(request: NextRequest): NextResponseType | null {
-  const expected = process.env.SCREEN_TOKEN;
+  const expected = expectedScreenToken();
   if (!expected) return null; // 未配置 → 放行
 
   const fromQuery = request.nextUrl.searchParams.get("k");
   const fromCookie = request.cookies.get(SCREEN_TOKEN_COOKIE)?.value;
-  if (fromQuery === expected) {
+  if (fromQuery != null && screenTokenMatches(fromQuery, expected)) {
     const res = NextResponse.next();
     // path 必须为 "/":cookie 要同时随页面 /screen/* 与轮询 /api/screen/* 发送,
     // 否则配了 SCREEN_TOKEN 后首屏正常但轮询读不到 cookie → 全部 401。
+    // secure 与项目 auth cookie 口径一致(cookieSecure);maxAge 24h 足够挂墙展示。
     res.cookies.set(SCREEN_TOKEN_COOKIE, expected, {
       httpOnly: true,
       sameSite: "lax",
       path: "/",
-      maxAge: 60 * 60 * 24 * 30,
+      secure: cookieSecure(),
+      maxAge: 60 * 60 * 24,
     });
     return res;
   }
-  if (fromCookie === expected) return NextResponse.next();
+  if (fromCookie != null && screenTokenMatches(fromCookie, expected)) return NextResponse.next();
 
   return new NextResponse("数字大屏访问受限：缺少有效访问凭据。", {
     status: 401,

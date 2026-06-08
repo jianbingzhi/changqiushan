@@ -18,10 +18,14 @@ export function useScreenPoll<T>(metric: string, initial: T, intervalMs = 20_000
   const [state, setState] = useState<DataSourceState>("snapshot");
   const [updatedAt, setUpdatedAt] = useState("");
   const aborted = useRef(false);
+  const inFlight = useRef(false);
 
   useEffect(() => {
     aborted.current = false;
     const tick = async () => {
+      // 防重入:DB 慢于轮询间隔时,跳过本次而非叠加并发请求压垮后端。
+      if (inFlight.current) return;
+      inFlight.current = true;
       try {
         const res = await fetch(`/api/screen/${metric}`, { cache: "no-store" });
         if (!res.ok) throw new Error(String(res.status));
@@ -40,6 +44,8 @@ export function useScreenPoll<T>(metric: string, initial: T, intervalMs = 20_000
         );
       } catch {
         if (!aborted.current) setState("disconnected");
+      } finally {
+        inFlight.current = false;
       }
     };
     void tick();

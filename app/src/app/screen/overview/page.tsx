@@ -14,6 +14,7 @@ import { DarkBarList } from "@/lib/ui/screen/DarkBarList";
 import { PlaceholderTag } from "@/lib/ui/screen/PlaceholderTag";
 import { DonutChart } from "@/lib/ui/screen/charts/DonutChart";
 import { RadarChart } from "@/lib/ui/screen/charts/RadarChart";
+import { OverviewOccupancy } from "./_overview-occupancy";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "数据概览首屏 · 长秋山森林公园智慧景区" };
@@ -123,22 +124,8 @@ export default async function OverviewScreenPage() {
               tone="highlight"
               sub={`履约率 ${fulfillRate}%`}
             />
-            <KpiTile
-              title="当前在园人数"
-              value={checkedIn.toLocaleString("zh-CN")}
-              unit="人"
-              valueSize={44}
-              danger={capacityPct >= 90}
-              tone={capacityPct >= 80 ? "warn" : "primary"}
-              sub={
-                capacityPct >= 90 ? (
-                  <span style={{ color: "var(--screen-red)" }}>
-                    ⚠ 承载率 {capacityPct}% · 已达熔断阈值 · 已停当日预约
-                  </span>
-                ) : (
-                  `承载率 ${capacityPct}% / 红线 ${capacity.toLocaleString("zh-CN")} 人`
-                )
-              }
+            <OverviewOccupancy
+              initial={{ occupancy: checkedIn, capacity, pct: capacityPct }}
             />
             <KpiTile
               title="今日剩余可预约名额"
