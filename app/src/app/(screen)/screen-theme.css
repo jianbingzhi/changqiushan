@@ -1,0 +1,61 @@
+/* 数字大屏隔离设计 token —— 仅在 .screen-root 作用域生效,绝不进 globals.css 的 :root/.dark,
+   避免污染 B 端后台双主题(符合待办清单「always-dark 大屏内联色保留」判定)。
+   大屏恒为深色科技风,与后台浅/深主题完全无关。 */
+
+.screen-root {
+  /* —— 背景层 —— */
+  --screen-bg-outer: #050d05; /* letterbox 外层黑底 */
+  --screen-bg: #0a1f0a; /* 1920×1080 画布底(深森林墨绿) */
+  --screen-card-bg: rgba(45, 90, 39, 0.15); /* 半透明深绿卡片底 */
+  --screen-card-bg-strong: rgba(45, 90, 39, 0.28);
+  --screen-card-border: rgba(74, 142, 63, 0.4);
+
+  /* —— 品牌 / 数据色板 —— */
+  --screen-primary: #2d5a27; /* 品牌绿 */
+  --screen-glow: #4a8e3f; /* 高亮辉光绿 */
+  --screen-blue: #4fb3e0; /* 数据蓝 */
+  --screen-orange: #d97706; /* 警示橙 */
+  --screen-red: #dc2626; /* 失败红 */
+
+  /* —— 文字 —— */
+  --screen-text: #e8f5e9; /* 浅绿白主文字 */
+  --screen-text-dim: rgba(232, 245, 233, 0.6); /* 次级文字 */
+  --screen-text-faint: rgba(232, 245, 233, 0.4); /* 标注/占位文字 */
+  --screen-highlight: #ffffff; /* 数据高亮白 */
+
+  /* —— 状态语义 —— */
+  --screen-success: #4a8e3f;
+
+  /* —— 辉光阴影(数字/边框光晕) —— */
+  --screen-glow-shadow: 0 0 12px rgba(74, 142, 63, 0.45);
+
+  color: var(--screen-text);
+  background-color: var(--screen-bg-outer);
+  font-family: var(--font-sans, system-ui, sans-serif);
+}
+
+/* 大屏隐藏滚动条,限定作用域不污染后台 */
+.screen-root,
+.screen-root * {
+  scrollbar-width: none;
+}
+.screen-root::-webkit-scrollbar,
+.screen-root *::-webkit-scrollbar {
+  display: none;
+}
+
+/* 承载熔断闪红:色 + 文字双编码(色盲友好),仅作用于显式标记节点 */
+@keyframes screen-flash-red {
+  0%,
+  100% {
+    background-color: rgba(220, 38, 38, 0.55);
+    box-shadow: 0 0 24px rgba(220, 38, 38, 0.6);
+  }
+  50% {
+    background-color: rgba(220, 38, 38, 0.25);
+    box-shadow: 0 0 8px rgba(220, 38, 38, 0.3);
+  }
+}
+.screen-flash {
+  animation: screen-flash-red 1.2s ease-in-out infinite;
+}

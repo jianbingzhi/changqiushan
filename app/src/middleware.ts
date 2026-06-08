@@ -35,8 +35,41 @@ function matchGate(pathname: string) {
   );
 }
 
+// 大屏软门:仅当配置了 SCREEN_TOKEN 才校验(未配置→完全开放,本地/演示零摩擦)。
+// 凭据来源:URL `?k=<token>`(首次进入)或先前写入的 screen_token cookie(后续导航/轮询)。
+// 命中 `?k=` 即把 token 写 cookie,免去每次带 query。生产以 Nginx IP 白名单为主、此为应用层兜底。
+const SCREEN_TOKEN_COOKIE = "screen_token";
+
+function screenGate(request: NextRequest): NextResponseType | null {
+  const expected = process.env.SCREEN_TOKEN;
+  if (!expected) return null; // 未配置 → 放行
+
+  const fromQuery = request.nextUrl.searchParams.get("k");
+  const fromCookie = request.cookies.get(SCREEN_TOKEN_COOKIE)?.value;
+  if (fromQuery === expected) {
+    const res = NextResponse.next();
+    res.cookies.set(SCREEN_TOKEN_COOKIE, expected, {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/screen",
+      maxAge: 60 * 60 * 24 * 30,
+    });
+    return res;
+  }
+  if (fromCookie === expected) return NextResponse.next();
+
+  return new NextResponse("数字大屏访问受限：缺少有效访问凭据。", {
+    status: 401,
+    headers: { "content-type": "text/plain; charset=utf-8" },
+  });
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  if (pathname === "/screen" || pathname.startsWith("/screen/")) {
+    return screenGate(request) ?? NextResponse.next();
+  }
 
   if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
     return NextResponse.next();
