@@ -145,7 +145,7 @@
 | 0 地基 | 0.1 middleware 放行 + `(screen)` 暗色 layout + theme.css + 软门 | [x] | 9398559 |
 | | 0.2 ScreenShell/useScreenScale/useCnClock/ScreenHeader/StatusBar | [x] | _见下_ |
 | | 0.3 echarts setup+theme + 8 封装图表 + DarkBarList/ScreenCard/KpiTile | [x] | _见下_ |
-| | 0.4 `/api/screen/[metric]` 公开端点骨架 | [ ] | — |
+| | 0.4 `/api/screen/[metric]` 公开端点骨架 + useScreenPoll | [x] | _见下_ |
 | 1 数据页 | 1.1 C5 数据概览首屏 | [ ] | — |
 | | 1.2 C3 客流与预约趋势（+Excel） | [ ] | — |
 | | 1.3 C2 运营态势面板 | [ ] | — |
