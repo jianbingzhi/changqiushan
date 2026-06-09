@@ -3,6 +3,8 @@ import { z } from "zod";
 export const createBookingSchema = z
   .object({
     slotId:           z.string().uuid("slotId 必须是 UUID"),
+    // B26:派生时段下单需带北京日历日(YYYY-MM-DD)以惰性物化;物化时段可省略(按 id 直查)
+    date:             z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "日期格式无效").optional(),
     visitorName:      z.string().min(1, "姓名不能为空").max(40),
     idCard:           z.string().length(18, "身份证号必须 18 位"),
     phone:            z.string().regex(/^1[3-9]\d{9}$/, "手机号格式无效"),

@@ -1,6 +1,6 @@
 "use server";
 
-import { bookingRepository, bookingService } from "@/modules/booking";
+import { bookingService } from "@/modules/booking";
 import { riskcontrolService } from "@/modules/riskcontrol";
 import { requireRole, ANY_STAFF } from "@/infrastructure/auth/guard";
 
@@ -10,11 +10,9 @@ export interface OnsiteSlotOption {
   soldOut: boolean;
 }
 
-/** B10 时段选择器:按日期取当日 ACTIVE 时段 + 现场渠道余量 */
+/** B10 时段选择器:按日期取当日 ACTIVE 时段 + 现场渠道余量(B26:派生+物化合并,虚拟时段可下单) */
 export async function getOnsiteSlots(date: string): Promise<OnsiteSlotOption[]> {
-  // booking_slot.date 是纯日期列(@db.Date);用 UTC 零点构造,避免本地时区把日期挪到前一天
-  const target = new Date(date + "T00:00:00Z");
-  const slots = await bookingRepository.listSlotsByDate(target);
+  const slots = await bookingService.listSlotsForDate(date);
   return slots
     .filter((s) => s.status === "ACTIVE")
     .map((s) => {
@@ -29,6 +27,7 @@ export async function getOnsiteSlots(date: string): Promise<OnsiteSlotOption[]> 
 
 export interface OnsiteBookingInput {
   slotId: string;
+  date: string; // B26:虚拟时段惰性物化需带北京日历日
   visitorName: string;
   phone: string;
   idCard: string;
@@ -55,6 +54,7 @@ export async function submitOnsiteBooking(
 
   const result = await bookingService.createBooking({
     slotId: input.slotId,
+    date: input.date,
     visitorName: input.visitorName,
     phone: input.phone,
     idCard: input.idCard,

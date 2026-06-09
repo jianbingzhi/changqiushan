@@ -137,6 +137,7 @@ export default function OnsitePage() {
     setSubmitError(null);
     const res = await submitOnsiteBooking({
       slotId: form.slotId,
+      date: form.date,
       visitorName: form.visitorName,
       phone: form.phone,
       idCard: form.idCard,

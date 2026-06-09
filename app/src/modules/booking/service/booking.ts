@@ -1,10 +1,47 @@
-import { bookingRepository, SlotFullError, DuplicateBookingError } from "../repository";
-import type { BookingListFilter } from "../repository";
+import { bookingRepository, SlotFullError, DuplicateBookingError, SlotInactiveError } from "../repository";
+import type { BookingListFilter, SlotDefinition } from "../repository";
 import { createBookingSchema, createSlotSchema } from "../domain/schema";
 import { assertDualElements, canBook, canCancel, isCircuitBroken } from "../domain/rules";
+import { deriveSlots, type DerivedSlot } from "../domain/slot-derive";
 import { ok, err, ErrCode, type Result } from "@/shared/result";
 import { Prisma } from "@prisma/client";
-import type { Booking, BookingSlot } from "@prisma/client";
+import type { Booking, BookingSlot, BookingSlotStatus } from "@prisma/client";
+
+// B26 读路径合并视图:物化行(真实已用量)与派生虚拟行同形,materialized 标识来源。
+export type SlotView = {
+  id:                string;
+  date:              Date;
+  name:              string;
+  startTime:         string;
+  endTime:           string;
+  capacity:          number;
+  miniProgramQuota:  number;
+  onsiteQuota:       number;
+  otaQuota:          number;
+  adminQuota:        number;
+  miniProgramBooked: number;
+  onsiteBooked:      number;
+  otaBooked:         number;
+  adminBooked:       number;
+  bookedCount:       number;
+  checkedInCount:    number;
+  status:            BookingSlotStatus;
+  materialized:      boolean;
+};
+
+function materializedToView(s: BookingSlot): SlotView {
+  return {
+    id: s.id, date: s.date, name: s.name, startTime: s.startTime, endTime: s.endTime,
+    capacity: s.capacity,
+    miniProgramQuota: s.miniProgramQuota, onsiteQuota: s.onsiteQuota, otaQuota: s.otaQuota, adminQuota: s.adminQuota,
+    miniProgramBooked: s.miniProgramBooked, onsiteBooked: s.onsiteBooked, otaBooked: s.otaBooked, adminBooked: s.adminBooked,
+    bookedCount: s.bookedCount, checkedInCount: s.checkedInCount, status: s.status, materialized: true,
+  };
+}
+
+function derivedToView(d: DerivedSlot): SlotView {
+  return { ...d, materialized: false };
+}
 
 const MAX_PAGE_SIZE = 100;
 const DEFAULT_PAGE_SIZE = 20;
@@ -16,6 +53,40 @@ const isSlotConflict = (e: unknown) =>
 // booking_slot.date 是 @db.Date;用 UTC 零点构造,避免本地时区把日历日挪到前一天
 // (与 seed / onsite 取数口径一致)。入参为北京日历日串 YYYY-MM-DD。
 const toSlotDate = (dateStr: string) => new Date(`${dateStr}T00:00:00Z`);
+
+function defFromMaterialized(s: BookingSlot): SlotDefinition {
+  return {
+    id: s.id, date: s.date, name: s.name, startTime: s.startTime, endTime: s.endTime,
+    miniProgramQuota: s.miniProgramQuota, onsiteQuota: s.onsiteQuota, otaQuota: s.otaQuota, adminQuota: s.adminQuota,
+  };
+}
+
+// B26 下单时段解析:① 物化优先(按 id 直查,含运营手调/存量随机 id 行)
+//   ② 未命中且带 date → 当日派生中按虚拟 id 匹配(首单惰性物化)
+// 返回校验视图(view)+ 权威定义(def,只信服务端派生/物化行,绝不信前端配额)。
+async function resolveSlotForBooking(
+  slotId: string,
+  dateStr: string | undefined,
+): Promise<{ view: SlotView; def: SlotDefinition } | null> {
+  const materialized = await bookingRepository.getSlot(slotId);
+  if (materialized) {
+    return { view: materializedToView(materialized), def: defFromMaterialized(materialized) };
+  }
+  if (!dateStr) return null;
+  const [templates, holiday] = await Promise.all([
+    bookingRepository.listEnabledTemplates(),
+    bookingRepository.getHoliday(toSlotDate(dateStr)),
+  ]);
+  const derived = deriveSlots(dateStr, templates, holiday).find((d) => d.id === slotId);
+  if (!derived) return null;
+  return {
+    view: derivedToView(derived),
+    def: {
+      id: derived.id, date: derived.date, name: derived.name, startTime: derived.startTime, endTime: derived.endTime,
+      miniProgramQuota: derived.miniProgramQuota, onsiteQuota: derived.onsiteQuota, otaQuota: derived.otaQuota, adminQuota: derived.adminQuota,
+    },
+  };
+}
 
 export const bookingService = {
   async createBooking(raw: unknown): Promise<Result<Booking>> {
@@ -32,25 +103,27 @@ export const bookingService = {
     );
     if (!dualCheck.ok) return dualCheck;
 
-    const slot = await bookingRepository.getSlot(input.slotId);
-    if (!slot) return err(ErrCode.NOT_FOUND, "预约时段不存在");
+    // B26 解析时段:物化优先(按 id 直查),否则按 date 派生回退(虚拟时段首单惰性物化)。
+    const resolved = await resolveSlotForBooking(input.slotId, input.date);
+    if (!resolved) return err(ErrCode.NOT_FOUND, "预约时段不存在");
+    const { view, def } = resolved;
 
-    if (!canBook(slot, input.channel)) {
-      return slot.status !== "ACTIVE"
+    if (!canBook(view, input.channel)) {
+      return view.status !== "ACTIVE"
         ? err(ErrCode.SLOT_INACTIVE, "该时段暂停或已关闭预约")
         : err(ErrCode.SLOT_FULL, "该渠道名额已满");
     }
 
-    if (isCircuitBroken(slot.checkedInCount, slot.capacity)) {
+    if (isCircuitBroken(view.checkedInCount, view.capacity)) {
       return err(ErrCode.CIRCUIT_BREAKER_OPEN, "在园人数达限，入园预约已暂停");
     }
 
-    const daily = await bookingRepository.countDailyBookings(input.idCard, slot.date);
+    const daily = await bookingRepository.countDailyBookings(input.idCard, def.date);
     if (daily > 0) return err(ErrCode.DUPLICATE_BOOKING, "同一身份证当日已有预约");
 
     try {
-      const booking = await bookingRepository.createBookingOptimistic({
-        slotId: input.slotId,
+      const booking = await bookingRepository.materializeAndBook(def, {
+        slotId: def.id,
         visitorName: input.visitorName,
         idCard: input.idCard,
         phone: input.phone,
@@ -62,6 +135,9 @@ export const bookingService = {
     } catch (e) {
       if (e instanceof SlotFullError) {
         return err(ErrCode.SLOT_FULL, "并发冲突，名额已满，请重试");
+      }
+      if (e instanceof SlotInactiveError) {
+        return err(ErrCode.SLOT_INACTIVE, "该时段已暂停预约（在园人数达限）");
       }
       if (e instanceof DuplicateBookingError) {
         return err(ErrCode.DUPLICATE_BOOKING, "同一身份证当日已有预约");
@@ -92,6 +168,21 @@ export const bookingService = {
   // B32: 导出用 — 取全量(带上限)匹配项,不分页
   listBookingsForExport(filter: BookingListFilter, cap = 50000) {
     return bookingRepository.listBookings(filter, { take: cap });
+  },
+
+  // B26 读路径:合并「已物化行(真实已用量)+ 派生虚拟行」,已物化优先(同 startTime 覆盖派生)。
+  // 取代裸 listSlotsByDate 作为对外读口;repo 仍保留供合并。
+  async listSlotsForDate(dateStr: string): Promise<SlotView[]> {
+    const date = toSlotDate(dateStr);
+    const [materialized, templates, holiday] = await Promise.all([
+      bookingRepository.listSlotsByDate(date),
+      bookingRepository.listEnabledTemplates(),
+      bookingRepository.getHoliday(date),
+    ]);
+    const byStart = new Map<string, SlotView>();
+    for (const d of deriveSlots(dateStr, templates, holiday)) byStart.set(d.startTime, derivedToView(d));
+    for (const m of materialized) byStart.set(m.startTime, materializedToView(m)); // 已物化优先
+    return [...byStart.values()].sort((a, b) => a.startTime.localeCompare(b.startTime));
   },
 
   // C 端「我的中心」只读统计聚合(按身份证)

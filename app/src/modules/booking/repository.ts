@@ -1,5 +1,5 @@
 import { Prisma } from "@prisma/client";
-import type { BookingChannel, BookingStatus, Booking, BookingSlot } from "@prisma/client";
+import type { BookingChannel, BookingStatus, BookingSlotStatus, Booking, BookingSlot } from "@prisma/client";
 import { db } from "@/infrastructure/db/client";
 import { randomBytes } from "crypto";
 
@@ -47,6 +47,27 @@ export class DuplicateBookingError extends Error {
   }
 }
 
+// B26: 物化时取行后发现非 ACTIVE(并发被熔断暂停/关闭)
+export class SlotInactiveError extends Error {
+  constructor() {
+    super("slot_inactive");
+    this.name = "SlotInactiveError";
+  }
+}
+
+// B26: 首单惰性物化所需的权威时段定义(一律来自服务端派生,绝不信前端)
+export type SlotDefinition = {
+  id:               string;
+  date:             Date;
+  name:             string;
+  startTime:        string;
+  endTime:          string;
+  miniProgramQuota: number;
+  onsiteQuota:      number;
+  otaQuota:         number;
+  adminQuota:       number;
+};
+
 export const bookingRepository = {
   listSlotsByDate(date: Date): Promise<BookingSlot[]> {
     return db.bookingSlot.findMany({
@@ -57,6 +78,14 @@ export const bookingRepository = {
 
   getSlot(id: string): Promise<BookingSlot | null> {
     return db.bookingSlot.findUnique({ where: { id } });
+  },
+
+  // B31 resolveMonth:取某区间(整月)已物化时段,供日历合并真实占用
+  listSlotsInRange(from: Date, to: Date): Promise<BookingSlot[]> {
+    return db.bookingSlot.findMany({
+      where: { date: { gte: from, lte: to } },
+      orderBy: [{ date: "asc" }, { startTime: "asc" }],
+    });
   },
 
   // C4:建单个时段。capacity 由各渠道配额之和派生,与 seed 口径一致。
@@ -150,6 +179,11 @@ export const bookingRepository = {
     return db.sysHolidayCalendar.delete({ where: { date } });
   },
 
+  // B26: 单日特例查询(主键即日期),供派生读路径与 resolveMonth 取覆盖
+  getHoliday(date: Date) {
+    return db.sysHolidayCalendar.findUnique({ where: { date } });
+  },
+
   getBookingWithSlot(id: string) {
     return db.booking.findUnique({
       where: { id },
@@ -200,6 +234,74 @@ export const bookingRepository = {
         });
       } catch (e) {
         // E4: 触发部分唯一索引 → P2002,事务回滚(已加的渠道计数一并回退)
+        if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+          throw new DuplicateBookingError();
+        }
+        throw e;
+      }
+    });
+  },
+
+  // B26 首单惰性物化下单(取代 createBookingOptimistic 的派生路径):
+  //   ① INSERT … ON CONFLICT(date,start_time) DO NOTHING(首单按派生定义建行;已存在/运营手调不动)
+  //   ② SELECT … FOR UPDATE 取真实行(按 date+start_time,兼容存量随机 id 行)并行锁
+  //   ③ 校验 ACTIVE → 原子配额 UPDATE 守卫(booked+1<=quota,affected=0=满)
+  // capacity/各渠道名额只信 slotDef(服务端派生),配额守卫则按真实行当前 quota(尊重运营手调)。
+  async materializeAndBook(slotDef: SlotDefinition, data: CreateBookingData): Promise<Booking> {
+    const col = CHANNEL_COL[data.channel];
+    const qrCode = "bk-" + randomBytes(29).toString("hex");
+    const qrSecret = randomBytes(32).toString("hex");
+    const capacity =
+      slotDef.miniProgramQuota + slotDef.onsiteQuota + slotDef.otaQuota + slotDef.adminQuota;
+
+    return db.$transaction(async (tx) => {
+      await tx.$executeRaw(Prisma.sql`
+        INSERT INTO booking_slot
+          (id, name, date, start_time, end_time, capacity,
+           mini_program_quota, onsite_quota, ota_quota, admin_quota,
+           status, created_at, updated_at)
+        VALUES
+          (${slotDef.id}::uuid, ${slotDef.name}, ${slotDef.date}, ${slotDef.startTime}, ${slotDef.endTime}, ${capacity},
+           ${slotDef.miniProgramQuota}, ${slotDef.onsiteQuota}, ${slotDef.otaQuota}, ${slotDef.adminQuota},
+           'ACTIVE'::"BookingSlotStatus", NOW(), NOW())
+        ON CONFLICT (date, start_time) DO NOTHING
+      `);
+
+      const rows = await tx.$queryRaw<{ id: string; status: BookingSlotStatus }[]>(Prisma.sql`
+        SELECT id, status FROM booking_slot
+        WHERE date = ${slotDef.date} AND start_time = ${slotDef.startTime}
+        FOR UPDATE
+      `);
+      const row = rows[0];
+      if (!row) throw new SlotFullError(); // 兜底:刚插入且无冲突却取不到行,理论不可达
+      if (row.status !== "ACTIVE") throw new SlotInactiveError();
+
+      const affected = await tx.$executeRaw(Prisma.sql`
+        UPDATE booking_slot
+        SET ${Prisma.raw(`"${col}_booked"`)} = ${Prisma.raw(`"${col}_booked"`)} + 1,
+            booked_count = booked_count + 1,
+            updated_at = NOW()
+        WHERE id = ${row.id}::uuid
+          AND status = 'ACTIVE'::"BookingSlotStatus"
+          AND ${Prisma.raw(`"${col}_booked"`)} + 1 <= ${Prisma.raw(`"${col}_quota"`)}
+      `);
+      if (affected === 0) throw new SlotFullError();
+
+      try {
+        return await tx.booking.create({
+          data: {
+            slotId: row.id,
+            visitorName: data.visitorName,
+            idCard: data.idCard,
+            phone: data.phone,
+            plate: data.plate ?? null,
+            noVehicleDeclared: data.noVehicleDeclared,
+            channel: data.channel,
+            qrCode,
+            qrSecret,
+          },
+        });
+      } catch (e) {
         if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
           throw new DuplicateBookingError();
         }

@@ -1,11 +1,24 @@
-import type { BookingSlot, BookingChannel } from "@prisma/client";
+import type { BookingSlotStatus, BookingChannel } from "@prisma/client";
 import { err, ok, ErrCode, type Result } from "@/shared/result";
 import { isValidIdCard, isValidPlate } from "@/shared/validators";
 import { CIRCUIT_BREAK_RATIO, CIRCUIT_RESUME_RATIO } from "@/shared/lib/capacity";
 
+// 渠道配额校验只依赖这些字段;物化行(BookingSlot)与派生视图(SlotView)都满足,故结构化解耦。
+export type SlotQuotaShape = {
+  status:            BookingSlotStatus;
+  miniProgramQuota:  number;
+  onsiteQuota:       number;
+  otaQuota:          number;
+  adminQuota:        number;
+  miniProgramBooked: number;
+  onsiteBooked:      number;
+  otaBooked:         number;
+  adminBooked:       number;
+};
+
 const CHANNEL_FIELD_MAP: Record<
   BookingChannel,
-  { quota: keyof BookingSlot; booked: keyof BookingSlot }
+  { quota: keyof SlotQuotaShape; booked: keyof SlotQuotaShape }
 > = {
   MINI_PROGRAM:  { quota: "miniProgramQuota", booked: "miniProgramBooked" },
   ONSITE_MAKEUP: { quota: "onsiteQuota",      booked: "onsiteBooked" },
@@ -34,7 +47,7 @@ export function assertDualElements(
   return ok(true);
 }
 
-export function canBook(slot: BookingSlot, channel: BookingChannel): boolean {
+export function canBook(slot: SlotQuotaShape, channel: BookingChannel): boolean {
   if (slot.status !== "ACTIVE") return false;
   const { quota, booked } = CHANNEL_FIELD_MAP[channel];
   const q = slot[quota] as number;
@@ -50,7 +63,7 @@ export function canResume(checkedInCount: number, capacity: number): boolean {
   return capacity <= 0 || checkedInCount / capacity < CIRCUIT_RESUME_RATIO;
 }
 
-export function canCancel(slot: BookingSlot, now: Date): boolean {
+export function canCancel(slot: { date: Date; startTime: string }, now: Date): boolean {
   const slotStart = new Date(
     `${slot.date.toISOString().slice(0, 10)}T${slot.startTime}:00+08:00`,
   );

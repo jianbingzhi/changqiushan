@@ -36,6 +36,26 @@ async function main() {
       { name: "傍晚场",   start: "16:00", end: "17:30", capacity: 150 },
     ];
 
+    // B26 时段模板(派生层定义端):为 WEEKDAY/WEEKEND/HOLIDAY 各灌入同一组时段,
+    // 渠道配额沿用与物化行一致的 60/20/15/5 拆分。幂等(ON CONFLICT 同日期类型+开始时间 DO NOTHING)。
+    // 有了模板,B26 派生读路径 + 首单惰性物化才生效(空模板则派生为空)。
+    for (const dayType of ["WEEKDAY", "WEEKEND", "HOLIDAY"]) {
+      for (const s of slotDefs) {
+        const mini = Math.ceil(s.capacity * 0.6);
+        const onsite = Math.ceil(s.capacity * 0.2);
+        const ota = Math.ceil(s.capacity * 0.15);
+        const admin = Math.ceil(s.capacity * 0.05);
+        await pool.query(
+          `INSERT INTO booking_slot_template
+             (id, day_type, name, start_time, end_time,
+              mini_program_quota, onsite_quota, ota_quota, admin_quota, enabled, created_at, updated_at)
+           VALUES (gen_random_uuid(), $1::"DayType", $2, $3, $4, $5, $6, $7, $8, true, NOW(), NOW())
+           ON CONFLICT (day_type, start_time) DO NOTHING`,
+          [dayType, s.name, s.start, s.end, mini, onsite, ota, admin],
+        );
+      }
+    }
+
     let slotCount = 0;
     let bookingCount = 0;
     let idSeq = 0;
