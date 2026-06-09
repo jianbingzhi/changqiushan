@@ -3,7 +3,7 @@ import type { Booking, BookingSlot } from "@prisma/client";
 import { db } from "@/infrastructure/db/client";
 import { bus } from "@/infrastructure/realtime/bus";
 import { ok, err, ErrCode, type Result } from "@/shared/result";
-import { CIRCUIT_BREAK_RATIO } from "@/shared/lib/capacity";
+import { CIRCUIT_BREAK_RATIO, resolveInstantCapacity } from "@/shared/lib/capacity";
 import {
   QR_PREFIX,
   isCurrentSlotValid,
@@ -29,8 +29,8 @@ export type CheckinCode = {
 
 type CheckinEventPayload = {
   slotId:         string;
-  checkedInCount: number;
-  capacity:       number;
+  checkedInCount: number; // 全园在园人数(当日各时段之和,口径统一后)
+  capacity:       number; // 瞬时承载量(park.instant_capacity)
   circuitBroken:  boolean;
 };
 
@@ -152,13 +152,25 @@ async function idempotentCheckin(
     return err(ErrCode.CHECKIN_ALREADY_DONE, "该预约已核销，请勿重复操作");
   }
 
-  const checkedInCount = Number(result.checked_in_count);
-  const circuitBroken = result.capacity > 0 && checkedInCount / result.capacity >= CIRCUIT_BREAK_RATIO;
+  // 红线4 口径统一:分子=当日全园在园人数(各时段 checked_in_count 之和),分母=瞬时承载量
+  // (park.instant_capacity)。直读 system_config(与本函数已有的跨表 raw SQL 同模式,避免 import
+  // booking/system 模块破 eslint-boundaries);缺配/非法走 env→默认兜底(resolveInstantCapacity)。
+  const [parkRow] = await db.$queryRaw<[{ in_park: number }]>(Prisma.sql`
+    SELECT COALESCE(SUM(checked_in_count), 0)::int AS in_park
+    FROM booking_slot
+    WHERE date = (SELECT date FROM booking_slot WHERE id = ${booking.slotId}::uuid)
+  `);
+  const inPark = parkRow?.in_park ?? 0;
+  const capRows = await db.$queryRaw<{ value: string }[]>(Prisma.sql`
+    SELECT value FROM system_config WHERE key = 'park.instant_capacity' LIMIT 1
+  `);
+  const instantCapacity = resolveInstantCapacity(capRows[0]?.value);
+  const circuitBroken = instantCapacity > 0 && inPark / instantCapacity >= CIRCUIT_BREAK_RATIO;
 
   bus.publish("checkin_event", {
     slotId: booking.slotId,
-    checkedInCount,
-    capacity: result.capacity,
+    checkedInCount: inPark,       // 口径统一:全园在园人数(非单时段)
+    capacity: instantCapacity,    // 口径统一:瞬时承载量(非单时段 capacity)
     circuitBroken,
   } as CheckinEventPayload);
 

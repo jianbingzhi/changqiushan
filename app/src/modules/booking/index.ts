@@ -4,6 +4,7 @@ export { quotaRuleService } from "./service/quota-rule";
 export type { DayCell } from "./service/quota-rule";
 export { slotRollService } from "./service/slot-roll";
 export { inferDayType } from "./domain/quota-rule";
+export { isCircuitBroken, canResume } from "./domain/rules";
 export { bookingRepository } from "./repository";
 export type {
   Booking,

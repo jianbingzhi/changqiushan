@@ -1,5 +1,6 @@
-import { bookingRepository } from "@/modules/booking";
-import { CIRCUIT_BREAK_RATIO } from "@/shared/lib/capacity";
+import { bookingRepository, isCircuitBroken } from "@/modules/booking";
+import { configService } from "@/modules/system";
+import { CIRCUIT_BREAK_RATIO, resolveInstantCapacity } from "@/shared/lib/capacity";
 import { requireRole, ADMIN_UP } from "@/infrastructure/auth/guard";
 import { getSession } from "@/infrastructure/auth/session";
 import { PageHeader } from "@/lib/ui/page-header";
@@ -35,8 +36,11 @@ export default async function BookingSlotsPage({ searchParams }: Props) {
   const toDateParam = (d: Date) =>
     `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
 
-  // 仅当在园人数真正达到 90% 时显示熔断警告(不依赖 PAUSED 状态以避免误报)
-  const hasCircuitBreaker = slots.some((s) => s.capacity > 0 && s.checkedInCount / s.capacity >= CIRCUIT_BREAK_RATIO);
+  // 红线4 口径统一:熔断判定 = 当日全园在园人数(各时段 checked_in_count 之和)/ 瞬时承载量 ≥ 90%,
+  // 不再用单时段 capacity 当分母(后者几乎永不触发,B4)。与 checkin 写路径同口径。
+  const inParkCount = slots.reduce((sum, s) => sum + s.checkedInCount, 0);
+  const instantCapacity = await configService.getInstantCapacity().catch(() => resolveInstantCapacity());
+  const hasCircuitBreaker = isCircuitBroken(inParkCount, instantCapacity);
 
   return (
     <>
@@ -112,11 +116,12 @@ export default async function BookingSlotsPage({ searchParams }: Props) {
               </tr>
             ) : (
               slots.map((s) => {
-                const circuitRed = s.capacity > 0 && s.checkedInCount / s.capacity >= CIRCUIT_BREAK_RATIO;
+                // 行级提示:该时段自身核销饱和度(到达自身容量 90% 标红),与园区级熔断(上方 banner)口径不同
+                const slotNearFull = s.capacity > 0 && s.checkedInCount / s.capacity >= CIRCUIT_BREAK_RATIO;
                 return (
                   <tr
                     key={s.id}
-                    className={`border-b border-border last:border-0 hover:bg-muted/50 ${circuitRed ? "bg-danger/10" : ""}`}
+                    className={`border-b border-border last:border-0 hover:bg-muted/50 ${slotNearFull ? "bg-danger/10" : ""}`}
                   >
                     <td className="py-3 px-4 font-medium text-foreground">{s.name}</td>
                     <td className="py-3 px-4 text-muted-foreground">{s.startTime}</td>
@@ -134,7 +139,7 @@ export default async function BookingSlotsPage({ searchParams }: Props) {
                     <td className="py-3 px-4 text-right text-xs">
                       {s.adminBooked}/{s.adminQuota}
                     </td>
-                    <td className={`py-3 px-4 text-right text-xs font-medium ${circuitRed ? "text-danger" : ""}`}>
+                    <td className={`py-3 px-4 text-right text-xs font-medium ${slotNearFull ? "text-danger" : ""}`}>
                       {s.checkedInCount}/{s.capacity}
                     </td>
                     <td className="py-3 px-4">

@@ -1,7 +1,7 @@
 import { bookingRepository, SlotFullError, DuplicateBookingError, SlotInactiveError } from "../repository";
 import type { BookingListFilter, SlotDefinition } from "../repository";
 import { createBookingSchema, createSlotSchema } from "../domain/schema";
-import { assertDualElements, canBook, canCancel, isCircuitBroken } from "../domain/rules";
+import { assertDualElements, canBook, canCancel } from "../domain/rules";
 import { deriveSlots, type DerivedSlot } from "../domain/slot-derive";
 import { ok, err, ErrCode, type Result } from "@/shared/result";
 import { Prisma } from "@prisma/client";
@@ -114,9 +114,9 @@ export const bookingService = {
         : err(ErrCode.SLOT_FULL, "该渠道名额已满");
     }
 
-    if (isCircuitBroken(view.checkedInCount, view.capacity)) {
-      return err(ErrCode.CIRCUIT_BREAKER_OPEN, "在园人数达限，入园预约已暂停");
-    }
+    // 红线4 熔断不在此处按单时段口径预判(分母错且对未物化派生行 checkedIn 恒 0)。
+    // 真正口径统一的执行点在核销写路径(checkin):全园在园/瞬时承载 ≥90% → PAUSE 当日全部 ACTIVE 时段,
+    // 随后 canBook(status=ACTIVE) 即拒绝新单。此处只信任时段 status,避免重复且错误的园区级判定。
 
     const daily = await bookingRepository.countDailyBookings(input.idCard, def.date);
     if (daily > 0) return err(ErrCode.DUPLICATE_BOOKING, "同一身份证当日已有预约");

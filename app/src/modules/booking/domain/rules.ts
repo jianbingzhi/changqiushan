@@ -55,12 +55,15 @@ export function canBook(slot: SlotQuotaShape, channel: BookingChannel): boolean 
   return q > 0 && b + 1 <= q;
 }
 
-export function isCircuitBroken(checkedInCount: number, capacity: number): boolean {
-  return capacity > 0 && checkedInCount / capacity >= CIRCUIT_BREAK_RATIO;
+// 红线4 口径统一:分母恒为「瞬时承载量」(park.instant_capacity),分子为「全园在园人数」
+// (当日各时段 checked_in_count 之和),绝非单时段 capacity/checkedIn(后者会让 90% 几乎永不触发,B4)。
+export function isCircuitBroken(inParkCount: number, instantCapacity: number): boolean {
+  return instantCapacity > 0 && inParkCount / instantCapacity >= CIRCUIT_BREAK_RATIO;
 }
 
-export function canResume(checkedInCount: number, capacity: number): boolean {
-  return capacity <= 0 || checkedInCount / capacity < CIRCUIT_RESUME_RATIO;
+// 迟滞恢复:全园在园回落到瞬时承载量 80% 以下方可恢复。
+export function canResume(inParkCount: number, instantCapacity: number): boolean {
+  return instantCapacity <= 0 || inParkCount / instantCapacity < CIRCUIT_RESUME_RATIO;
 }
 
 export function canCancel(slot: { date: Date; startTime: string }, now: Date): boolean {
