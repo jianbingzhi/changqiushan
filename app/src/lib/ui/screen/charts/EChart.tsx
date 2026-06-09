@@ -13,12 +13,15 @@ export function EChart({
   height = "100%",
   className,
   theme,
+  onEvents,
 }: {
   option: EChartsOption;
   height?: number | string;
   className?: string;
   /** 省略=大屏深色主题;传 null=echarts 默认浅色(供后台浅色卡片复用) */
   theme?: string | object | null;
+  /** echarts 事件回调(如 { click: (params) => ... }),供行政图下钻 */
+  onEvents?: Record<string, (params: unknown) => void>;
 }) {
   return (
     <ReactEChartsCore
@@ -30,6 +33,7 @@ export function EChart({
       style={{ height, width: "100%" }}
       opts={{ renderer: "canvas" }}
       className={className}
+      onEvents={onEvents}
     />
   );
 }

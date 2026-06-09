@@ -1,10 +1,11 @@
-import { analyticsRepository } from "@/modules/analytics";
+import { analyticsRepository, analyticsService } from "@/modules/analytics";
 import { PageHeader } from "@/lib/ui/page-header";
 import { EmptyState } from "@/lib/ui/empty-state";
 import { BarList } from "@/lib/ui/charts/BarList";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/lib/ui/table";
 import { FileDown } from "lucide-react";
 import { channelLabel } from "@/shared/labels";
+import { RegionMap } from "./_region-map";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "来源分析 · 长秋山管理后台" };
@@ -16,6 +17,9 @@ export default async function AnalyticsSourcePage() {
     count: Number(r.visitor_count),
     percentage: r.percentage,
   }));
+
+  const regionRes = await analyticsService.getVisitorRegions("province");
+  const provinceData = regionRes.ok ? regionRes.value : [];
 
   return (
     <>
@@ -43,6 +47,12 @@ export default async function AnalyticsSourcePage() {
           </ul>
         </div>
       </div>
+      {/* B33 来源行政图(身份证签发地 → 省/市/区县下钻) */}
+      <div className="mb-5">
+        <p className="mb-2 text-[13px] font-medium text-[#1F2937]">来源地区分布(行政区划下钻)</p>
+        <RegionMap provinceData={provinceData} />
+      </div>
+
       <div className="rounded-lg border border-[#E5E7EB] bg-white">
         <div className="border-b border-[#E5E7EB] px-4 py-3"><p className="text-[13px] font-medium text-[#1F2937]">渠道明细</p></div>
         <Table>
