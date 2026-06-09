@@ -2,11 +2,11 @@ import { PageHeader } from "@/lib/ui/page-header";
 import { StatCard, KpiRow } from "@/lib/ui/stat-card";
 import { StatusChip } from "@/lib/ui/status-chip";
 import { LiveDot } from "@/lib/ui/live-dot";
-import { bookingRepository } from "@/modules/booking";
+import { bookingService } from "@/modules/booking";
 import { iotRepository } from "@/modules/iot";
 import { configService } from "@/modules/system";
 import { formatCnDate } from "@/shared/format";
-import { chinaToday, chinaTodayDbDate } from "@/shared/lib/time";
+import { chinaToday } from "@/shared/lib/time";
 import { resolveInstantCapacity } from "@/shared/lib/capacity";
 import Link from "next/link";
 import { OccupancyCard } from "./_occupancy-card";
@@ -16,10 +16,10 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "仪表盘 · 长秋山森林公园智慧景区管理后台" };
 
 export default async function DashboardPage() {
-  const today = chinaTodayDbDate();
-
+  // B34: 用派生读路径(listSlotsForDate)而非裸 listSlotsByDate——否则当天无物化行时误显"暂无时段",
+  // 与 onsite/日历口径不一致。listSlotsForDate 合并「派生虚拟行 + 已物化行(真实已用量)」。
   const [slots, devices, instantCapacity] = await Promise.all([
-    bookingRepository.listSlotsByDate(today).catch(() => []),
+    bookingService.listSlotsForDate(chinaToday()).catch(() => []),
     iotRepository.listDevices().catch(() => []),
     configService.getInstantCapacity().catch(() => resolveInstantCapacity()),
   ]);

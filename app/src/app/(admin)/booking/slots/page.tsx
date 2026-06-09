@@ -1,4 +1,4 @@
-import { bookingRepository, isCircuitBroken } from "@/modules/booking";
+import { bookingService, isCircuitBroken } from "@/modules/booking";
 import { configService } from "@/modules/system";
 import { CIRCUIT_BREAK_RATIO, resolveInstantCapacity } from "@/shared/lib/capacity";
 import { requireRole, ADMIN_UP } from "@/infrastructure/auth/guard";
@@ -6,7 +6,7 @@ import { getSession } from "@/infrastructure/auth/session";
 import { PageHeader } from "@/lib/ui/page-header";
 import { StatusChip } from "@/lib/ui/status-chip";
 import { formatCnDate } from "@/shared/format";
-import { chinaTodayDbDate } from "@/shared/lib/time";
+import { chinaToday, chinaTodayDbDate } from "@/shared/lib/time";
 import { SlotTools } from "./_slot-tools";
 import Link from "next/link";
 
@@ -20,8 +20,10 @@ export default async function BookingSlotsPage({ searchParams }: Props) {
   // target 锚 UTC 零点,与 @db.Date 存储口径(new Date(dateStr+"T00:00:00Z"))一致,
   // 不依赖服务器时区(Vercel=UTC 下原 setHours 本地零点会回退一天导致查空)。
   const target = params.date ? new Date(params.date + "T00:00:00Z") : chinaTodayDbDate();
+  const dateStr = params.date ?? chinaToday();
 
-  const slots = await bookingRepository.listSlotsByDate(target);
+  // B34: 派生读路径(派生虚拟行 + 已物化行合并),与 onsite/日历口径一致;裸 listSlotsByDate 当天无物化即空。
+  const slots = await bookingService.listSlotsForDate(dateStr);
 
   const session = await getSession();
   const canManage =

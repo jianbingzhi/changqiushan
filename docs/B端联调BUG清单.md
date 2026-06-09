@@ -378,3 +378,15 @@
 ### E. 🟡 地图 UX 决策未落地(确认)
 - `/traffic/road`、`/traffic/parking` 仍是"小占位图/加载中 + KPI + 表格",非 **〔2026-06-04 决策〕高德地图整页背景 + 数据浮层**。前置 R6 高德 key。
 - **证据**:`/tmp/r-{channels,blacklist,heatmap,system,road,parking}.jpg`。
+
+## B34 · B26 读路径迁移不完整——仪表盘 + slots 配置页仍用旧 listSlotsByDate〔2026-06-09 docker QA·b-102 收尾发现〕
+- **严重度** 🟡 中(下单链路已自愈,但管理视图误显"无时段",运营会误判)　**状态** ✅ 已修+docker 实测通过(2026-06-09)　**页面** `/`(仪表盘)、`/booking/slots`、**`/api/c/slots`(排查时新发现的更严重偏差)**
+- **〔2026-06-09 修复〕** 3 处旧 `listSlotsByDate` → `bookingService.listSlotsForDate`:① 仪表盘 `(admin)/page.tsx`、② slots 配置页、③ **`api/c/slots/route.ts`(C 端游客查时段——游客当天无物化行就看不到时段、无法下单,破 B26 端到端,比管理视图更严重)**;`publicSlot` 入参收窄 Pick 使 SlotView 可传。`_dashboard-actions` 在园回拉**保持** listSlotsByDate(派生 checkedIn 恒 0,物化-only 正确且更省)。**大屏 `screen/*`** 同模式但属 b-102 排除范围、指标多为物化聚合,**未动、单独评估**。实测:仪表盘/slots 显示 5 派生时段、`/api/c/slots?date=2026-06-12` 返回可约时段;tsc/lint/lint-cn/60 测全绿。
+- **现象**(修前 docker 实测):同一天(06-09 周二,WEEKDAY 有 5 模板)——
+  - ✅ `/booking/onsite` 时段下拉**正确派生出 5 个时段**(上午场1/2、下午场1/2、傍晚场,带"现场余"额);
+  - ✅ `/booking/quota-rules` 日历**正确显示派生时段**(4 号起"派生"虚线、占0%);
+  - ❌ 但 **仪表盘"今日预约时段" + slots 配置页仍"今日暂无时段数据"**。
+- **根因**:B26 读路径只改了**下单/C端/onsite/日历**(走 `bookingService.listSlotsForDate` 派生合并),**漏改两个管理视图**:`src/app/(admin)/page.tsx:22` 与 `src/app/(admin)/booking/slots/page.tsx:24` 仍直调 `bookingRepository.listSlotsByDate`(仅返回已物化行,今日 0 行 → 空)。
+- **影响**:核心预约链路 B26 自愈**已生效**(onsite/在线能下单);但运营看仪表盘/配额页会**误以为今天没时段**,与实际可约不一致。非阻断,属迁移收尾遗漏。
+- **建议**:把 `(admin)/page.tsx:22` 和 `slots/page.tsx:24` 改用 `bookingService.listSlotsForDate(dateStr)`(派生+已物化合并),与 onsite/日历口径统一。
+- **证据**:`/tmp/b102-slots.jpg`、onsite 下拉 5 时段、`/tmp/b102-calendar.jpg`(派生显示正常)。

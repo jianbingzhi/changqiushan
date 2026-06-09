@@ -37,8 +37,13 @@ export function publicBooking(b: BookingWithSlot) {
   };
 }
 
-// 时段:只暴露小程序渠道可约名额,不泄漏其它渠道配额/在园计数明细
-export function publicSlot(s: BookingSlot) {
+// 时段:只暴露小程序渠道可约名额,不泄漏其它渠道配额/在园计数明细。
+// 入参收窄到实际用到的字段,使「已物化行(BookingSlot)」与「派生虚拟行(SlotView)」都可传入(B34)。
+type PublicSlotInput = Pick<
+  BookingSlot,
+  "id" | "name" | "date" | "startTime" | "endTime" | "capacity" | "miniProgramQuota" | "miniProgramBooked" | "status"
+>;
+export function publicSlot(s: PublicSlotInput) {
   const remaining = Math.max(0, s.miniProgramQuota - s.miniProgramBooked);
   return {
     id: s.id,

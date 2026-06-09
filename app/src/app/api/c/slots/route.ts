@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { bookingRepository } from "@/modules/booking";
+import { bookingService } from "@/modules/booking";
 import { jsonOk, jsonErr, serverError } from "../_lib/respond";
 import { publicSlot } from "../_lib/serialize";
 import { ErrCode } from "@/shared/result";
@@ -14,7 +14,9 @@ export async function GET(req: NextRequest) {
     return jsonErr(ErrCode.INVALID_INPUT, "日期参数格式应为 2026-06-15");
   }
   try {
-    const slots = await bookingRepository.listSlotsByDate(new Date(`${date}T00:00:00.000Z`));
+    // B34: 派生读路径——游客查时段须含"按规则派生的虚拟时段"(首单惰性物化前),
+    // 否则当天无物化行时游客看到空、无法下单(破 B26 端到端自愈)。
+    const slots = await bookingService.listSlotsForDate(date);
     return jsonOk(slots.map(publicSlot));
   } catch (e) {
     console.error("[c/slots] 服务异常:", e);
