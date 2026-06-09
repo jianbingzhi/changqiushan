@@ -12,16 +12,19 @@ export function EChart({
   option,
   height = "100%",
   className,
+  theme,
 }: {
   option: EChartsOption;
   height?: number | string;
   className?: string;
+  /** 省略=大屏深色主题;传 null=echarts 默认浅色(供后台浅色卡片复用) */
+  theme?: string | object | null;
 }) {
   return (
     <ReactEChartsCore
       echarts={echarts}
       option={option}
-      theme={SCREEN_THEME}
+      theme={theme === undefined ? SCREEN_THEME : (theme ?? undefined)}
       notMerge
       lazyUpdate
       style={{ height, width: "100%" }}

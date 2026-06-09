@@ -2,6 +2,7 @@ import { analyticsRepository } from "@/modules/analytics";
 import { PageHeader } from "@/lib/ui/page-header";
 import { EmptyState } from "@/lib/ui/empty-state";
 import { BarList } from "@/lib/ui/charts/BarList";
+import { Heatmap724 } from "@/lib/ui/screen/charts/Heatmap724";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/lib/ui/table";
 import { FileDown } from "lucide-react";
 
@@ -12,6 +13,15 @@ export default async function AnalyticsHeatmapPage() {
   const raw = await analyticsRepository.getHourlyPeak();
   const rows = raw.map((r) => ({ hour: r.hour, avg: r.avg_visitors, max: Number(r.max_visitors) }));
 
+  // 时段 × 星期 预约热力(复用 C4 MV analytics_weekly_hourly_heat,dow 0=周一..6=周日)
+  const heat = await analyticsRepository.getWeeklyHourlyHeat();
+  const weekMatrix = Array.from({ length: 7 }, () => Array<number>(24).fill(0));
+  for (const r of heat) {
+    const inBounds = r.dow >= 0 && r.dow <= 6 && r.hour >= 0 && r.hour <= 23;
+    if (inBounds) weekMatrix[r.dow][r.hour] = Number(r.bookings);
+  }
+  const hasHeat = heat.length > 0;
+
   return (
     <>
       <PageHeader title="热力图分析" description="景区内游客密度热力分布"
@@ -21,6 +31,15 @@ export default async function AnalyticsHeatmapPage() {
           </a>
         }
       />
+      <div className="mb-5 rounded-lg border border-[#E5E7EB] bg-white p-4">
+        <p className="mb-1 text-[13px] font-medium text-[#1F2937]">时段 × 星期预约热力</p>
+        <p className="mb-3 text-[12px] text-[#9CA3AF]">按星期与小时聚合的预约分布，颜色越深预约越集中</p>
+        {hasHeat ? (
+          <Heatmap724 matrix={weekMatrix} variant="light" metricLabel="预约" height={340} />
+        ) : (
+          <EmptyState message="暂无时段×星期热力数据" />
+        )}
+      </div>
       <div className="mb-5 rounded-lg border border-[#E5E7EB] bg-white p-4">
         <p className="mb-3 text-[13px] font-medium text-[#1F2937]">各时段游客密度（峰值人数）</p>
         <BarList height={400} emptyText="暂无时段密度数据" data={rows.map((r) => ({ label: `${r.hour} 时`, value: r.max, hint: `峰值 ${r.max}` }))} />
