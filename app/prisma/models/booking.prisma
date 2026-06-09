@@ -109,6 +109,16 @@ model SysSlotTemplate {
   @@map("booking_slot_template")
 }
 
+// B31 每日总库存计数(防黄牛红线 PRD1.2)。主键即日期,惰性建行;下单原子 +1 守 < 总库存,
+// 取消/爽约回退 GREATEST(0, -1)。始终计数(反映当日确认数),仅当 SysConfig 总库存>0 时才作闸拦截。
+model BookingDailyCounter {
+  date        DateTime @id @db.Date
+  totalBooked Int      @default(0) @map("total_booked")
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("booking_daily_counter")
+}
+
 // BE-A2 节假日/调休/闭园覆盖。中国调休不可纯星期推算 → 运营手录,覆盖 inferDayType 的星期推断。
 model SysHolidayCalendar {
   date      DateTime @id @db.Date

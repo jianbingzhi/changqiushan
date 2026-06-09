@@ -41,6 +41,17 @@ export const configService = {
     return resolveInstantCapacity(await readRaw("park.instant_capacity"));
   },
 
+  /** B31 防黄牛三阈值。app 路由层读出后注入 booking.createBooking(守 eslint-boundaries)。
+   *  total_stock / per_phone 默认 0=不限;per_idcard 默认 1。 */
+  async getBookingLimits(): Promise<{ dailyTotalStock: number; perIdCard: number; perPhone: number }> {
+    const [dailyTotalStock, perIdCard, perPhone] = await Promise.all([
+      this.getInt("booking.daily_total_stock", 0),
+      this.getInt("booking.daily_limit_per_idcard", 1),
+      this.getInt("booking.daily_limit_per_phone", 0),
+    ]);
+    return { dailyTotalStock, perIdCard, perPhone };
+  },
+
   listAll() {
     return systemRepository.findAllConfig();
   },

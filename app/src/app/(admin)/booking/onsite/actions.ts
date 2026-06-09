@@ -1,6 +1,7 @@
 "use server";
 
 import { bookingService } from "@/modules/booking";
+import { configService } from "@/modules/system";
 import { riskcontrolService } from "@/modules/riskcontrol";
 import { requireRole, ANY_STAFF } from "@/infrastructure/auth/guard";
 
@@ -52,6 +53,8 @@ export async function submitOnsiteBooking(
     return { ok: false, message: "该身份证已被列入黑名单，暂无法预约，请引导游客走申诉流程" };
   }
 
+  // B31:app 路由层读出防黄牛阈值注入(守 eslint-boundaries,booking 不反向 import system)
+  const limits = await configService.getBookingLimits();
   const result = await bookingService.createBooking({
     slotId: input.slotId,
     date: input.date,
@@ -61,7 +64,7 @@ export async function submitOnsiteBooking(
     plate: input.hasVehicle ? input.plate : undefined,
     noVehicleDeclared: input.hasVehicle ? false : input.noVehicleDeclared,
     channel: "ONSITE_MAKEUP",
-  });
+  }, limits);
 
   if (!result.ok) return { ok: false, message: result.message };
   return { ok: true, bookingId: result.value.id };

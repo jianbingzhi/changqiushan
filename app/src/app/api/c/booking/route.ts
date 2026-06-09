@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { bookingService } from "@/modules/booking";
+import { configService } from "@/modules/system";
 import { riskcontrolService } from "@/modules/riskcontrol";
 import { wechatAuthService } from "@/modules/wechat";
 import { requireVisitor } from "../_lib/requireVisitor";
@@ -37,7 +38,9 @@ export async function POST(req: NextRequest) {
     }
 
     // 红线#2:写库唯一经 createBooking,固定渠道 MINI_PROGRAM,双要素校验无第二实现
-    const result = await bookingService.createBooking({ ...body, channel: "MINI_PROGRAM" });
+    // B31:防黄牛阈值由路由层注入(总库存/单证/单手机)
+    const limits = await configService.getBookingLimits();
+    const result = await bookingService.createBooking({ ...body, channel: "MINI_PROGRAM" }, limits);
     if (!result.ok) return jsonErr(result.code, result.message);
 
     const booking = result.value;

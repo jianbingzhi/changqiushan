@@ -1,5 +1,8 @@
-import { bookingRepository, SlotFullError, DuplicateBookingError, SlotInactiveError } from "../repository";
-import type { BookingListFilter, SlotDefinition } from "../repository";
+import {
+  bookingRepository, SlotFullError, DuplicateBookingError, SlotInactiveError,
+  DailyStockExhaustedError, PhoneLimitError, IdCardLimitError,
+} from "../repository";
+import type { BookingListFilter, SlotDefinition, BookingLimits } from "../repository";
 import { createBookingSchema, createSlotSchema } from "../domain/schema";
 import { assertDualElements, canBook, canCancel } from "../domain/rules";
 import { deriveSlots, type DerivedSlot } from "../domain/slot-derive";
@@ -89,7 +92,7 @@ async function resolveSlotForBooking(
 }
 
 export const bookingService = {
-  async createBooking(raw: unknown): Promise<Result<Booking>> {
+  async createBooking(raw: unknown, limits?: BookingLimits): Promise<Result<Booking>> {
     const parsed = createBookingSchema.safeParse(raw);
     if (!parsed.success) {
       return err(ErrCode.INVALID_INPUT, parsed.error.issues[0]?.message ?? "输入校验失败");
@@ -118,8 +121,11 @@ export const bookingService = {
     // 真正口径统一的执行点在核销写路径(checkin):全园在园/瞬时承载 ≥90% → PAUSE 当日全部 ACTIVE 时段,
     // 随后 canBook(status=ACTIVE) 即拒绝新单。此处只信任时段 status,避免重复且错误的园区级判定。
 
-    const daily = await bookingRepository.countDailyBookings(input.idCard, def.date);
-    if (daily > 0) return err(ErrCode.DUPLICATE_BOOKING, "同一身份证当日已有预约");
+    // 单证 N=1(默认)快路径预判:命中即免入事务;N>1 由事务内计数 + advisory 锁处理。
+    if ((limits?.perIdCard ?? 1) <= 1) {
+      const daily = await bookingRepository.countDailyBookings(input.idCard, def.date);
+      if (daily > 0) return err(ErrCode.DUPLICATE_BOOKING, "同一身份证当日已有预约");
+    }
 
     try {
       const booking = await bookingRepository.materializeAndBook(def, {
@@ -130,7 +136,7 @@ export const bookingService = {
         plate: input.plate,
         noVehicleDeclared: input.noVehicleDeclared ?? false,
         channel: input.channel,
-      });
+      }, limits);
       return ok(booking);
     } catch (e) {
       if (e instanceof SlotFullError) {
@@ -138,6 +144,15 @@ export const bookingService = {
       }
       if (e instanceof SlotInactiveError) {
         return err(ErrCode.SLOT_INACTIVE, "该时段已暂停预约（在园人数达限）");
+      }
+      if (e instanceof DailyStockExhaustedError) {
+        return err(ErrCode.SLOT_FULL, "当日预约名额已约满，请改约其他日期");
+      }
+      if (e instanceof PhoneLimitError) {
+        return err(ErrCode.DUPLICATE_BOOKING, "该手机号当日预约已达上限");
+      }
+      if (e instanceof IdCardLimitError) {
+        return err(ErrCode.DUPLICATE_BOOKING, "同一身份证当日预约已达上限");
       }
       if (e instanceof DuplicateBookingError) {
         return err(ErrCode.DUPLICATE_BOOKING, "同一身份证当日已有预约");

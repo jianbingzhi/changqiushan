@@ -55,6 +55,37 @@ export class SlotInactiveError extends Error {
   }
 }
 
+// B31 防黄牛:每日总库存售罄
+export class DailyStockExhaustedError extends Error {
+  constructor() {
+    super("daily_stock_exhausted");
+    this.name = "DailyStockExhaustedError";
+  }
+}
+
+// B31 防黄牛:单手机号当日预约达上限
+export class PhoneLimitError extends Error {
+  constructor() {
+    super("phone_limit_reached");
+    this.name = "PhoneLimitError";
+  }
+}
+
+// B31 防黄牛:单身份证当日预约达上限(N>1 计数路径;N=1 由部分唯一索引拦截)
+export class IdCardLimitError extends Error {
+  constructor() {
+    super("idcard_limit_reached");
+    this.name = "IdCardLimitError";
+  }
+}
+
+// B31 下单时注入的防黄牛阈值(由 app 路由层从 configService 读出)。默认不限/1。
+export type BookingLimits = {
+  dailyTotalStock: number; // 0=不限
+  perIdCard:       number; // 默认 1
+  perPhone:        number; // 0=不限
+};
+
 // B26: 首单惰性物化所需的权威时段定义(一律来自服务端派生,绝不信前端)
 export type SlotDefinition = {
   id:               string;
@@ -247,14 +278,31 @@ export const bookingRepository = {
   //   ② SELECT … FOR UPDATE 取真实行(按 date+start_time,兼容存量随机 id 行)并行锁
   //   ③ 校验 ACTIVE → 原子配额 UPDATE 守卫(booked+1<=quota,affected=0=满)
   // capacity/各渠道名额只信 slotDef(服务端派生),配额守卫则按真实行当前 quota(尊重运营手调)。
-  async materializeAndBook(slotDef: SlotDefinition, data: CreateBookingData): Promise<Booking> {
+  async materializeAndBook(
+    slotDef: SlotDefinition,
+    data: CreateBookingData,
+    limits?: BookingLimits,
+  ): Promise<Booking> {
     const col = CHANNEL_COL[data.channel];
     const qrCode = "bk-" + randomBytes(29).toString("hex");
     const qrSecret = randomBytes(32).toString("hex");
     const capacity =
       slotDef.miniProgramQuota + slotDef.onsiteQuota + slotDef.otaQuota + slotDef.adminQuota;
+    const dateStr = slotDef.date.toISOString().slice(0, 10);
+    const perPhone = limits?.perPhone ?? 0;
+    const perIdCard = limits?.perIdCard ?? 1;
+    const totalStock = limits?.dailyTotalStock ?? 0;
 
     return db.$transaction(async (tx) => {
+      // 事务级 advisory 锁(并发计数路径需先序列化同键)。固定顺序 phone→idcard→slot 防死锁。
+      // 单证 N=1 走部分唯一索引快路径,无需锁;仅 N>1 才加锁计数。
+      if (perPhone > 0) {
+        await tx.$executeRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtext(${`bk:phone:${data.phone}:${dateStr}`}))`);
+      }
+      if (perIdCard > 1) {
+        await tx.$executeRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtext(${`bk:idcard:${data.idCard}:${dateStr}`}))`);
+      }
+
       await tx.$executeRaw(Prisma.sql`
         INSERT INTO booking_slot
           (id, name, date, start_time, end_time, capacity,
@@ -264,8 +312,10 @@ export const bookingRepository = {
           (${slotDef.id}::uuid, ${slotDef.name}, ${slotDef.date}, ${slotDef.startTime}, ${slotDef.endTime}, ${capacity},
            ${slotDef.miniProgramQuota}, ${slotDef.onsiteQuota}, ${slotDef.otaQuota}, ${slotDef.adminQuota},
            'ACTIVE'::"BookingSlotStatus", NOW(), NOW())
-        ON CONFLICT (date, start_time) DO NOTHING
+        ON CONFLICT DO NOTHING
       `);
+      // 用 bare ON CONFLICT(不点名约束):并发同虚拟 id 撞主键、存量随机 id 行撞(date,start_time)唯一,
+      // 两种冲突都需吞掉;点名单一约束只能盖其一(并发首单会撞 pkey)。随后按 date+start_time 取真实行。
 
       const rows = await tx.$queryRaw<{ id: string; status: BookingSlotStatus }[]>(Prisma.sql`
         SELECT id, status FROM booking_slot
@@ -275,6 +325,25 @@ export const bookingRepository = {
       const row = rows[0];
       if (!row) throw new SlotFullError(); // 兜底:刚插入且无冲突却取不到行,理论不可达
       if (row.status !== "ACTIVE") throw new SlotInactiveError();
+
+      // B31 单手机号当日上限(已加锁,count 安全)。slot_date 为反范式列(触发器同步)。
+      if (perPhone > 0) {
+        const [{ n }] = await tx.$queryRaw<[{ n: bigint }]>(Prisma.sql`
+          SELECT COUNT(*)::bigint AS n FROM booking
+          WHERE phone = ${data.phone} AND slot_date = ${slotDef.date}
+            AND status IN ('CONFIRMED'::"BookingStatus", 'CHECKED_IN'::"BookingStatus")
+        `);
+        if (Number(n) >= perPhone) throw new PhoneLimitError();
+      }
+      // B31 单证 N>1 计数路径(N=1 由部分唯一索引在 booking.create 处拦截)
+      if (perIdCard > 1) {
+        const [{ n }] = await tx.$queryRaw<[{ n: bigint }]>(Prisma.sql`
+          SELECT COUNT(*)::bigint AS n FROM booking
+          WHERE id_card = ${data.idCard} AND slot_date = ${slotDef.date}
+            AND status IN ('CONFIRMED'::"BookingStatus", 'CHECKED_IN'::"BookingStatus")
+        `);
+        if (Number(n) >= perIdCard) throw new IdCardLimitError();
+      }
 
       const affected = await tx.$executeRaw(Prisma.sql`
         UPDATE booking_slot
@@ -286,6 +355,26 @@ export const bookingRepository = {
           AND ${Prisma.raw(`"${col}_booked"`)} + 1 <= ${Prisma.raw(`"${col}_quota"`)}
       `);
       if (affected === 0) throw new SlotFullError();
+
+      // B31 每日总库存:始终计数(反映当日确认数,供取消回退一致);仅 totalStock>0 时作闸。
+      if (totalStock > 0) {
+        const counted = await tx.$queryRaw<{ total_booked: number }[]>(Prisma.sql`
+          INSERT INTO booking_daily_counter (date, total_booked, updated_at)
+          VALUES (${slotDef.date}, 1, NOW())
+          ON CONFLICT (date) DO UPDATE
+            SET total_booked = booking_daily_counter.total_booked + 1, updated_at = NOW()
+          WHERE booking_daily_counter.total_booked < ${totalStock}
+          RETURNING total_booked
+        `);
+        if (counted.length === 0) throw new DailyStockExhaustedError();
+      } else {
+        await tx.$executeRaw(Prisma.sql`
+          INSERT INTO booking_daily_counter (date, total_booked, updated_at)
+          VALUES (${slotDef.date}, 1, NOW())
+          ON CONFLICT (date) DO UPDATE
+            SET total_booked = booking_daily_counter.total_booked + 1, updated_at = NOW()
+        `);
+      }
 
       try {
         return await tx.booking.create({
@@ -332,6 +421,13 @@ export const bookingRepository = {
             booked_count = GREATEST(0, booked_count - 1),
             updated_at = NOW()
         WHERE id = ${booking.slotId}::uuid
+      `);
+
+      // B31 每日总库存回退(取消释放名额)。GREATEST 防负;按时段日期定位计数行。
+      await tx.$executeRaw(Prisma.sql`
+        UPDATE booking_daily_counter
+        SET total_booked = GREATEST(0, total_booked - 1), updated_at = NOW()
+        WHERE date = (SELECT date FROM booking_slot WHERE id = ${booking.slotId}::uuid)
       `);
     });
   },
