@@ -38,6 +38,13 @@ export interface WeeklyHourlyHeatRow {
   checkins: bigint;
 }
 
+// B33 来源行政区划聚合行(省/市/区县通用)。code=区划码,name=中文名(未命中码表→未知)
+export interface VisitorRegionRow {
+  code:          string;
+  name:          string;
+  visitor_count: bigint;
+}
+
 export const analyticsRepository = {
   getDailyTraffic(startDate: Date, endDate: Date): Promise<DailyTrafficRow[]> {
     const start = toCstDateStr(startDate);
@@ -103,6 +110,54 @@ export const analyticsRepository = {
         UNION ALL SELECT '年龄·60岁以上', COUNT(*) FILTER (WHERE age > 60), 50 FROM visitors
       ) q
       ORDER BY q.sort_order
+    `);
+  },
+
+  // B33 来源行政图(PRD 1.4):身份证前 6 位=区县/前 4=市/前 2=省,DISTINCT ON 去重游客后按粒度聚合。
+  // LEFT JOIN 离线码表(GB/T2260)取中文名,未命中(历史码/缺录)回退「未知」。不依赖高德 key。
+  getVisitorRegionByProvince(): Promise<VisitorRegionRow[]> {
+    return db.$queryRaw<VisitorRegionRow[]>(Prisma.sql`
+      WITH v AS (
+        SELECT DISTINCT ON (id_card) id_card, substring(id_card FROM 1 FOR 2) AS region
+        FROM booking
+        WHERE status <> 'CANCELLED'::"BookingStatus" AND id_card ~ '^[0-9]{17}[0-9Xx]$'
+      )
+      SELECT v.region AS code, COALESCE(g.name, '未知') AS name, COUNT(*)::bigint AS visitor_count
+      FROM v LEFT JOIN geo_admin_division g ON g.code = v.region AND g.level = 'PROVINCE'::"GeoLevel"
+      GROUP BY v.region, g.name
+      ORDER BY visitor_count DESC
+    `);
+  },
+
+  // 省下钻市:可选 provinceCode(2 位)限定;无则全国所有市
+  getVisitorRegionByCity(provinceCode?: string): Promise<VisitorRegionRow[]> {
+    return db.$queryRaw<VisitorRegionRow[]>(Prisma.sql`
+      WITH v AS (
+        SELECT DISTINCT ON (id_card) id_card, substring(id_card FROM 1 FOR 4) AS region
+        FROM booking
+        WHERE status <> 'CANCELLED'::"BookingStatus" AND id_card ~ '^[0-9]{17}[0-9Xx]$'
+          ${provinceCode ? Prisma.sql`AND substring(id_card FROM 1 FOR 2) = ${provinceCode}` : Prisma.empty}
+      )
+      SELECT v.region AS code, COALESCE(g.name, '未知') AS name, COUNT(*)::bigint AS visitor_count
+      FROM v LEFT JOIN geo_admin_division g ON g.code = v.region AND g.level = 'CITY'::"GeoLevel"
+      GROUP BY v.region, g.name
+      ORDER BY visitor_count DESC
+    `);
+  },
+
+  // 市下钻区县:可选 cityCode(4 位)限定;无则所有区县
+  getVisitorRegionByDistrict(cityCode?: string): Promise<VisitorRegionRow[]> {
+    return db.$queryRaw<VisitorRegionRow[]>(Prisma.sql`
+      WITH v AS (
+        SELECT DISTINCT ON (id_card) id_card, substring(id_card FROM 1 FOR 6) AS region
+        FROM booking
+        WHERE status <> 'CANCELLED'::"BookingStatus" AND id_card ~ '^[0-9]{17}[0-9Xx]$'
+          ${cityCode ? Prisma.sql`AND substring(id_card FROM 1 FOR 4) = ${cityCode}` : Prisma.empty}
+      )
+      SELECT v.region AS code, COALESCE(g.name, '未知') AS name, COUNT(*)::bigint AS visitor_count
+      FROM v LEFT JOIN geo_admin_division g ON g.code = v.region AND g.level = 'DISTRICT'::"GeoLevel"
+      GROUP BY v.region, g.name
+      ORDER BY visitor_count DESC
     `);
   },
 

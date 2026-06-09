@@ -1,0 +1,20 @@
+// B33 来源行政区划码表(GB/T 2260)。身份证前 6 位 = 区县码,前 4 位 = 市,前 2 位 = 省。
+// 离线码表 → 来源分析行政图下钻,不依赖高德 key。code 按自然长度存(省2/市4/区县6)。
+
+enum GeoLevel {
+  PROVINCE
+  CITY
+  DISTRICT
+}
+
+model GeoAdminDivision {
+  code       String   @id @db.VarChar(6)
+  name       String   @db.VarChar(40)
+  level      GeoLevel
+  parentCode String?  @map("parent_code") @db.VarChar(6)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([level])
+  @@index([parentCode])
+  @@map("geo_admin_division")
+}
