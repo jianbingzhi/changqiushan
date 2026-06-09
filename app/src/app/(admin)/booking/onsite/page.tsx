@@ -5,6 +5,7 @@ import { Check, ChevronRight } from "lucide-react";
 import { PageHeader } from "@/lib/ui/page-header";
 import { Button } from "@/lib/ui/button";
 import { Input } from "@/lib/ui/input";
+import { DatePicker } from "@/lib/ui/date-picker";
 import { cn } from "@/lib/ui/utils";
 import { chinaToday, formatCnDate } from "@/shared/lib/time";
 import { getOnsiteSlots, submitOnsiteBooking, type OnsiteSlotOption } from "./actions";
@@ -185,13 +186,12 @@ export default function OnsitePage() {
           <div className="space-y-4">
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-[#1F2937]">预约日期</label>
-              <Input
-                type="date"
+              <DatePicker
+                name="onsiteDate"
                 value={form.date}
-                onChange={(e) => setForm((f) => ({ ...f, date: e.target.value, slotId: "", slotLabel: "" }))}
+                onChange={(date) => setForm((f) => ({ ...f, date, slotId: "", slotLabel: "" }))}
                 className="max-w-xs"
               />
-              {form.date && <p className="text-[12px] text-[#6B7280]">{formatCnDate(form.date)}</p>}
               {errors.date && <p className="text-[12px] text-[#DC2626]">{errors.date}</p>}
             </div>
             <div className="space-y-1.5">

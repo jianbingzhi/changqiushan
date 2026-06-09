@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { formatCnDate } from "@/shared/lib/time";
+import { DatePicker } from "@/lib/ui/date-picker";
 
-// C10:原生 type="date" 浏览器渲染为 06/03/2026,控件旁同步中文回显「2026 年 6 月 3 日」。
-// 仍走 GET 表单提交(value 保持 YYYY-MM-DD 不破契约),只增加可见的中文日期。
+// 中文日期选择器(DatePicker)替换原生 type=date;trigger 直接显示「2026 年 6 月 3 日」,
+// 隐藏 input 保持 GET 表单契约(value 仍为 YYYY-MM-DD)。
 export function DateRangeFilter({
   startDate,
   endDate,
@@ -27,17 +27,7 @@ export function DateRangeFilter({
           <label className="text-[13px] text-[#6B7280]" htmlFor={f.name}>
             {f.label}
           </label>
-          <input
-            id={f.name}
-            name={f.name}
-            type="date"
-            value={f.value}
-            onChange={(e) => f.set(e.target.value)}
-            className="h-9 rounded-md border border-[#E5E7EB] px-3 text-sm text-[#1F2937] focus:outline-none focus:ring-2 focus:ring-[#2D5A27]/30"
-          />
-          <span className="text-[12px] text-[#9CA3AF]">
-            {f.value ? formatCnDate(f.value) : "未选择"}
-          </span>
+          <DatePicker id={f.name} name={f.name} value={f.value} onChange={f.set} />
         </div>
       ))}
       <button

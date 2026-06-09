@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, Pencil, Trash2, CalendarPlus } from "lucide-react";
 import { Button } from "@/lib/ui/button";
 import { Input } from "@/lib/ui/input";
+import { DatePicker } from "@/lib/ui/date-picker";
 import { formatCnDate } from "@/shared/format";
 import {
   saveTemplateAction,
@@ -324,8 +325,8 @@ export function QuotaRules({
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <div className="space-y-1.5">
             <label htmlFor="hol-date" className="text-xs text-muted-foreground">日期</label>
-            <Input id="hol-date" type="date" value={holForm.date}
-              onChange={(e) => setHolForm((f) => ({ ...f, date: e.target.value }))} />
+            <DatePicker id="hol-date" name="holDate" value={holForm.date}
+              onChange={(date) => setHolForm((f) => ({ ...f, date }))} />
           </div>
           <div className="space-y-1.5">
             <label htmlFor="hol-daytype" className="text-xs text-muted-foreground">日期类型</label>
