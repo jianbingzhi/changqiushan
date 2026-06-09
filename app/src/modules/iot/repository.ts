@@ -22,6 +22,24 @@ export const iotRepository = {
     });
   },
 
+  createDevice(data: { name: string; type: string; location?: string }) {
+    return db.iotDevice.create({
+      data: { name: data.name, type: data.type, location: data.location ?? null },
+    });
+  },
+
+  updateDevice(id: string, data: { name: string; type: string; location?: string }) {
+    return db.iotDevice.update({
+      where: { id },
+      data: { name: data.name, type: data.type, location: data.location ?? null },
+    });
+  },
+
+  // 删除设备:外键 onDelete: Cascade 会连带删除其全部心跳记录(iot_heartbeat)。
+  deleteDevice(id: string) {
+    return db.iotDevice.delete({ where: { id } });
+  },
+
   addHeartbeat(data: {
     deviceId:       string;
     latency:        number;

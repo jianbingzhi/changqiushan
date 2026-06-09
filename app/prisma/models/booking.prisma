@@ -119,6 +119,19 @@ model BookingDailyCounter {
   @@map("booking_daily_counter")
 }
 
+// B33③ 渠道接入配置(R-只读 CRUD 补齐)。code 即 BookingChannel 枚举,固定 4 条;
+// 运营可改 label/说明/排序 + 启停;下单时校验 enabled。
+model ChannelConfig {
+  code        BookingChannel @id
+  label       String         @db.VarChar(40)
+  description String         @db.VarChar(120)
+  enabled     Boolean        @default(true)
+  sortOrder   Int            @default(0) @map("sort_order")
+  updatedAt   DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("booking_channel_config")
+}
+
 // BE-A2 节假日/调休/闭园覆盖。中国调休不可纯星期推算 → 运营手录,覆盖 inferDayType 的星期推断。
 model SysHolidayCalendar {
   date      DateTime @id @db.Date

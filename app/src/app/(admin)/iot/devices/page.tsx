@@ -7,6 +7,7 @@ import { EmptyState } from "@/lib/ui/empty-state";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/lib/ui/table";
 import { iotRepository } from "@/modules/iot";
 import { formatCnDateTime } from "@/shared/format";
+import { DeviceProvider, DeviceToolbar, DeviceRowActions } from "./_device-form";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "实时设备列表 · 长秋山管理后台" };
@@ -32,6 +33,8 @@ export default async function IotDevicesPage() {
           <StatCard label="告警"     value={alert}   unit="台" />
         </KpiRow>
       </div>
+      <DeviceProvider>
+      <DeviceToolbar />
       <div className="rounded-lg border border-border bg-card">
         <Table>
           <TableHeader>
@@ -64,7 +67,10 @@ export default async function IotDevicesPage() {
                   </TableCell>
                   <TableCell className="text-[13px] font-medium tabular-nums text-text-muted">—</TableCell>
                   <TableCell>
-                    <Link href={`/iot/${device.id}`} className="text-[13px] text-primary hover:underline">查看详情</Link>
+                    <div className="flex items-center gap-2">
+                      <Link href={`/iot/${device.id}`} className="text-[13px] text-primary hover:underline">查看详情</Link>
+                      <DeviceRowActions row={{ id: device.id, name: device.name, type: device.type, location: device.location }} />
+                    </div>
                   </TableCell>
                 </TableRow>
               );
@@ -72,6 +78,7 @@ export default async function IotDevicesPage() {
           </TableBody>
         </Table>
       </div>
+      </DeviceProvider>
     </>
   );
 }

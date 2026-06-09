@@ -106,6 +106,14 @@ export const bookingService = {
     );
     if (!dualCheck.ok) return dualCheck;
 
+    // B33③ 渠道启停校验:被停用的渠道不接收新单(无配置行视为启用)。
+    // 取舍:此检查与下单 INSERT 不在同一事务,存在「检查后、落库前被停用」的极窄竞态;
+    // 渠道启停是低频运营操作(非高并发闸),接受最终一致,不为此引入跨表锁。
+    const channelRow = await bookingRepository.getChannelConfig(input.channel);
+    if (channelRow && !channelRow.enabled) {
+      return err(ErrCode.CHANNEL_DISABLED, "该预约渠道已暂停接入");
+    }
+
     // B26 解析时段:物化优先(按 id 直查),否则按 date 派生回退(虚拟时段首单惰性物化)。
     const resolved = await resolveSlotForBooking(input.slotId, input.date);
     if (!resolved) return err(ErrCode.NOT_FOUND, "预约时段不存在");

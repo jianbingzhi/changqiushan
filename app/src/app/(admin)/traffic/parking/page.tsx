@@ -5,9 +5,21 @@ import { EmptyState } from "@/lib/ui/empty-state";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/lib/ui/table";
 import { trafficRepository } from "@/modules/traffic";
 import { formatCnDateTime } from "@/shared/format";
+import { ParkingForm, type ParkingLotRow } from "./_parking-form";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "停车场动静态上图 · 长秋山管理后台" };
+
+function toCoord(value: unknown): { lng: number | null; lat: number | null } {
+  if (value && typeof value === "object" && "lng" in value && "lat" in value) {
+    const v = value as { lng: unknown; lat: unknown };
+    return {
+      lng: typeof v.lng === "number" ? v.lng : null,
+      lat: typeof v.lat === "number" ? v.lat : null,
+    };
+  }
+  return { lng: null, lat: null };
+}
 
 export default async function TrafficParkingPage() {
   const lots = await trafficRepository.listParkingLots().catch(() => []);
@@ -15,6 +27,11 @@ export default async function TrafficParkingPage() {
   const totalSpaces   = lots.reduce((s, p) => s + p.capacity, 0);
   const totalOccupied = lots.reduce((s, p) => s + p.occupied, 0);
   const fullCount     = lots.filter((p) => p.status === "FULL").length;
+
+  const lotRows: ParkingLotRow[] = lots.map((lot) => {
+    const { lng, lat } = toCoord(lot.coordinates);
+    return { id: lot.id, name: lot.name, capacity: lot.capacity, status: lot.status, location: lot.location, lng, lat };
+  });
 
   return (
     <>
@@ -29,6 +46,9 @@ export default async function TrafficParkingPage() {
           <StatCard label="满车场数量" value={fullCount} unit="个" />
         </KpiRow>
       </div>
+
+      <ParkingForm lots={lotRows} />
+
       {/* 地图占位 */}
       <div className="mb-4 rounded-lg border border-border bg-card p-4">
         <p className="mb-3 text-[13px] font-medium text-muted-foreground">停车场分布地图</p>

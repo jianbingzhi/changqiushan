@@ -215,6 +215,17 @@ export const bookingRepository = {
     return db.sysHolidayCalendar.findUnique({ where: { date } });
   },
 
+  // B33③ 渠道接入配置 CRUD(固定 4 条枚举,只改不增删)
+  listChannelConfigs() {
+    return db.channelConfig.findMany({ orderBy: [{ sortOrder: "asc" }, { code: "asc" }] });
+  },
+  getChannelConfig(code: BookingChannel) {
+    return db.channelConfig.findUnique({ where: { code } });
+  },
+  updateChannelConfig(code: BookingChannel, data: Prisma.ChannelConfigUpdateInput) {
+    return db.channelConfig.update({ where: { code }, data });
+  },
+
   getBookingWithSlot(id: string) {
     return db.booking.findUnique({
       where: { id },
