@@ -73,6 +73,52 @@ export async function deleteHolidayAction(date: string): Promise<RuleActionResul
   return { ok: true, message: "已删除特例" };
 }
 
+// B31 区间套规则:把日期类型/闭园批量写入区间(写特例,不触发物化)
+export interface RangeRulePayload {
+  startDate: string;
+  endDate: string;
+  dayType: string;
+  closed: boolean;
+  note?: string;
+}
+
+export async function applyRangeRuleAction(payload: RangeRulePayload): Promise<RuleActionResult> {
+  const auth = await requireRole(ADMIN_UP);
+  if (!auth.ok) return { ok: false, message: auth.message };
+
+  const res = await quotaRuleService.applyRangeRule({
+    startDate: payload.startDate,
+    endDate: payload.endDate,
+    dayType: payload.dayType as "WEEKDAY" | "WEEKEND" | "HOLIDAY",
+    closed: payload.closed,
+    note: payload.note,
+  });
+  if (!res.ok) return { ok: false, message: res.message };
+
+  revalidatePath("/booking/quota-rules");
+  return { ok: true, message: `已对 ${res.value.applied} 天套用规则` };
+}
+
+// B31 防黄牛阈值保存(每日总库存 / 单证 / 单手机上限)
+export interface BookingLimitsPayload {
+  dailyTotalStock: number;
+  perIdCard: number;
+  perPhone: number;
+}
+
+export async function saveBookingLimitsAction(payload: BookingLimitsPayload): Promise<RuleActionResult> {
+  const auth = await requireRole(ADMIN_UP);
+  if (!auth.ok) return { ok: false, message: auth.message };
+
+  const clamp = (n: number) => (Number.isFinite(n) && n >= 0 ? Math.trunc(n) : 0);
+  await configService.setConfig({ key: "booking.daily_total_stock", value: String(clamp(payload.dailyTotalStock)), valueType: "int", label: "每日总库存上限(0=不限)" });
+  await configService.setConfig({ key: "booking.daily_limit_per_idcard", value: String(Math.max(1, clamp(payload.perIdCard))), valueType: "int", label: "单身份证单日预约上限" });
+  await configService.setConfig({ key: "booking.daily_limit_per_phone", value: String(clamp(payload.perPhone)), valueType: "int", label: "单手机号单日预约上限(0=不限)" });
+
+  revalidatePath("/booking/quota-rules");
+  return { ok: true, message: "已保存预约总量规则" };
+}
+
 // BE-A3:立即生成未来 N 天时段(免等当晚 cron);horizon 从 SysConfig 读出注入(app 层组合)。
 export async function generateSlotsNowAction(): Promise<RuleActionResult> {
   const auth = await requireRole(ADMIN_UP);

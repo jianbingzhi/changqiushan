@@ -122,6 +122,33 @@ export const quotaRuleService = {
     return bookingRepository.listHolidays();
   },
 
+  // B31 区间套规则:把某日期类型/闭园特例批量写入 [startDate, endDate] 每一天(≤92 天)。
+  async applyRangeRule(input: {
+    startDate: string; endDate: string; dayType: DayType; closed: boolean; note?: string;
+  }): Promise<Result<{ applied: number }>> {
+    const re = /^\d{4}-\d{2}-\d{2}$/;
+    if (!re.test(input.startDate) || !re.test(input.endDate)) {
+      return err(ErrCode.INVALID_INPUT, "日期格式无效");
+    }
+    if (input.endDate < input.startDate) {
+      return err(ErrCode.INVALID_INPUT, "结束日期不得早于开始日期");
+    }
+    const dates: string[] = [];
+    const cur = toDbDate(input.startDate);
+    const end = toDbDate(input.endDate);
+    while (cur.getTime() <= end.getTime()) {
+      dates.push(cur.toISOString().slice(0, 10));
+      cur.setUTCDate(cur.getUTCDate() + 1);
+      if (dates.length > 92) return err(ErrCode.INVALID_INPUT, "区间过长(上限 92 天)");
+    }
+    for (const d of dates) {
+      await bookingRepository.upsertHoliday({
+        date: toDbDate(d), dayType: input.dayType, closed: input.closed, note: input.note ?? null,
+      });
+    }
+    return ok({ applied: dates.length });
+  },
+
   async upsertHoliday(raw: unknown): Promise<Result<SysHolidayCalendar>> {
     const parsed = holidaySchema.safeParse(raw);
     if (!parsed.success) {
