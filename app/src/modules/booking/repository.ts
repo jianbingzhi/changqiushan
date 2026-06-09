@@ -13,6 +13,17 @@ type CreateBookingData = {
   channel: BookingChannel;
 };
 
+// B32: 预约单列表/计数共用的过滤条件,保证分页 total 与 items 口径一致
+export type BookingListFilter = { idCard?: string; phone?: string; status?: BookingStatus };
+
+function bookingWhere(filter: BookingListFilter): Prisma.BookingWhereInput {
+  return {
+    idCard: filter.idCard ? { contains: filter.idCard } : undefined,
+    phone: filter.phone ? { contains: filter.phone } : undefined,
+    status: filter.status,
+  };
+}
+
 // Maps BookingChannel → snake_case column prefix in booking_slot
 const CHANNEL_COL: Record<BookingChannel, string> = {
   MINI_PROGRAM:  "mini_program",
@@ -244,21 +255,23 @@ export const bookingRepository = {
     });
   },
 
-  countBookings() {
-    return db.booking.count();
+  // B32: countBookings 与 listBookings 共用同一 where,否则分页总数与列表口径不一致
+  countBookings(filter: BookingListFilter = {}) {
+    return db.booking.count({ where: bookingWhere(filter) });
   },
 
-  // B22: 预约单查询 — 按身份证/手机号(模糊)+ 状态过滤,含时段,倒序,限 200
-  listBookings(filter: { idCard?: string; phone?: string; status?: BookingStatus }) {
+  // B22/B32: 预约单查询 — 按身份证/手机号(模糊)+ 状态过滤,含时段,倒序。
+  // opts.skip/take 支持 offset 分页;不传 take 时回退 200 作安全上限。
+  listBookings(
+    filter: BookingListFilter,
+    opts?: { skip?: number; take?: number },
+  ) {
     return db.booking.findMany({
-      where: {
-        idCard: filter.idCard ? { contains: filter.idCard } : undefined,
-        phone: filter.phone ? { contains: filter.phone } : undefined,
-        status: filter.status,
-      },
+      where: bookingWhere(filter),
       include: { slot: true },
       orderBy: { createdAt: "desc" },
-      take: 200,
+      skip: opts?.skip,
+      take: opts?.take ?? 200,
     });
   },
 

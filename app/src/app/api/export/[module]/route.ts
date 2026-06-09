@@ -1,14 +1,20 @@
 import type { NextRequest } from "next/server";
 import { getSession } from "@/infrastructure/auth/session";
 import { exportToExcel } from "@/lib/excel";
-import { chinaToday, formatCnDate } from "@/shared/lib/time";
+import { chinaToday, formatCnDate, formatCnDateTime } from "@/shared/lib/time";
 import { channelLabel } from "@/shared/labels";
+import type { BookingStatus } from "@/modules/booking";
 
 export const dynamic = "force-dynamic";
 export const runtime  = "nodejs";
 
-const ALLOWED_MODULES = ["traffic", "heatmap", "source", "profile"] as const;
+const ALLOWED_MODULES = ["traffic", "heatmap", "source", "profile", "bookings"] as const;
 type ExportModule = (typeof ALLOWED_MODULES)[number];
+
+const BOOKING_STATUS_LABEL: Record<BookingStatus, string> = {
+  CONFIRMED: "已预约", CHECKED_IN: "已核销", CANCELLED: "已取消", NO_SHOW: "爽约", EXPIRED: "已过期",
+};
+const VALID_BOOKING_STATUS: readonly string[] = Object.keys(BOOKING_STATUS_LABEL);
 
 // E1: 可导出报表的业务角色(app_metadata.role)
 const EXPORT_ROLES: readonly string[] = ["SUPER_ADMIN", "ADMIN"];
@@ -18,6 +24,7 @@ const MODULE_NAMES: Record<ExportModule, string> = {
   heatmap: "热力图分析",
   source:  "来源分析",
   profile: "用户画像",
+  bookings: "预约单",
 };
 
 export async function GET(
@@ -41,9 +48,46 @@ export async function GET(
 
   const exportModule = mod as ExportModule;
 
-  const { analyticsRepository } = await import("@/modules/analytics");
   let headers: string[] = [];
   let rows: (string | number | null)[][] = [];
+
+  // B32: 预约单导出 — 复用列表筛选(身份证/手机/状态),运营对账用,管理角色已校验
+  if (exportModule === "bookings") {
+    const { bookingService } = await import("@/modules/booking");
+    const query = req.nextUrl.searchParams;
+    const statusRaw = query.get("status") ?? "";
+    const list = await bookingService.listBookingsForExport({
+      idCard: query.get("idCard") || undefined,
+      phone: query.get("phone") || undefined,
+      status: VALID_BOOKING_STATUS.includes(statusRaw) ? (statusRaw as BookingStatus) : undefined,
+    });
+    headers = ["预约编号", "姓名", "身份证号", "手机号", "车牌", "渠道", "日期", "时段", "状态", "核销时间", "预约时间"];
+    rows = list.map((b) => [
+      b.qrCode.slice(0, 10).toUpperCase(),
+      b.visitorName,
+      b.idCard,
+      b.phone,
+      b.plate ?? (b.noVehicleDeclared ? "无车辆" : ""),
+      channelLabel(b.channel),
+      formatCnDate(b.slot.date),
+      `${b.slot.name} ${b.slot.startTime}-${b.slot.endTime}`,
+      BOOKING_STATUS_LABEL[b.status],
+      b.checkedInAt ? formatCnDateTime(b.checkedInAt) : "",
+      formatCnDateTime(b.createdAt),
+    ]);
+    const sheetName = MODULE_NAMES.bookings;
+    if (rows.length === 0) rows = [["暂无数据", null, null, null, null, null, null, null, null, null, null]];
+    const buffer = await exportToExcel({ sheetName, headers, rows });
+    const filename = encodeURIComponent(`${sheetName}_${chinaToday()}.xlsx`);
+    return new Response(buffer.buffer as ArrayBuffer, {
+      headers: {
+        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Disposition": `attachment; filename="${filename}"`,
+      },
+    });
+  }
+
+  const { analyticsRepository } = await import("@/modules/analytics");
 
   switch (exportModule) {
     case "traffic": {

@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { Search } from "lucide-react";
-import { bookingRepository } from "@/modules/booking";
+import { Search, Download } from "lucide-react";
+import { bookingService } from "@/modules/booking";
 import type { BookingStatus } from "@/modules/booking";
 import { PageHeader } from "@/lib/ui/page-header";
 import { StatusChip } from "@/lib/ui/status-chip";
@@ -8,9 +8,28 @@ import { EmptyState } from "@/lib/ui/empty-state";
 import {
   Table, TableHeader, TableBody, TableHead, TableRow, TableCell,
 } from "@/lib/ui/table";
+import {
+  Pagination, PaginationContent, PaginationItem, PaginationLink,
+  PaginationPrevious, PaginationNext, PaginationEllipsis, PaginationSummary,
+} from "@/lib/ui/pagination";
 import { formatCnDateTime } from "@/shared/format";
 import { channelLabel } from "@/shared/labels";
 import { CheckinButton } from "./_checkin-button";
+
+const PAGE_SIZE = 20;
+
+// 生成 1..totalPages 的页码窗口(首尾常驻 + 当前页±1,其余折叠为 ellipsis)
+function pageWindow(current: number, total: number): (number | "...")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const out: (number | "...")[] = [1];
+  const lo = Math.max(2, current - 1);
+  const hi = Math.min(total - 1, current + 1);
+  if (lo > 2) out.push("...");
+  for (let p = lo; p <= hi; p++) out.push(p);
+  if (hi < total - 1) out.push("...");
+  out.push(total);
+  return out;
+}
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "预约单查询 · 长秋山管理后台" };
@@ -32,21 +51,40 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
   const idCard = sp.idCard ?? "";
   const phone  = sp.phone ?? "";
   const status = sp.status ?? "";
-
-  const totalCount = await bookingRepository.countBookings();
+  const pageNum = Math.max(Number.parseInt(sp.page ?? "1", 10) || 1, 1);
 
   const statusFilter = (VALID_STATUS as readonly string[]).includes(status)
     ? (status as BookingStatus)
     : undefined;
-  const items = await bookingRepository.listBookings({
+  const filter = {
     idCard: idCard || undefined,
     phone: phone || undefined,
     status: statusFilter,
-  });
+  };
+  const { items, total, page, totalPages } = await bookingService.listBookingsPaged(
+    filter, pageNum, PAGE_SIZE,
+  );
+
+  // 保持当前筛选条件、仅替换 page 的链接构造器
+  const hrefFor = (p: number) => {
+    const q = new URLSearchParams();
+    if (idCard) q.set("idCard", idCard);
+    if (phone) q.set("phone", phone);
+    if (status) q.set("status", status);
+    if (p > 1) q.set("page", String(p));
+    return `/booking/bookings${q.toString() ? "?" + q.toString() : ""}`;
+  };
+  const exportQs = (() => {
+    const q = new URLSearchParams();
+    if (idCard) q.set("idCard", idCard);
+    if (phone) q.set("phone", phone);
+    if (status) q.set("status", status);
+    return q.toString() ? "?" + q.toString() : "";
+  })();
 
   return (
     <>
-      <PageHeader title="预约单查询" description={`按条件筛选预约记录 · 累计预约 ${totalCount} 条`} />
+      <PageHeader title="预约单查询" description={`按条件筛选预约记录 · 累计预约 ${total} 条`} />
 
       {/* 搜索栏 */}
       <form method="GET" className="flex flex-wrap items-end gap-3 mb-4">
@@ -72,6 +110,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
             <option value="CHECKED_IN">已核销</option>
             <option value="CANCELLED">已取消</option>
             <option value="NO_SHOW">爽约</option>
+            <option value="EXPIRED">已过期</option>
           </select>
         </div>
         <button type="submit" className="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#2D5A27] px-4 text-sm font-medium text-white hover:opacity-90">
@@ -80,6 +119,12 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
         <Link href="/booking/bookings" className="inline-flex h-9 items-center rounded-md border border-[#E5E7EB] bg-white px-4 text-sm text-[#6B7280] hover:border-[#2D5A27]/40">
           清空
         </Link>
+        <a
+          href={`/api/export/bookings${exportQs}`}
+          className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-md border border-[#2D5A27]/40 bg-white px-4 text-sm font-medium text-[#2D5A27] hover:bg-[#2D5A27]/5"
+        >
+          <Download className="h-3.5 w-3.5" /> 导出 Excel
+        </a>
       </form>
 
       {/* Tabs */}
@@ -101,7 +146,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
 
       {/* Table */}
       <div className="rounded-lg border border-[#E5E7EB] bg-white">
-        <Table>
+        <Table density="compact">
           <TableHeader>
             <TableRow className="bg-[#F9FAFB]">
               {["预约编号", "姓名", "身份证", "手机号", "车牌", "渠道", "时段", "状态", "核销时间", "操作"].map((h) => (
@@ -155,6 +200,46 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
           </TableBody>
         </Table>
       </div>
+
+      {/* 分页 */}
+      {total > 0 && (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <PaginationSummary total={total} page={page} totalPages={totalPages} />
+          {totalPages > 1 && (
+            <Pagination className="mx-0 w-auto justify-end">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    href={hrefFor(page - 1)}
+                    aria-disabled={page <= 1}
+                    className={page <= 1 ? "pointer-events-none opacity-50" : undefined}
+                  />
+                </PaginationItem>
+                {pageWindow(page, totalPages).map((p, i) =>
+                  p === "..." ? (
+                    <PaginationItem key={`e${i}`}>
+                      <PaginationEllipsis />
+                    </PaginationItem>
+                  ) : (
+                    <PaginationItem key={p}>
+                      <PaginationLink href={hrefFor(p)} isActive={p === page}>
+                        {p}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ),
+                )}
+                <PaginationItem>
+                  <PaginationNext
+                    href={hrefFor(page + 1)}
+                    aria-disabled={page >= totalPages}
+                    className={page >= totalPages ? "pointer-events-none opacity-50" : undefined}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
+        </div>
+      )}
     </>
   );
 }

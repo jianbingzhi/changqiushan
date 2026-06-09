@@ -1,9 +1,13 @@
 import { bookingRepository, SlotFullError, DuplicateBookingError } from "../repository";
+import type { BookingListFilter } from "../repository";
 import { createBookingSchema, createSlotSchema } from "../domain/schema";
 import { assertDualElements, canBook, canCancel, isCircuitBroken } from "../domain/rules";
 import { ok, err, ErrCode, type Result } from "@/shared/result";
 import { Prisma } from "@prisma/client";
 import type { Booking, BookingSlot } from "@prisma/client";
+
+const MAX_PAGE_SIZE = 100;
+const DEFAULT_PAGE_SIZE = 20;
 
 // 同日同开始时间唯一约束(booking_slot_date_start_time_key)被并发/双提交命中
 const isSlotConflict = (e: unknown) =>
@@ -64,6 +68,30 @@ export const bookingService = {
       }
       throw e;
     }
+  },
+
+  // B32: 预约单分页查询 — count 与 list 共用同一 filter,返回页码元信息。
+  // pageSize clamp 至 [1,100];请求页超出末页时回落到末页(避免空白页)。
+  async listBookingsPaged(
+    filter: BookingListFilter,
+    page = 1,
+    pageSize = DEFAULT_PAGE_SIZE,
+  ) {
+    const size = Math.min(Math.max(Math.trunc(pageSize) || DEFAULT_PAGE_SIZE, 1), MAX_PAGE_SIZE);
+    const requested = Math.max(Math.trunc(page) || 1, 1);
+    const total = await bookingRepository.countBookings(filter);
+    const totalPages = Math.max(1, Math.ceil(total / size));
+    const current = Math.min(requested, totalPages);
+    const items = await bookingRepository.listBookings(filter, {
+      skip: (current - 1) * size,
+      take: size,
+    });
+    return { items, total, page: current, pageSize: size, totalPages };
+  },
+
+  // B32: 导出用 — 取全量(带上限)匹配项,不分页
+  listBookingsForExport(filter: BookingListFilter, cap = 50000) {
+    return bookingRepository.listBookings(filter, { take: cap });
   },
 
   // C 端「我的中心」只读统计聚合(按身份证)
