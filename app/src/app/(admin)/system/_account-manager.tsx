@@ -44,21 +44,21 @@ export function CreateAdminForm() {
     return (
       <div className="mb-4">
         <Button onClick={() => setOpen(true)}>新建账号</Button>
-        {msg && <span className={`ml-3 text-[12px] ${msg.ok ? "text-[#2D5A27]" : "text-[#DC2626]"}`}>{msg.text}</span>}
+        {msg && <span className={`ml-3 text-[12px] ${msg.ok ? "text-primary" : "text-danger"}`}>{msg.text}</span>}
       </div>
     );
   }
 
   return (
-    <div className="mb-4 rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+    <div className="mb-4 rounded-lg border border-border bg-muted p-4">
       <div className="grid grid-cols-2 gap-3 max-w-2xl">
-        <div className="space-y-1"><label htmlFor="new-admin-phone" className="text-[12px] text-[#6B7280]">手机号</label><Input id="new-admin-phone" value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="11 位手机号" /></div>
-        <div className="space-y-1"><label htmlFor="new-admin-password" className="text-[12px] text-[#6B7280]">初始密码</label><Input id="new-admin-password" type="password" value={form.password} onChange={(e) => set("password", e.target.value)} placeholder="至少 8 位" /></div>
-        <div className="space-y-1"><label htmlFor="new-admin-name" className="text-[12px] text-[#6B7280]">姓名</label><Input id="new-admin-name" value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="真实姓名" /></div>
-        <div className="space-y-1"><label htmlFor="new-admin-worker" className="text-[12px] text-[#6B7280]">工号(选填)</label><Input id="new-admin-worker" value={form.workerId} onChange={(e) => set("workerId", e.target.value)} placeholder="如 OPS-001" /></div>
+        <div className="space-y-1"><label htmlFor="new-admin-phone" className="text-[12px] text-muted-foreground">手机号</label><Input id="new-admin-phone" value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="11 位手机号" /></div>
+        <div className="space-y-1"><label htmlFor="new-admin-password" className="text-[12px] text-muted-foreground">初始密码</label><Input id="new-admin-password" type="password" value={form.password} onChange={(e) => set("password", e.target.value)} placeholder="至少 8 位" /></div>
+        <div className="space-y-1"><label htmlFor="new-admin-name" className="text-[12px] text-muted-foreground">姓名</label><Input id="new-admin-name" value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="真实姓名" /></div>
+        <div className="space-y-1"><label htmlFor="new-admin-worker" className="text-[12px] text-muted-foreground">工号(选填)</label><Input id="new-admin-worker" value={form.workerId} onChange={(e) => set("workerId", e.target.value)} placeholder="如 OPS-001" /></div>
         <div className="space-y-1">
-          <label htmlFor="new-admin-role" className="text-[12px] text-[#6B7280]">角色</label>
-          <select id="new-admin-role" value={form.roleCode} onChange={(e) => set("roleCode", e.target.value)} className="h-9 w-full rounded-md border border-[#E5E7EB] bg-white px-3 text-sm text-[#1F2937]">
+          <label htmlFor="new-admin-role" className="text-[12px] text-muted-foreground">角色</label>
+          <select id="new-admin-role" value={form.roleCode} onChange={(e) => set("roleCode", e.target.value)} className="h-9 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground">
             {ROLE_OPTIONS.map((r) => <option key={r.code} value={r.code}>{r.label}</option>)}
           </select>
         </div>
@@ -66,7 +66,7 @@ export function CreateAdminForm() {
       <div className="mt-3 flex items-center gap-2">
         <Button onClick={submit} disabled={pending}>{pending ? "创建中…" : "确认创建"}</Button>
         <Button variant="outline" onClick={() => { setOpen(false); setMsg(null); }} disabled={pending}>取消</Button>
-        {msg && <span className={`text-[12px] ${msg.ok ? "text-[#2D5A27]" : "text-[#DC2626]"}`}>{msg.text}</span>}
+        {msg && <span className={`text-[12px] ${msg.ok ? "text-primary" : "text-danger"}`}>{msg.text}</span>}
       </div>
     </div>
   );
@@ -106,12 +106,12 @@ export function AccountRowActions({ profileId, disabled }: { profileId: string; 
       <div className="flex gap-2">
         <Button size="sm" variant="outline" className="text-[12px]" disabled={pending} onClick={() => { setResetting((v) => !v); setMsg(null); }}>重置密码</Button>
         {!disabled && (
-          <Button size="sm" variant="outline" className="text-[12px] text-[#DC2626] border-[#FECACA]" disabled={pending} onClick={() => run(() => disableAdminAction(profileId))}>停用</Button>
+          <Button size="sm" variant="outline" className="text-[12px] text-danger border-[#FECACA]" disabled={pending} onClick={() => run(() => disableAdminAction(profileId))}>停用</Button>
         )}
       </div>
       {resetting && (
         <div className="flex items-center gap-2">
-          <label htmlFor={pwdInputId} className="text-[12px] text-[#6B7280]">新密码</label>
+          <label htmlFor={pwdInputId} className="text-[12px] text-muted-foreground">新密码</label>
           <Input
             id={pwdInputId}
             type="password"
@@ -129,7 +129,7 @@ export function AccountRowActions({ profileId, disabled }: { profileId: string; 
           <Button size="sm" variant="outline" className="text-[12px]" disabled={pending} onClick={() => { setResetting(false); setPwd(""); }}>取消</Button>
         </div>
       )}
-      {msg && <span className="text-xs text-[#6B7280]">{msg}</span>}
+      {msg && <span className="text-xs text-muted-foreground">{msg}</span>}
     </div>
   );
 }

@@ -116,7 +116,7 @@ export function ContentForm({
       />
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
         {/* 文档画布 */}
-        <div className="min-w-0 flex-1 rounded-xl border border-[#E5E7EB] bg-white px-6 py-7 shadow-sm sm:px-10 sm:py-9">
+        <div className="min-w-0 flex-1 rounded-xl border border-border bg-card px-6 py-7 shadow-sm sm:px-10 sm:py-9">
           {coverField && (
             <div className="mb-7">
               <ImageUploadField variant="banner" value={meta[coverField.key]} onChange={(url) => setMetaVal(coverField.key, url)} />
@@ -129,7 +129,7 @@ export function ContentForm({
             onChange={(e) => setTitle(e.target.value)}
             placeholder="请输入标题"
             maxLength={80}
-            className="w-full border-0 bg-transparent p-0 text-3xl font-bold leading-snug text-[#1F2937] placeholder:text-[#C0C4CC] focus:outline-none focus:ring-0"
+            className="w-full border-0 bg-transparent p-0 text-3xl font-bold leading-snug text-foreground placeholder:text-[#C0C4CC] focus:outline-none focus:ring-0"
           />
 
           {summaryField && (
@@ -139,7 +139,7 @@ export function ContentForm({
               onChange={(e) => setMetaVal(summaryField.key, e.target.value)}
               placeholder="添加摘要(选填)…"
               rows={2}
-              className="mt-3 w-full resize-none border-0 bg-transparent p-0 text-base leading-relaxed text-[#6B7280] placeholder:text-[#C0C4CC] focus:outline-none focus:ring-0"
+              className="mt-3 w-full resize-none border-0 bg-transparent p-0 text-base leading-relaxed text-muted-foreground placeholder:text-[#C0C4CC] focus:outline-none focus:ring-0"
             />
           )}
 
@@ -156,13 +156,13 @@ export function ContentForm({
 
         {/* 属性侧栏 */}
         <aside className="w-full shrink-0 lg:sticky lg:top-6 lg:w-72">
-          <div className="space-y-4 rounded-xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
-            <h3 className="text-sm font-semibold text-[#1F2937]">文档属性</h3>
+          <div className="space-y-4 rounded-xl border border-border bg-card p-5 shadow-sm">
+            <h3 className="text-sm font-semibold text-foreground">文档属性</h3>
 
             {sidebarFields.map((f) => (
               <div key={f.key} className="space-y-1.5">
                 <label htmlFor={`cf-${f.key}`} className="text-[13px] font-medium text-[#374151]">
-                  {f.label}{f.required && <span className="text-[#DC2626]">*</span>}
+                  {f.label}{f.required && <span className="text-danger">*</span>}
                 </label>
                 <Input
                   id={`cf-${f.key}`}
@@ -172,15 +172,15 @@ export function ContentForm({
                   placeholder={f.kind === "url" ? "https://…" : undefined}
                 />
                 {f.kind === "date" && meta[f.key] && (
-                  <p className="text-xs text-[#9CA3AF]">{formatCnDate(meta[f.key])}</p>
+                  <p className="text-xs text-text-muted">{formatCnDate(meta[f.key])}</p>
                 )}
               </div>
             ))}
 
-            <p className="text-xs leading-relaxed text-[#9CA3AF]">保存后为草稿,需在列表中点「发布」上线。</p>
+            <p className="text-xs leading-relaxed text-text-muted">保存后为草稿,需在列表中点「发布」上线。</p>
 
             {error && (
-              <p className="rounded-lg border border-[#FECACA] bg-[#FEF2F2] px-3 py-2 text-[13px] text-[#DC2626]">{error}</p>
+              <p className="rounded-lg border border-[#FECACA] bg-[#FEF2F2] px-3 py-2 text-[13px] text-danger">{error}</p>
             )}
 
             <div className="flex items-center gap-2 pt-1">

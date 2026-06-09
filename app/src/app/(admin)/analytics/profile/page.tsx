@@ -18,8 +18,8 @@ export default async function AnalyticsProfilePage() {
     <>
       <PageHeader title="用户画像" description="游客出行特征与偏好分析"
         actions={
-          <a href="/api/export/profile" download className="inline-flex items-center gap-1.5 rounded-md border border-[#E5E7EB] bg-white px-3 py-2 text-sm font-medium text-[#1F2937] hover:bg-[#F9FAFB]">
-            <FileDown className="h-4 w-4 text-[#6B7280]" />导出 Excel
+          <a href="/api/export/profile" download className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-muted">
+            <FileDown className="h-4 w-4 text-muted-foreground" />导出 Excel
           </a>
         }
       />

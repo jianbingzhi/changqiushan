@@ -43,8 +43,8 @@ function ToolbarButton({
       aria-pressed={active}
       title={label}
       className={cn(
-        "flex h-8 w-8 items-center justify-center rounded text-[#6B7280] hover:bg-[#F3F4F6] disabled:opacity-40",
-        active && "bg-[#E8F0E6] text-[#2D5A27]",
+        "flex h-8 w-8 items-center justify-center rounded text-muted-foreground hover:bg-muted disabled:opacity-40",
+        active && "bg-[#E8F0E6] text-primary",
       )}
     >
       {children}
@@ -100,17 +100,17 @@ function Toolbar({ editor, onUploadImage }: { editor: Editor; onUploadImage?: Up
   return (
     <>
       <input ref={fileRef} type="file" accept={IMAGE_ACCEPT} className="hidden" onChange={onPickFile} />
-      <div className="flex flex-wrap items-center gap-0.5 border-b border-[#E5E7EB] bg-[#FAFAFA] px-2 py-1.5" role="toolbar" aria-label="富文本格式工具栏">
+      <div className="flex flex-wrap items-center gap-0.5 border-b border-border bg-[#FAFAFA] px-2 py-1.5" role="toolbar" aria-label="富文本格式工具栏">
         <ToolbarButton label="加粗" active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}><Bold className="h-4 w-4" /></ToolbarButton>
         <ToolbarButton label="斜体" active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()}><Italic className="h-4 w-4" /></ToolbarButton>
         <ToolbarButton label="删除线" active={editor.isActive("strike")} onClick={() => editor.chain().focus().toggleStrike().run()}><Strikethrough className="h-4 w-4" /></ToolbarButton>
-        <span className="mx-1 h-5 w-px bg-[#E5E7EB]" />
+        <span className="mx-1 h-5 w-px bg-border" />
         <ToolbarButton label="二级标题" active={editor.isActive("heading", { level: 2 })} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}><Heading2 className="h-4 w-4" /></ToolbarButton>
         <ToolbarButton label="三级标题" active={editor.isActive("heading", { level: 3 })} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}><Heading3 className="h-4 w-4" /></ToolbarButton>
         <ToolbarButton label="无序列表" active={editor.isActive("bulletList")} onClick={() => editor.chain().focus().toggleBulletList().run()}><List className="h-4 w-4" /></ToolbarButton>
         <ToolbarButton label="有序列表" active={editor.isActive("orderedList")} onClick={() => editor.chain().focus().toggleOrderedList().run()}><ListOrdered className="h-4 w-4" /></ToolbarButton>
         <ToolbarButton label="引用" active={editor.isActive("blockquote")} onClick={() => editor.chain().focus().toggleBlockquote().run()}><Quote className="h-4 w-4" /></ToolbarButton>
-        <span className="mx-1 h-5 w-px bg-[#E5E7EB]" />
+        <span className="mx-1 h-5 w-px bg-border" />
         <ToolbarButton label="插入链接" active={editor.isActive("link") || field === "link"} onClick={openLink}><Link2 className="h-4 w-4" /></ToolbarButton>
         {/* 图片按钮:有上传能力则直接打开文件选择上传;否则退回填图片地址 */}
         <ToolbarButton
@@ -121,17 +121,17 @@ function Toolbar({ editor, onUploadImage }: { editor: Editor; onUploadImage?: Up
         >
           {onUploadImage ? <ImageUp className="h-4 w-4" /> : <ImageIcon className="h-4 w-4" />}
         </ToolbarButton>
-        <span className="mx-1 h-5 w-px bg-[#E5E7EB]" />
+        <span className="mx-1 h-5 w-px bg-border" />
         <ToolbarButton label="撤销" disabled={!editor.can().undo()} onClick={() => editor.chain().focus().undo().run()}><Undo2 className="h-4 w-4" /></ToolbarButton>
         <ToolbarButton label="重做" disabled={!editor.can().redo()} onClick={() => editor.chain().focus().redo().run()}><Redo2 className="h-4 w-4" /></ToolbarButton>
-        {uploading && <span className="ml-1 text-[12px] text-[#6B7280]">图片上传中…</span>}
+        {uploading && <span className="ml-1 text-[12px] text-muted-foreground">图片上传中…</span>}
       </div>
 
-      {uploadErr && <p className="border-b border-[#E5E7EB] bg-[#FEF2F2] px-3 py-1.5 text-[12px] text-[#DC2626]">{uploadErr}</p>}
+      {uploadErr && <p className="border-b border-border bg-[#FEF2F2] px-3 py-1.5 text-[12px] text-danger">{uploadErr}</p>}
 
       {field && (
-        <div className="flex items-center gap-2 border-b border-[#E5E7EB] bg-white px-3 py-2">
-          <label htmlFor={urlInputId} className="shrink-0 text-[12px] text-[#6B7280]">
+        <div className="flex items-center gap-2 border-b border-border bg-card px-3 py-2">
+          <label htmlFor={urlInputId} className="shrink-0 text-[12px] text-muted-foreground">
             {field === "link" ? "链接地址(留空移除链接)" : "图片地址"}
           </label>
           <input
@@ -145,12 +145,12 @@ function Toolbar({ editor, onUploadImage }: { editor: Editor; onUploadImage?: Up
               if (e.key === "Escape") close();
             }}
             placeholder="https://…"
-            className="h-8 flex-1 rounded-md border border-[#E5E7EB] px-3 text-[12px] focus:outline-none focus:ring-2 focus:ring-[#2D5A27]/30"
+            className="h-8 flex-1 rounded-md border border-border px-3 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
-          <button type="button" onClick={submit} className="shrink-0 rounded-md bg-[#2D5A27] px-3 py-1 text-[12px] text-white">
+          <button type="button" onClick={submit} className="shrink-0 rounded-md bg-primary px-3 py-1 text-[12px] text-white">
             {field === "link" ? "应用" : "插入"}
           </button>
-          <button type="button" onClick={close} className="shrink-0 rounded-md border border-[#E5E7EB] px-3 py-1 text-[12px] text-[#6B7280]">取消</button>
+          <button type="button" onClick={close} className="shrink-0 rounded-md border border-border px-3 py-1 text-[12px] text-muted-foreground">取消</button>
         </div>
       )}
     </>
@@ -167,7 +167,7 @@ export function RichTextEditor({ value, onChange, placeholder, onUploadImage, va
     immediatelyRender: false, // Next SSR 安全:避免水合不一致
     extensions: [
       StarterKit.configure({
-        link: { openOnClick: false, HTMLAttributes: { class: "text-[#2D5A27] underline" } },
+        link: { openOnClick: false, HTMLAttributes: { class: "text-primary underline" } },
       }),
       Image.configure({ HTMLAttributes: { class: "max-w-full rounded-lg" } }),
     ],
@@ -212,17 +212,17 @@ export function RichTextEditor({ value, onChange, placeholder, onUploadImage, va
   });
 
   if (!editor) {
-    return <div className="min-h-[260px] rounded-lg border border-[#E5E7EB] bg-white" aria-busy="true" />;
+    return <div className="min-h-[260px] rounded-lg border border-border bg-card" aria-busy="true" />;
   }
 
   // 选中文字浮现的气泡工具栏(Word/Notion 手感):仅常用格式,避免与主工具栏重复过多。
   const bubble = (
     <BubbleMenu editor={editor} options={{ placement: "top" }}>
-      <div className="flex items-center gap-0.5 rounded-lg border border-[#E5E7EB] bg-white p-1 shadow-md">
+      <div className="flex items-center gap-0.5 rounded-lg border border-border bg-card p-1 shadow-md">
         <ToolbarButton label="加粗" active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}><Bold className="h-4 w-4" /></ToolbarButton>
         <ToolbarButton label="斜体" active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()}><Italic className="h-4 w-4" /></ToolbarButton>
         <ToolbarButton label="删除线" active={editor.isActive("strike")} onClick={() => editor.chain().focus().toggleStrike().run()}><Strikethrough className="h-4 w-4" /></ToolbarButton>
-        <span className="mx-0.5 h-5 w-px bg-[#E5E7EB]" />
+        <span className="mx-0.5 h-5 w-px bg-border" />
         <ToolbarButton label="二级标题" active={editor.isActive("heading", { level: 2 })} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}><Heading2 className="h-4 w-4" /></ToolbarButton>
         <ToolbarButton label="无序列表" active={editor.isActive("bulletList")} onClick={() => editor.chain().focus().toggleBulletList().run()}><List className="h-4 w-4" /></ToolbarButton>
         <ToolbarButton label="引用" active={editor.isActive("blockquote")} onClick={() => editor.chain().focus().toggleBlockquote().run()}><Quote className="h-4 w-4" /></ToolbarButton>
@@ -232,8 +232,8 @@ export function RichTextEditor({ value, onChange, placeholder, onUploadImage, va
 
   if (documentMode) {
     return (
-      <div className="bg-white">
-        <div className="sticky top-0 z-10 -mx-1 bg-white/95 backdrop-blur">
+      <div className="bg-card">
+        <div className="sticky top-0 z-10 -mx-1 bg-card/95 backdrop-blur">
           <Toolbar editor={editor} onUploadImage={onUploadImage} />
         </div>
         {bubble}
@@ -243,7 +243,7 @@ export function RichTextEditor({ value, onChange, placeholder, onUploadImage, va
   }
 
   return (
-    <div className="rounded-lg border border-[#E5E7EB] bg-white">
+    <div className="rounded-lg border border-border bg-card">
       <Toolbar editor={editor} onUploadImage={onUploadImage} />
       {bubble}
       <EditorContent editor={editor} />

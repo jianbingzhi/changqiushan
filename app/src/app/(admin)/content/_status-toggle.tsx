@@ -35,7 +35,7 @@ export function StatusToggle({ model, id, status, revalidate, variant = "default
   }
 
   if (status === "ARCHIVED") {
-    return <span className="text-[12px] text-[#9CA3AF]">已下线</span>;
+    return <span className="text-[12px] text-text-muted">已下线</span>;
   }
 
   const isDraft = status === "DRAFT";
@@ -57,7 +57,7 @@ export function StatusToggle({ model, id, status, revalidate, variant = "default
       >
         {pending ? "处理中…" : isDraft ? publishLabel : archiveLabel}
       </Button>
-      {error && <span className="text-xs text-[#DC2626]">{error}</span>}
+      {error && <span className="text-xs text-danger">{error}</span>}
     </div>
   );
 }

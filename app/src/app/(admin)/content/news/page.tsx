@@ -19,12 +19,12 @@ export default async function ContentNewsPage() {
       <PageHeader title="资讯模块" description="管理景区公告、新闻、通知"
         actions={<Link href="/content/news/new"><Button>新建资讯</Button></Link>}
       />
-      <div className="rounded-lg border border-[#E5E7EB] bg-white">
+      <div className="rounded-lg border border-border bg-card">
         <Table>
           <TableHeader>
-            <TableRow className="bg-[#F9FAFB]">
+            <TableRow className="bg-muted">
               {["标题", "摘要", "状态", "发布时间", "操作"].map((h) => (
-                <TableHead key={h} className="text-xs font-semibold text-[#6B7280]">{h}</TableHead>
+                <TableHead key={h} className="text-xs font-semibold text-muted-foreground">{h}</TableHead>
               ))}
             </TableRow>
           </TableHeader>
@@ -32,11 +32,11 @@ export default async function ContentNewsPage() {
             {items.length === 0 ? (
               <TableRow><TableCell colSpan={5} className="p-0"><EmptyState message="暂无资讯内容" /></TableCell></TableRow>
             ) : items.map((item) => (
-              <TableRow key={item.id} className="hover:bg-[#F9FAFB]">
-                <TableCell className="font-medium text-[#1F2937] max-w-[220px] truncate">{item.title}</TableCell>
-                <TableCell className="text-[13px] text-[#6B7280] max-w-[300px] truncate">{item.summary ?? "—"}</TableCell>
+              <TableRow key={item.id} className="hover:bg-muted">
+                <TableCell className="font-medium text-foreground max-w-[220px] truncate">{item.title}</TableCell>
+                <TableCell className="text-[13px] text-muted-foreground max-w-[300px] truncate">{item.summary ?? "—"}</TableCell>
                 <TableCell><StatusChip status={item.status === "PUBLISHED" ? "PUBLISHED_OK" : item.status === "ARCHIVED" ? "OFFLINE_CONTENT" : "DRAFT"} /></TableCell>
-                <TableCell className="text-[13px] text-[#6B7280]">{item.publishedAt ? formatCnDate(item.publishedAt) : "—"}</TableCell>
+                <TableCell className="text-[13px] text-muted-foreground">{item.publishedAt ? formatCnDate(item.publishedAt) : "—"}</TableCell>
                 <TableCell>
                   <div className="flex gap-2">
                     <Link href={`/content/news/${item.id}/edit`}><Button size="sm" variant="outline" className="text-[12px]">编辑</Button></Link>

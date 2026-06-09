@@ -48,19 +48,19 @@ function StepIndicator({ current }: { current: number }) {
               <div
                 className={cn(
                   "flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold border-2",
-                  done ? "bg-[#2D5A27] border-[#2D5A27] text-white" :
-                  active ? "border-[#2D5A27] text-[#2D5A27] bg-white" :
-                  "border-[#E5E7EB] text-[#9CA3AF] bg-white",
+                  done ? "bg-primary border-primary text-white" :
+                  active ? "border-primary text-primary bg-card" :
+                  "border-border text-text-muted bg-card",
                 )}
               >
                 {done ? <Check className="h-4 w-4" /> : i + 1}
               </div>
-              <span className={cn("mt-1.5 text-xs whitespace-nowrap", active ? "text-[#2D5A27] font-semibold" : "text-[#9CA3AF]")}>
+              <span className={cn("mt-1.5 text-xs whitespace-nowrap", active ? "text-primary font-semibold" : "text-text-muted")}>
                 {label}
               </span>
             </div>
             {i < STEPS.length - 1 && (
-              <div className={cn("h-0.5 w-16 mx-1 mb-5", done ? "bg-[#2D5A27]" : "bg-[#E5E7EB]")} />
+              <div className={cn("h-0.5 w-16 mx-1 mb-5", done ? "bg-primary" : "bg-border")} />
             )}
           </li>
         );
@@ -158,11 +158,11 @@ export default function OnsitePage() {
       <div className="max-w-xl">
         <PageHeader title="现场补录面板" description="现场快速录入预约信息" />
         <div className="rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] p-8 text-center space-y-4">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#2D5A27]">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary">
             <Check className="h-6 w-6 text-white" />
           </div>
-          <p className="text-[#1F2937] font-semibold text-lg">预约单已提交</p>
-          <p className="text-[13px] text-[#6B7280]">游客 {form.visitorName} 的预约信息已成功录入系统</p>
+          <p className="text-foreground font-semibold text-lg">预约单已提交</p>
+          <p className="text-[13px] text-muted-foreground">游客 {form.visitorName} 的预约信息已成功录入系统</p>
           <Button onClick={() => { setForm(INITIAL); setStep(0); setSubmitted(false); setSubmitError(null); }}>
             继续录入
           </Button>
@@ -177,26 +177,26 @@ export default function OnsitePage() {
 
       <div className="mb-8"><StepIndicator current={step} /></div>
 
-      <div className="rounded-xl border border-[#E5E7EB] bg-white p-6 space-y-5">
-        <h2 className="text-base font-semibold text-[#1F2937] flex items-center gap-2">
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#2D5A27] text-white text-xs font-bold">{step + 1}</span>
+      <div className="rounded-xl border border-border bg-card p-6 space-y-5">
+        <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-white text-xs font-bold">{step + 1}</span>
           {STEPS[step]}
         </h2>
 
         {step === 0 && (
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-[#1F2937]">预约日期</label>
+              <label className="text-sm font-medium text-foreground">预约日期</label>
               <DatePicker
                 name="onsiteDate"
                 value={form.date}
                 onChange={(date) => setForm((f) => ({ ...f, date, slotId: "", slotLabel: "" }))}
                 className="max-w-xs"
               />
-              {errors.date && <p className="text-[12px] text-[#DC2626]">{errors.date}</p>}
+              {errors.date && <p className="text-[12px] text-danger">{errors.date}</p>}
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-[#1F2937]">时段</label>
+              <label className="text-sm font-medium text-foreground">时段</label>
               <select
                 value={form.slotId}
                 onChange={(e) => {
@@ -204,7 +204,7 @@ export default function OnsitePage() {
                   setForm((f) => ({ ...f, slotId: e.target.value, slotLabel: opt?.label ?? "" }));
                 }}
                 disabled={loadingSlots || slots.length === 0}
-                className="max-w-xs w-full rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-sm text-[#1F2937] disabled:bg-[#F9FAFB] disabled:text-[#9CA3AF]"
+                className="max-w-xs w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground disabled:bg-muted disabled:text-text-muted"
               >
                 <option value="">
                   {loadingSlots ? "加载时段中…" : slots.length === 0 ? "当日暂无可预约时段" : "请选择时段"}
@@ -215,7 +215,7 @@ export default function OnsitePage() {
                   </option>
                 ))}
               </select>
-              {errors.slotLabel && <p className="text-[12px] text-[#DC2626]">{errors.slotLabel}</p>}
+              {errors.slotLabel && <p className="text-[12px] text-danger">{errors.slotLabel}</p>}
             </div>
           </div>
         )}
@@ -224,7 +224,7 @@ export default function OnsitePage() {
           <div className="space-y-4">
             {(["visitorName", "phone", "idCard"] as const).map((field) => (
               <div key={field} className="space-y-1.5">
-                <label className="text-sm font-medium text-[#1F2937]">
+                <label className="text-sm font-medium text-foreground">
                   {field === "visitorName" ? "姓名" : field === "phone" ? "手机号" : "身份证号"}
                 </label>
                 <Input
@@ -232,9 +232,9 @@ export default function OnsitePage() {
                   onChange={(e) => set(field, e.target.value)}
                   placeholder={field === "visitorName" ? "请输入真实姓名" : field === "phone" ? "11 位手机号" : "18 位居民身份证"}
                   maxLength={field === "idCard" ? 18 : field === "phone" ? 11 : 40}
-                  className={cn("max-w-xs", errors[field] && "border-[#DC2626]")}
+                  className={cn("max-w-xs", errors[field] && "border-danger")}
                 />
-                {errors[field] && <p className="text-[12px] text-[#DC2626]">{errors[field]}</p>}
+                {errors[field] && <p className="text-[12px] text-danger">{errors[field]}</p>}
               </div>
             ))}
           </div>
@@ -242,7 +242,7 @@ export default function OnsitePage() {
 
         {step === 2 && (
           <div className="space-y-5">
-            <p className="text-sm font-medium text-[#1F2937]">车辆情况</p>
+            <p className="text-sm font-medium text-foreground">车辆情况</p>
             <div className="flex gap-3">
               {[{ v: true, label: "有车辆" }, { v: false, label: "无车辆" }].map(({ v, label }) => (
                 <button
@@ -252,8 +252,8 @@ export default function OnsitePage() {
                   className={cn(
                     "flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors",
                     form.hasVehicle === v
-                      ? "border-[#2D5A27] bg-[#F0FDF4] text-[#2D5A27]"
-                      : "border-[#E5E7EB] text-[#6B7280] hover:border-[#2D5A27]/40",
+                      ? "border-primary bg-[#F0FDF4] text-primary"
+                      : "border-border text-muted-foreground hover:border-primary/40",
                   )}
                 >
                   {form.hasVehicle === v && <Check className="h-4 w-4" />}
@@ -263,7 +263,7 @@ export default function OnsitePage() {
             </div>
             {form.hasVehicle === true && (
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-[#1F2937]">车牌号</label>
+                <label className="text-sm font-medium text-foreground">车牌号</label>
                 <Input
                   placeholder="如：川A12345"
                   value={form.plate}
@@ -279,19 +279,19 @@ export default function OnsitePage() {
                   type="checkbox"
                   checked={form.noVehicleDeclared}
                   onChange={(e) => set("noVehicleDeclared", e.target.checked)}
-                  className="mt-0.5 h-4 w-4 accent-[#2D5A27]"
+                  className="mt-0.5 h-4 w-4 accent-primary"
                 />
-                <span className="text-sm text-[#1F2937]">本人确认无自驾车辆入园，知悉相关规定</span>
+                <span className="text-sm text-foreground">本人确认无自驾车辆入园，知悉相关规定</span>
               </label>
             )}
-            {errors.vehicle && <p className="text-[12px] text-[#DC2626]">{errors.vehicle}</p>}
+            {errors.vehicle && <p className="text-[12px] text-danger">{errors.vehicle}</p>}
           </div>
         )}
 
         {step === 3 && (
           <div className="space-y-4">
-            <p className="text-sm text-[#6B7280]">请核对以下信息后提交</p>
-            <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] px-4 divide-y divide-[#F3F4F6]">
+            <p className="text-sm text-muted-foreground">请核对以下信息后提交</p>
+            <div className="rounded-lg border border-border bg-muted px-4 divide-y divide-muted">
               {[
                 ["预约日期", formatCnDate(form.date)],
                 ["时段", form.slotLabel],
@@ -302,8 +302,8 @@ export default function OnsitePage() {
                 ["录入渠道", "现场补录"],
               ].map(([k, v]) => (
                 <div key={k} className="flex items-center py-2.5 gap-6">
-                  <span className="w-24 shrink-0 text-[13px] text-[#6B7280]">{k}</span>
-                  <span className="text-[13px] text-[#1F2937] font-medium">{v}</span>
+                  <span className="w-24 shrink-0 text-[13px] text-muted-foreground">{k}</span>
+                  <span className="text-[13px] text-foreground font-medium">{v}</span>
                 </div>
               ))}
             </div>
@@ -311,7 +311,7 @@ export default function OnsitePage() {
         )}
 
         {submitError && step === STEPS.length - 1 && (
-          <p className="rounded-lg border border-[#FECACA] bg-[#FEF2F2] px-3 py-2 text-[13px] text-[#DC2626]">
+          <p className="rounded-lg border border-[#FECACA] bg-[#FEF2F2] px-3 py-2 text-[13px] text-danger">
             {submitError}
           </p>
         )}

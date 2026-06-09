@@ -93,18 +93,18 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
           { name: "phone",  label: "手机号",   placeholder: "输入手机号",   defaultValue: phone,  width: "w-36" },
         ].map(({ name, label, placeholder, defaultValue, width }) => (
           <div key={name} className="flex flex-col gap-1">
-            <label className="text-[12px] text-[#6B7280] font-medium">{label}</label>
+            <label className="text-[12px] text-muted-foreground font-medium">{label}</label>
             <input
               name={name}
               defaultValue={defaultValue}
               placeholder={placeholder}
-              className={`h-9 ${width} rounded-md border border-[#E5E7EB] bg-white px-3 text-sm placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#2D5A27]/30`}
+              className={`h-9 ${width} rounded-md border border-border bg-card px-3 text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/30`}
             />
           </div>
         ))}
         <div className="flex flex-col gap-1">
-          <label className="text-[12px] text-[#6B7280] font-medium">状态</label>
-          <select name="status" defaultValue={status} className="h-9 w-32 rounded-md border border-[#E5E7EB] bg-white px-3 text-sm text-[#1F2937] focus:outline-none focus:ring-2 focus:ring-[#2D5A27]/30">
+          <label className="text-[12px] text-muted-foreground font-medium">状态</label>
+          <select name="status" defaultValue={status} className="h-9 w-32 rounded-md border border-border bg-card px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30">
             <option value="">全部</option>
             <option value="CONFIRMED">已预约</option>
             <option value="CHECKED_IN">已核销</option>
@@ -113,22 +113,22 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
             <option value="EXPIRED">已过期</option>
           </select>
         </div>
-        <button type="submit" className="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#2D5A27] px-4 text-sm font-medium text-white hover:opacity-90">
+        <button type="submit" className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-white hover:opacity-90">
           <Search className="h-3.5 w-3.5" /> 搜索
         </button>
-        <Link href="/booking/bookings" className="inline-flex h-9 items-center rounded-md border border-[#E5E7EB] bg-white px-4 text-sm text-[#6B7280] hover:border-[#2D5A27]/40">
+        <Link href="/booking/bookings" className="inline-flex h-9 items-center rounded-md border border-border bg-card px-4 text-sm text-muted-foreground hover:border-primary/40">
           清空
         </Link>
         <a
           href={`/api/export/bookings${exportQs}`}
-          className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-md border border-[#2D5A27]/40 bg-white px-4 text-sm font-medium text-[#2D5A27] hover:bg-[#2D5A27]/5"
+          className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-md border border-primary/40 bg-card px-4 text-sm font-medium text-primary hover:bg-primary/5"
         >
           <Download className="h-3.5 w-3.5" /> 导出 Excel
         </a>
       </form>
 
       {/* Tabs */}
-      <div className="flex border-b border-[#E5E7EB] mb-4">
+      <div className="flex border-b border-border mb-4">
         {[["", "全部"], ["CONFIRMED", "已预约"], ["CHECKED_IN", "已核销"], ["CANCELLED", "已取消"]].map(([v, label]) => {
           const p = new URLSearchParams();
           if (idCard) p.set("idCard", idCard);
@@ -137,7 +137,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
           const isActive = status === v;
           return (
             <Link key={v} href={`/booking/bookings${p.toString() ? "?" + p.toString() : ""}`}
-              className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${isActive ? "border-[#2D5A27] text-[#2D5A27]" : "border-transparent text-[#6B7280] hover:text-[#1F2937]"}`}>
+              className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${isActive ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
               {label}
             </Link>
           );
@@ -145,12 +145,12 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
       </div>
 
       {/* Table */}
-      <div className="rounded-lg border border-[#E5E7EB] bg-white">
+      <div className="rounded-lg border border-border bg-card">
         <Table density="compact">
           <TableHeader>
-            <TableRow className="bg-[#F9FAFB]">
+            <TableRow className="bg-muted">
               {["预约编号", "姓名", "身份证", "手机号", "车牌", "渠道", "时段", "状态", "核销时间", "操作"].map((h) => (
-                <TableHead key={h} className="text-xs font-semibold text-[#6B7280]">{h}</TableHead>
+                <TableHead key={h} className="text-xs font-semibold text-muted-foreground">{h}</TableHead>
               ))}
             </TableRow>
           </TableHeader>
@@ -163,35 +163,35 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
               </TableRow>
             ) : (
               items.map((booking) => (
-                <TableRow key={booking.id} className="hover:bg-[#F9FAFB]">
-                  <TableCell className="font-mono text-[12px] text-[#6B7280]">{booking.qrCode.slice(0, 10).toUpperCase()}</TableCell>
-                  <TableCell className="text-sm font-medium text-[#1F2937]">{booking.visitorName}</TableCell>
-                  <TableCell className="font-mono text-[13px] text-[#6B7280]">{maskIdCard(booking.idCard)}</TableCell>
-                  <TableCell className="text-[13px] text-[#6B7280]">{booking.phone}</TableCell>
-                  <TableCell className="text-[13px] text-[#6B7280]">{booking.plate ?? (booking.noVehicleDeclared ? "无车辆" : "—")}</TableCell>
+                <TableRow key={booking.id} className="hover:bg-muted">
+                  <TableCell className="font-mono text-[12px] text-muted-foreground">{booking.qrCode.slice(0, 10).toUpperCase()}</TableCell>
+                  <TableCell className="text-sm font-medium text-foreground">{booking.visitorName}</TableCell>
+                  <TableCell className="font-mono text-[13px] text-muted-foreground">{maskIdCard(booking.idCard)}</TableCell>
+                  <TableCell className="text-[13px] text-muted-foreground">{booking.phone}</TableCell>
+                  <TableCell className="text-[13px] text-muted-foreground">{booking.plate ?? (booking.noVehicleDeclared ? "无车辆" : "—")}</TableCell>
                   <TableCell>
-                    <span className="inline-flex items-center rounded-full border border-[#E5E7EB] bg-[#F9FAFB] px-2 py-0.5 text-xs text-[#6B7280]">
+                    <span className="inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                       {channelLabel(booking.channel)}
                     </span>
                   </TableCell>
-                  <TableCell className="text-[13px] text-[#6B7280]">
+                  <TableCell className="text-[13px] text-muted-foreground">
                     {booking.slot.name}
-                    <span className="ml-1 text-xs text-[#9CA3AF]">{booking.slot.startTime}–{booking.slot.endTime}</span>
+                    <span className="ml-1 text-xs text-text-muted">{booking.slot.startTime}–{booking.slot.endTime}</span>
                   </TableCell>
                   <TableCell>
                     <StatusChip status={booking.status === "CONFIRMED" ? "CONFIRMED" : booking.status === "CHECKED_IN" ? "CHECKED_IN" : "CANCELLED"} />
                     {(booking.status === "NO_SHOW" || booking.status === "EXPIRED") && (
-                      <span className="ml-1 text-xs text-[#6B7280]">{STATUS_LABEL[booking.status]}</span>
+                      <span className="ml-1 text-xs text-muted-foreground">{STATUS_LABEL[booking.status]}</span>
                     )}
                   </TableCell>
-                  <TableCell className="text-[13px] text-[#6B7280]">
+                  <TableCell className="text-[13px] text-muted-foreground">
                     {booking.checkedInAt ? formatCnDateTime(booking.checkedInAt) : "—"}
                   </TableCell>
                   <TableCell>
                     {booking.status === "CONFIRMED" ? (
                       <CheckinButton qrCode={booking.qrCode} />
                     ) : (
-                      <span className="text-[12px] text-[#9CA3AF]">—</span>
+                      <span className="text-[12px] text-text-muted">—</span>
                     )}
                   </TableCell>
                 </TableRow>

@@ -29,28 +29,28 @@ export default async function ContentKnowledgePage({ searchParams }: { searchPar
       />
       <form method="GET" className="flex flex-wrap items-end gap-3 mb-4">
         <div className="flex flex-col gap-1">
-          <label className="text-[12px] font-medium text-[#6B7280]">关键词搜索</label>
+          <label className="text-[12px] font-medium text-muted-foreground">关键词搜索</label>
           <input name="q" defaultValue={q} placeholder="搜索问题或关键词"
-            className="h-9 w-56 rounded-md border border-[#E5E7EB] bg-white px-3 text-sm placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#2D5A27]/30" />
+            className="h-9 w-56 rounded-md border border-border bg-card px-3 text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/30" />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-[12px] font-medium text-[#6B7280]">分类</label>
+          <label className="text-[12px] font-medium text-muted-foreground">分类</label>
           <select name="category" defaultValue={category}
-            className="h-9 w-32 rounded-md border border-[#E5E7EB] bg-white px-3 text-sm text-[#1F2937] focus:outline-none focus:ring-2 focus:ring-[#2D5A27]/30">
+            className="h-9 w-32 rounded-md border border-border bg-card px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30">
             {[["", "全部分类"], ["游览", "游览"], ["交通", "交通"], ["设施", "设施"], ["活动", "活动"], ["其他", "其他"]].map(([v, l]) => (
               <option key={v} value={v}>{l}</option>
             ))}
           </select>
         </div>
-        <button type="submit" className="inline-flex h-9 items-center rounded-md bg-[#2D5A27] px-4 text-sm font-medium text-white hover:opacity-90">搜索</button>
-        <a href="/content/knowledge" className="inline-flex h-9 items-center rounded-md border border-[#E5E7EB] bg-white px-4 text-sm text-[#6B7280]">清空</a>
+        <button type="submit" className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-white hover:opacity-90">搜索</button>
+        <a href="/content/knowledge" className="inline-flex h-9 items-center rounded-md border border-border bg-card px-4 text-sm text-muted-foreground">清空</a>
       </form>
       {items.length === 0 ? (
-        <div className="rounded-lg border border-[#E5E7EB] bg-white"><EmptyState message="暂无知识条目" /></div>
+        <div className="rounded-lg border border-border bg-card"><EmptyState message="暂无知识条目" /></div>
       ) : (
         <>
           {(kw || category) && (
-            <p className="mb-2 text-xs text-[#9CA3AF]">筛选结果下不可拖拽排序;清空筛选后可调整顺序。</p>
+            <p className="mb-2 text-xs text-text-muted">筛选结果下不可拖拽排序;清空筛选后可调整顺序。</p>
           )}
           <SortableContentRows
             model="knowledge"

@@ -35,14 +35,14 @@ export default async function ContentActivitiesPage() {
         </KpiRow>
       </div>
       <div className="mb-4 flex items-center gap-3 rounded-lg border border-[#BFDBFE] bg-[#EFF6FF] px-4 py-3">
-        <span className="text-[13px] text-[#2563EB]">报名费由 C 端小程序支付，B 端仅查看参与人数与支付状态，不触发任何支付操作。</span>
+        <span className="text-[13px] text-info">报名费由 C 端小程序支付，B 端仅查看参与人数与支付状态，不触发任何支付操作。</span>
       </div>
-      <div className="rounded-lg border border-[#E5E7EB] bg-white">
+      <div className="rounded-lg border border-border bg-card">
         <Table>
           <TableHeader>
-            <TableRow className="bg-[#F9FAFB]">
+            <TableRow className="bg-muted">
               {["活动名称", "时间", "报名费", "状态", "参与人数", "操作"].map((h) => (
-                <TableHead key={h} className="text-xs font-semibold text-[#6B7280]">{h}</TableHead>
+                <TableHead key={h} className="text-xs font-semibold text-muted-foreground">{h}</TableHead>
               ))}
             </TableRow>
           </TableHeader>
@@ -52,10 +52,10 @@ export default async function ContentActivitiesPage() {
             ) : items.map((item) => {
               const fee = Number(item.registrationFee);
               return (
-              <TableRow key={item.id} className="hover:bg-[#F9FAFB]">
-                <TableCell className="font-medium text-[#1F2937]">{item.title}</TableCell>
-                <TableCell className="text-[13px] text-[#6B7280]">{formatCnDate(item.startDate)} ~ {formatCnDate(item.endDate)}</TableCell>
-                <TableCell className="text-[13px]">{fee === 0 ? <span className="text-[#6B7280]">免费</span> : `¥${fee}`}</TableCell>
+              <TableRow key={item.id} className="hover:bg-muted">
+                <TableCell className="font-medium text-foreground">{item.title}</TableCell>
+                <TableCell className="text-[13px] text-muted-foreground">{formatCnDate(item.startDate)} ~ {formatCnDate(item.endDate)}</TableCell>
+                <TableCell className="text-[13px]">{fee === 0 ? <span className="text-muted-foreground">免费</span> : `¥${fee}`}</TableCell>
                 <TableCell><StatusChip status={item.status === "PUBLISHED" ? "PUBLISHED_OK" : item.status === "ARCHIVED" ? "OFFLINE_CONTENT" : "DRAFT"} /></TableCell>
                 <TableCell className="text-[13px]">{item._count.signups} 人</TableCell>
                 <TableCell>

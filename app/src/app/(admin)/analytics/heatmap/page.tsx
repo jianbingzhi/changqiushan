@@ -26,31 +26,31 @@ export default async function AnalyticsHeatmapPage() {
     <>
       <PageHeader title="热力图分析" description="景区内游客密度热力分布"
         actions={
-          <a href="/api/export/heatmap" download className="inline-flex items-center gap-1.5 rounded-md border border-[#E5E7EB] bg-white px-3 py-2 text-sm font-medium text-[#1F2937] hover:bg-[#F9FAFB]">
-            <FileDown className="h-4 w-4 text-[#6B7280]" />导出 Excel
+          <a href="/api/export/heatmap" download className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-muted">
+            <FileDown className="h-4 w-4 text-muted-foreground" />导出 Excel
           </a>
         }
       />
-      <div className="mb-5 rounded-lg border border-[#E5E7EB] bg-white p-4">
-        <p className="mb-1 text-[13px] font-medium text-[#1F2937]">时段 × 星期预约热力</p>
-        <p className="mb-3 text-[12px] text-[#9CA3AF]">按星期与小时聚合的预约分布，颜色越深预约越集中</p>
+      <div className="mb-5 rounded-lg border border-border bg-card p-4">
+        <p className="mb-1 text-[13px] font-medium text-foreground">时段 × 星期预约热力</p>
+        <p className="mb-3 text-[12px] text-text-muted">按星期与小时聚合的预约分布，颜色越深预约越集中</p>
         {hasHeat ? (
           <Heatmap724 matrix={weekMatrix} variant="light" metricLabel="预约" height={340} />
         ) : (
           <EmptyState message="暂无时段×星期热力数据" />
         )}
       </div>
-      <div className="mb-5 rounded-lg border border-[#E5E7EB] bg-white p-4">
-        <p className="mb-3 text-[13px] font-medium text-[#1F2937]">各时段游客密度（峰值人数）</p>
+      <div className="mb-5 rounded-lg border border-border bg-card p-4">
+        <p className="mb-3 text-[13px] font-medium text-foreground">各时段游客密度（峰值人数）</p>
         <BarList height={400} emptyText="暂无时段密度数据" data={rows.map((r) => ({ label: `${r.hour} 时`, value: r.max, hint: `峰值 ${r.max}` }))} />
       </div>
-      <div className="rounded-lg border border-[#E5E7EB] bg-white">
-        <div className="border-b border-[#E5E7EB] px-4 py-3"><p className="text-[13px] font-medium text-[#1F2937]">各时段游客峰值</p></div>
+      <div className="rounded-lg border border-border bg-card">
+        <div className="border-b border-border px-4 py-3"><p className="text-[13px] font-medium text-foreground">各时段游客峰值</p></div>
         <Table>
           <TableHeader>
-            <TableRow className="bg-[#F9FAFB]">
+            <TableRow className="bg-muted">
               {["时段", "平均游客数", "峰值游客数"].map((h) => (
-                <TableHead key={h} className="text-xs font-semibold text-[#6B7280]">{h}</TableHead>
+                <TableHead key={h} className="text-xs font-semibold text-muted-foreground">{h}</TableHead>
               ))}
             </TableRow>
           </TableHeader>
@@ -58,8 +58,8 @@ export default async function AnalyticsHeatmapPage() {
             {rows.length === 0 ? (
               <TableRow><TableCell colSpan={3} className="p-0"><EmptyState message="暂无时段峰值数据" /></TableCell></TableRow>
             ) : rows.map((r) => (
-              <TableRow key={r.hour} className="hover:bg-[#F9FAFB]">
-                <TableCell className="text-[13px] text-[#1F2937]">{r.hour} 时</TableCell>
+              <TableRow key={r.hour} className="hover:bg-muted">
+                <TableCell className="text-[13px] text-foreground">{r.hour} 时</TableCell>
                 <TableCell className="text-[13px]">{r.avg}</TableCell>
                 <TableCell className="text-[13px] font-medium">{r.max}</TableCell>
               </TableRow>

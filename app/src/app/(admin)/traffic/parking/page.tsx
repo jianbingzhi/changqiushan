@@ -52,8 +52,8 @@ export default async function TrafficParkingPage() {
       {/* 地图占位 */}
       <div className="mb-4 rounded-lg border border-border bg-card p-4">
         <p className="mb-3 text-[13px] font-medium text-muted-foreground">停车场分布地图</p>
-        <div className="flex h-[300px] items-center justify-center rounded bg-muted" role="img" aria-label="地图加载中">
-          <span className="text-[14px] text-text-muted">地图加载中…</span>
+        <div className="flex h-[300px] items-center justify-center rounded bg-muted" role="img" aria-label="停车场分布地图占位">
+          <span className="text-[14px] text-text-muted">停车场分布地图待地图组件接入后展示</span>
         </div>
       </div>
 

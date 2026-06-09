@@ -18,7 +18,7 @@ export default async function ContentIntroPage() {
         actions={<Link href="/content/intro/new"><Button>新建介绍</Button></Link>}
       />
       {items.length === 0 ? (
-        <div className="rounded-lg border border-[#E5E7EB] bg-white"><EmptyState message="暂无景区介绍内容" /></div>
+        <div className="rounded-lg border border-border bg-card"><EmptyState message="暂无景区介绍内容" /></div>
       ) : (
         <SortableContentRows
           model="intro"

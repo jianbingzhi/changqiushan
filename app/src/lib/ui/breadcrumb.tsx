@@ -37,11 +37,11 @@ export function Breadcrumb() {
   const subLabel = onSubPage && crumb ? subPageLabel(pathname, crumb.href) : null;
 
   return (
-    <nav aria-label="面包屑" className="mb-2 flex items-center text-xs text-[#9CA3AF]">
+    <nav aria-label="面包屑" className="mb-2 flex items-center text-xs text-text-muted">
       {onHome ? (
-        <span className="text-[#6B7280]" aria-current="page">首页</span>
+        <span className="text-muted-foreground" aria-current="page">首页</span>
       ) : (
-        <Link href="/" className="transition-colors hover:text-[#6B7280]">首页</Link>
+        <Link href="/" className="transition-colors hover:text-muted-foreground">首页</Link>
       )}
       {crumb && (
         <>
@@ -49,16 +49,16 @@ export function Breadcrumb() {
           <span>{crumb.group}</span>
           <span className="mx-1.5">/</span>
           {onSubPage ? (
-            <Link href={crumb.href} className="transition-colors hover:text-[#6B7280]">
+            <Link href={crumb.href} className="transition-colors hover:text-muted-foreground">
               {crumb.page}
             </Link>
           ) : (
-            <span className="text-[#6B7280]" aria-current="page">{crumb.page}</span>
+            <span className="text-muted-foreground" aria-current="page">{crumb.page}</span>
           )}
           {subLabel && (
             <>
               <span className="mx-1.5">/</span>
-              <span className="text-[#6B7280]" aria-current="page">{subLabel}</span>
+              <span className="text-muted-foreground" aria-current="page">{subLabel}</span>
             </>
           )}
         </>

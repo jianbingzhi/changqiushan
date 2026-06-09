@@ -29,21 +29,21 @@ export default async function BlacklistPage({ searchParams }: { searchParams: Pr
     <>
       <PageHeader title="爽约风控与黑名单" description="管理爽约用户及申诉流程" />
 
-      <div className="flex border-b border-[#E5E7EB] mb-5">
+      <div className="flex border-b border-border mb-5">
         {([ { key: "blacklist", label: "黑名单", href: "?tab=blacklist" }, { key: "appeals", label: "申诉管理", href: "?tab=appeals" } ] as const).map(({ key, label, href }) => (
-          <Link key={key} href={href} className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === key ? "border-[#2D5A27] text-[#2D5A27]" : "border-transparent text-[#6B7280] hover:text-[#1F2937]"}`}>
+          <Link key={key} href={href} className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === key ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
             {label}
           </Link>
         ))}
       </div>
 
       {activeTab === "blacklist" && (
-        <div className="rounded-lg border border-[#E5E7EB] bg-white">
+        <div className="rounded-lg border border-border bg-card">
           <Table>
             <TableHeader>
-              <TableRow className="bg-[#F9FAFB]">
+              <TableRow className="bg-muted">
                 {["用户 ID", "身份证", "车牌", "加入原因", "加入时间", "操作"].map((h) => (
-                  <TableHead key={h} className="text-xs font-semibold text-[#6B7280]">{h}</TableHead>
+                  <TableHead key={h} className="text-xs font-semibold text-muted-foreground">{h}</TableHead>
                 ))}
               </TableRow>
             </TableHeader>
@@ -56,12 +56,12 @@ export default async function BlacklistPage({ searchParams }: { searchParams: Pr
                 </TableRow>
               ) : (
                 blacklistItems.map((entry) => (
-                  <TableRow key={entry.id} className="hover:bg-[#F9FAFB]">
-                    <TableCell className="font-mono text-[12px] text-[#6B7280]">{entry.userId.slice(0, 8).toUpperCase()}…</TableCell>
-                    <TableCell className="font-mono text-[13px] text-[#6B7280]">{maskIdCard(entry.idCard)}</TableCell>
-                    <TableCell className="text-[13px] text-[#6B7280]">{entry.plate ?? "—"}</TableCell>
-                    <TableCell className="text-[13px] text-[#1F2937] max-w-[240px] truncate">{entry.reason}</TableCell>
-                    <TableCell className="text-[13px] text-[#6B7280]">{formatCnDateTime(entry.createdAt)}</TableCell>
+                  <TableRow key={entry.id} className="hover:bg-muted">
+                    <TableCell className="font-mono text-[12px] text-muted-foreground">{entry.userId.slice(0, 8).toUpperCase()}…</TableCell>
+                    <TableCell className="font-mono text-[13px] text-muted-foreground">{maskIdCard(entry.idCard)}</TableCell>
+                    <TableCell className="text-[13px] text-muted-foreground">{entry.plate ?? "—"}</TableCell>
+                    <TableCell className="text-[13px] text-foreground max-w-[240px] truncate">{entry.reason}</TableCell>
+                    <TableCell className="text-[13px] text-muted-foreground">{formatCnDateTime(entry.createdAt)}</TableCell>
                     <TableCell>
                       <RemoveBlacklistButton userId={entry.userId} />
                     </TableCell>
@@ -74,12 +74,12 @@ export default async function BlacklistPage({ searchParams }: { searchParams: Pr
       )}
 
       {activeTab === "appeals" && (
-        <div className="rounded-lg border border-[#E5E7EB] bg-white">
+        <div className="rounded-lg border border-border bg-card">
           <Table>
             <TableHeader>
-              <TableRow className="bg-[#F9FAFB]">
+              <TableRow className="bg-muted">
                 {["申诉ID", "身份证", "申诉原因", "状态", "提交时间", "操作"].map((h) => (
-                  <TableHead key={h} className="text-xs font-semibold text-[#6B7280]">{h}</TableHead>
+                  <TableHead key={h} className="text-xs font-semibold text-muted-foreground">{h}</TableHead>
                 ))}
               </TableRow>
             </TableHeader>
@@ -92,19 +92,19 @@ export default async function BlacklistPage({ searchParams }: { searchParams: Pr
                 </TableRow>
               ) : (
                 appealItems.map((appeal) => (
-                  <TableRow key={appeal.id} className="hover:bg-[#F9FAFB]">
-                    <TableCell className="font-mono text-[12px] text-[#6B7280]">{appeal.id.slice(0, 8).toUpperCase()}</TableCell>
-                    <TableCell className="font-mono text-[13px] text-[#6B7280]">{maskIdCard(appeal.blacklist.idCard)}</TableCell>
-                    <TableCell className="text-[13px] text-[#1F2937] max-w-[260px] truncate">{appeal.reason}</TableCell>
+                  <TableRow key={appeal.id} className="hover:bg-muted">
+                    <TableCell className="font-mono text-[12px] text-muted-foreground">{appeal.id.slice(0, 8).toUpperCase()}</TableCell>
+                    <TableCell className="font-mono text-[13px] text-muted-foreground">{maskIdCard(appeal.blacklist.idCard)}</TableCell>
+                    <TableCell className="text-[13px] text-foreground max-w-[260px] truncate">{appeal.reason}</TableCell>
                     <TableCell>
                       <StatusChip status={appeal.status === "APPROVED" ? "CONFIRMED" : appeal.status === "REJECTED" ? "CANCELLED" : "PENDING"} />
                     </TableCell>
-                    <TableCell className="text-[13px] text-[#6B7280]">{formatCnDateTime(appeal.createdAt)}</TableCell>
+                    <TableCell className="text-[13px] text-muted-foreground">{formatCnDateTime(appeal.createdAt)}</TableCell>
                     <TableCell>
                       {appeal.status === "PENDING" ? (
                         <ReviewAppealButtons appealId={appeal.id} />
                       ) : (
-                        <span className="text-[12px] text-[#9CA3AF]">已处理</span>
+                        <span className="text-[12px] text-text-muted">已处理</span>
                       )}
                     </TableCell>
                   </TableRow>

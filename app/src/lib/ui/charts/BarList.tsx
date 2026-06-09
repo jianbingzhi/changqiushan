@@ -16,8 +16,8 @@ interface Props {
 export function BarList({ data, height = 300, emptyText = "暂无数据" }: Props) {
   if (data.length === 0) {
     return (
-      <div className="flex items-center justify-center rounded-lg bg-[#F9FAFB] border border-[#E5E7EB]" style={{ height }}>
-        <span className="text-[14px] text-[#9CA3AF]">{emptyText}</span>
+      <div className="flex items-center justify-center rounded-lg bg-muted border border-border" style={{ height }}>
+        <span className="text-[14px] text-text-muted">{emptyText}</span>
       </div>
     );
   }
@@ -26,14 +26,14 @@ export function BarList({ data, height = 300, emptyText = "暂无数据" }: Prop
     <div className="space-y-2 overflow-auto pr-1" style={{ maxHeight: height }} role="img" aria-label="数据条形图">
       {data.map((d) => (
         <div key={d.label} className="flex items-center gap-3">
-          <span className="w-28 shrink-0 truncate text-[12px] text-[#6B7280]" title={d.label}>{d.label}</span>
-          <div className="relative h-5 flex-1 rounded bg-[#F3F4F6]">
+          <span className="w-28 shrink-0 truncate text-[12px] text-muted-foreground" title={d.label}>{d.label}</span>
+          <div className="relative h-5 flex-1 rounded bg-muted">
             <div
-              className="absolute inset-y-0 left-0 rounded bg-[#2D5A27]"
+              className="absolute inset-y-0 left-0 rounded bg-primary"
               style={{ width: `${Math.round((d.value / max) * 100)}%`, minWidth: d.value > 0 ? 2 : 0 }}
             />
           </div>
-          <span className="w-20 shrink-0 text-right text-[12px] font-medium text-[#1F2937]">
+          <span className="w-20 shrink-0 text-right text-[12px] font-medium text-foreground">
             {d.hint ?? d.value.toLocaleString("zh-CN")}
           </span>
         </div>

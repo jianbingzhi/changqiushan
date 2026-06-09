@@ -113,33 +113,33 @@ export function RegionMap({ provinceData }: { provinceData: RegionDatum[] }) {
   const sortedData = [...cur.data].sort((a, b) => b.visitorCount - a.visitorCount);
 
   return (
-    <div className="rounded-lg border border-[#E5E7EB] bg-white p-4">
+    <div className="rounded-lg border border-border bg-card p-4">
       {/* 面包屑 */}
       <div className="mb-2 flex flex-wrap items-center gap-1 text-[13px]">
         {stack.map((f, i) => (
           <span key={f.mapName + i} className="flex items-center gap-1">
-            {i > 0 && <span className="text-[#9CA3AF]">/</span>}
+            {i > 0 && <span className="text-text-muted">/</span>}
             {i < stack.length - 1 ? (
-              <button type="button" onClick={() => popTo(i)} className="text-[#2D5A27] hover:underline">
+              <button type="button" onClick={() => popTo(i)} className="text-primary hover:underline">
                 {f.name}
               </button>
             ) : (
-              <span className="font-medium text-[#1F2937]">{f.name}</span>
+              <span className="font-medium text-foreground">{f.name}</span>
             )}
           </span>
         ))}
         {cur.level !== "district" && (
-          <span className="ml-2 text-[12px] text-[#9CA3AF]">点击地图区域下钻</span>
+          <span className="ml-2 text-[12px] text-text-muted">点击地图区域下钻</span>
         )}
       </div>
 
-      {error && <p className="mb-2 text-[12px] text-[#DC2626]">{error}</p>}
+      {error && <p className="mb-2 text-[12px] text-danger">{error}</p>}
 
       <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
         {/* 地图 */}
         <div className="relative min-h-80">
           {loading && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 text-[13px] text-[#6B7280]">
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-card/60 text-[13px] text-muted-foreground">
               加载中…
             </div>
           )}
@@ -147,12 +147,12 @@ export function RegionMap({ provinceData }: { provinceData: RegionDatum[] }) {
         </div>
 
         {/* 等价数据表 */}
-        <div className="overflow-auto rounded-md border border-[#E5E7EB]">
+        <div className="overflow-auto rounded-md border border-border">
           <Table density="compact">
             <TableHeader>
-              <TableRow className="bg-[#F9FAFB]">
+              <TableRow className="bg-muted">
                 {["地区", "到访游客"].map((h) => (
-                  <TableHead key={h} className="text-xs font-semibold text-[#6B7280]">{h}</TableHead>
+                  <TableHead key={h} className="text-xs font-semibold text-muted-foreground">{h}</TableHead>
                 ))}
               </TableRow>
             </TableHeader>
@@ -160,8 +160,8 @@ export function RegionMap({ provinceData }: { provinceData: RegionDatum[] }) {
               {sortedData.length === 0 ? (
                 <TableRow><TableCell colSpan={2} className="p-0"><EmptyState message="暂无该层级到访数据" /></TableCell></TableRow>
               ) : sortedData.map((d) => (
-                <TableRow key={d.code} className="hover:bg-[#F9FAFB]">
-                  <TableCell className="text-[13px] text-[#1F2937]">{d.name}</TableCell>
+                <TableRow key={d.code} className="hover:bg-muted">
+                  <TableCell className="text-[13px] text-foreground">{d.name}</TableCell>
                   <TableCell className="text-[13px]">{d.visitorCount}</TableCell>
                 </TableRow>
               ))}
@@ -169,7 +169,7 @@ export function RegionMap({ provinceData }: { provinceData: RegionDatum[] }) {
           </Table>
         </div>
       </div>
-      <p className="mt-2 text-[12px] text-[#9CA3AF]">口径:按身份证签发地聚合(≈籍贯近似),已去重到访游客;未知码归「未知」。</p>
+      <p className="mt-2 text-[12px] text-text-muted">口径:按身份证签发地聚合(≈籍贯近似),已去重到访游客;未知码归「未知」。</p>
     </div>
   );
 }

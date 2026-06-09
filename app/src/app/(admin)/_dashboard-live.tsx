@@ -82,11 +82,11 @@ export function HeaderLive() {
     return (
       <div className="flex items-center gap-2">
         <LiveDot tone="offline" label="数据快照" />
-        <span className="text-[13px] text-[#6B7280]">数据快照</span>
+        <span className="text-[13px] text-muted-foreground">数据快照</span>
         <button
           type="button"
           onClick={refresh}
-          className="text-[13px] text-[#2D5A27] hover:underline"
+          className="text-[13px] text-primary hover:underline"
         >
           刷新
         </button>
@@ -97,7 +97,7 @@ export function HeaderLive() {
   return (
     <div className="flex items-center gap-2">
       <LiveDot tone={connected ? "connected" : "disconnected"} />
-      <span className="text-[13px] text-[#6B7280]">
+      <span className="text-[13px] text-muted-foreground">
         {connected ? "实时连接正常" : "实时连接断开"}
       </span>
     </div>

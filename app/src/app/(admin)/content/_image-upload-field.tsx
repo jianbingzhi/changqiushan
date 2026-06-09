@@ -57,13 +57,13 @@ export function ImageUploadField({
           <div className="group relative aspect-[16/5] w-full overflow-hidden rounded-xl border border-border bg-muted">
             <Image src={value} alt="封面预览" fill sizes="(max-width:1024px) 100vw, 760px" className="object-cover" unoptimized />
             <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/35 opacity-0 transition-opacity group-hover:opacity-100">
-              <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => fileRef.current?.click()} className="bg-white/90">
+              <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => fileRef.current?.click()} className="bg-card/90">
                 <Upload className="h-3.5 w-3.5" />{busy ? "上传中…" : "更换"}
               </Button>
-              <Button type="button" size="sm" variant="outline" onClick={() => setPicking(true)} className="bg-white/90">
+              <Button type="button" size="sm" variant="outline" onClick={() => setPicking(true)} className="bg-card/90">
                 <Library className="h-3.5 w-3.5" />素材库
               </Button>
-              <Button type="button" size="sm" variant="outline" onClick={() => onChange("")} className="bg-white/90 text-destructive hover:text-destructive">
+              <Button type="button" size="sm" variant="outline" onClick={() => onChange("")} className="bg-card/90 text-destructive hover:text-destructive">
                 <X className="h-3.5 w-3.5" />移除
               </Button>
             </div>
