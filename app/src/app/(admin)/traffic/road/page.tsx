@@ -3,19 +3,27 @@ import { StatCard, KpiRow } from "@/lib/ui/stat-card";
 import { StatusChip } from "@/lib/ui/status-chip";
 import { EmptyState } from "@/lib/ui/empty-state";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/lib/ui/table";
-import { fetchTrafficConditions } from "@/lib/amap";
+import { trafficService } from "@/modules/traffic";
 import { formatCnDateTime } from "@/shared/format";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "实时路况查询 · 长秋山管理后台" };
 
 export default async function TrafficRoadPage() {
-  const conditions = await fetchTrafficConditions("长秋山").catch(() => []);
+  const { source, conditions } = await trafficService.getRoadConditions();
 
   const free = conditions.filter((c) => c.congestion === "畅通").length;
   const slow = conditions.filter((c) => c.congestion === "缓行").length;
   const jam  = conditions.filter((c) => c.congestion === "拥堵").length;
   const updatedAt = conditions[0]?.updatedAt ? formatCnDateTime(new Date(conditions[0].updatedAt)) : "—";
+
+  // 诚实三态空态文案:未配置 / 服务异常 / 已接通但矩形内无路况
+  const emptyMessage =
+    source === "unconfigured"
+      ? "高德地图 Key 未配置,暂无路况数据"
+      : source === "error"
+        ? "高德路况服务暂不可用(请检查 Key 或网络)"
+        : "暂无路况数据";
 
   return (
     <>
@@ -46,7 +54,7 @@ export default async function TrafficRoadPage() {
           </TableHeader>
           <TableBody>
             {conditions.length === 0 ? (
-              <TableRow><TableCell colSpan={4} className="p-0"><EmptyState message="暂无路况数据" /></TableCell></TableRow>
+              <TableRow><TableCell colSpan={4} className="p-0"><EmptyState message={emptyMessage} /></TableCell></TableRow>
             ) : conditions.map((c, i) => (
               <TableRow key={i} className="hover:bg-muted/50">
                 <TableCell className="font-medium text-foreground">{c.name}</TableCell>

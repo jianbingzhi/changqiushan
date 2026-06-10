@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import type { TrafficParkingLot } from "@prisma/client";
+import { fetchRoadConditions, type RoadConditionsResult } from "@/infrastructure/amap";
 import { bus } from "@/infrastructure/realtime/bus";
 import { ok, err, ErrCode, type Result } from "@/shared/result";
 import { getParkingStatus } from "../domain/rules";
@@ -26,6 +27,12 @@ export const trafficService = {
     bus.publish("parking_state", {
       lotId, name: lot.name, occupied, capacity: lot.capacity, status,
     });
+  },
+
+  // 实时路况:高德服务端 REST(fetch 级 60 秒缓存)。
+  // 返回诚实三态(unconfigured/error/amap),由页面渲染对应空态文案,不在此兜底假数据。
+  getRoadConditions(): Promise<RoadConditionsResult> {
+    return fetchRoadConditions();
   },
 
   listParkingLots() {

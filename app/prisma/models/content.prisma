@@ -105,6 +105,8 @@ model ContentKnowledge {
 }
 
 // 导览 POI(景点/餐饮/卫生间/观景台等);经纬度供小程序地图标注
+// ⚠️ 坐标系铁律:latitude/longitude 全库统一 GCJ-02(高德原生,经拾取器取点),
+// 严禁混入 WGS-84(GPS 原始值,川西偏差 300–500m)——上图/导航全链路按 GCJ-02 消费。
 model ContentPoi {
   id          String        @id @default(uuid()) @db.Uuid
   name        String        @db.VarChar(80)
