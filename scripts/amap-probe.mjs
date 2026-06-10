@@ -1,0 +1,24 @@
+import WebSocket from "ws";
+import { writeFileSync } from "fs";
+let id=0; const pend=new Map(); const evs=[];
+const targets = await (await fetch("http://127.0.0.1:9224/json")).json();
+const ws = new WebSocket(targets.find(t=>t.type==="page").webSocketDebuggerUrl,{maxPayload:64*1024*1024});
+const send=(m,p={})=>new Promise((res,rej)=>{const i=++id;pend.set(i,{res,rej});ws.send(JSON.stringify({id:i,method:m,params:p}))});
+ws.on("message",(raw)=>{const m=JSON.parse(raw);if(m.id&&pend.has(m.id)){const p=pend.get(m.id);pend.delete(m.id);m.error?p.rej(new Error(m.error.message)):p.res(m.result)}else if(m.method)for(const h of evs)h(m)});
+await new Promise(r=>ws.on("open",r));
+await send("Page.enable"); await send("Runtime.enable"); await send("Network.enable");
+await send("Network.setUserAgentOverride",{userAgent:"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36"});
+const tok=await (await fetch("http://127.0.0.1:9999/token?grant_type=password",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({phone:"13900000000",password:"Admin@12345"})})).json();
+for(const c of [["sb-access-token",tok.access_token],["sb-refresh-token",tok.refresh_token]])
+  await send("Network.setCookie",{name:c[0],value:c[1],url:"http://localhost:3001",path:"/"});
+const logs=[];
+evs.push(m=>{ if(m.method==="Runtime.consoleAPICalled"){ const t=(m.params.args||[]).map(a=>a.value??a.description??"").join(" "); logs.push(m.params.type+": "+t);}});
+await send("Page.navigate",{url:"http://localhost:3001/traffic/road"});
+await new Promise(r=>setTimeout(r,16000));
+const probe = await send("Runtime.evaluate",{expression:`JSON.stringify({hasAMap: typeof window.AMap, canvases: document.querySelectorAll('canvas').length, bodyText: document.body.innerText.slice(0,120).replace(/\\n/g,'|'), amapDom: !!document.querySelector('.amap-container')})`,returnByValue:true});
+console.log("PROBE:", probe.result.value);
+console.log("CONSOLE(last 10):"); for(const l of logs.slice(-10)) console.log(" ", l.slice(0,180));
+const {data}=await send("Page.captureScreenshot",{format:"png"});
+writeFileSync("/home/agent/projects/Panda/Changqiushan/UI/素材/theme-qa/LIVE-road-amap.png",Buffer.from(data,"base64"));
+console.log("reshot");
+ws.close();
