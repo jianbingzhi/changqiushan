@@ -31,6 +31,7 @@
     "@tarojs/runtime": "4.2.0",
     "@tarojs/shared": "4.2.0",
     "@tarojs/taro": "4.2.0",
+    "mp-html": "^2.5.2",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "zod": "^4.4.3",

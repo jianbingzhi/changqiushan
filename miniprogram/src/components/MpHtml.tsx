@@ -1,12 +1,42 @@
-import { RichText } from '@tarojs/components'
-import './MpHtml.scss'
-
 interface Props {
   html: string
 }
 
-// 富文本渲染:基于 Taro 内置 RichText(weapp <rich-text>,白名单子集),无需额外依赖
-// 后续如需图片懒加载/复杂排版可换 mp-html(c-05/A9 富文本场景再评估)
+// 原生 mp-html 组件的 JSX 声明(React 19 走 react JSX namespace 增强)。
+// 组件本体在 subpkg-activity/components/mp-html(原生第三方组件,经 copy 进 dist,
+// 由调用页 index.config.ts 的 usingComponents 注册,不走 Taro 编译)。
+declare module 'react' {
+  namespace JSX {
+    interface IntrinsicElements {
+      'mp-html': {
+        content?: string
+        'container-style'?: string
+        'tag-style'?: Record<string, string>
+        'lazy-load'?: boolean
+        'show-img-menu'?: boolean
+      }
+    }
+  }
+}
+
+// 对齐原 rich-text 视觉:正文行高/字号经 container-style,图片圆角与链接主色经 tag-style。
+// mp-html 支持 video/a 可点/图片预览,解掉 <rich-text> 不支持 video 与 a 链接不可点的旧债(T2a)。
+// CSS 变量可继承穿透组件样式隔离,带回退值保证浅/深主题与异常场景均可读
+const CONTAINER_STYLE = 'font-size: 15px; line-height: 1.7; color: var(--text-primary, #1F2937); word-break: break-word;'
+const TAG_STYLE = {
+  img: 'max-width: 100%; border-radius: 12rpx; margin: 8rpx 0;',
+  a: 'color: var(--brand, #2D5A27); text-decoration: none;',
+  p: 'margin: 8rpx 0;',
+  video: 'width: 100%; border-radius: 12rpx; margin: 8rpx 0;'
+}
+
 export function MpHtml({ html }: Props) {
-  return <RichText className='mp-html' nodes={html || ''} />
+  return (
+    <mp-html
+      content={html || ''}
+      container-style={CONTAINER_STYLE}
+      tag-style={TAG_STYLE}
+      lazy-load
+    />
+  )
 }

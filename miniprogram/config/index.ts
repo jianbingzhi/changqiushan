@@ -24,7 +24,10 @@ export default defineConfig<'webpack5'>(async (merge) => {
     plugins: [],
     defineConstants: {},
     copy: {
-      patterns: [],
+      // mp-html 原生组件不走 Taro/webpack 编译,原样拷进 dist(落 subpkg-activity 分包,~68KB 不吃主包配额)
+      patterns: [
+        { from: 'src/subpkg-activity/components/mp-html/', to: 'dist/subpkg-activity/components/mp-html/' }
+      ],
       options: {}
     },
     framework: 'react',
