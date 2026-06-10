@@ -194,7 +194,7 @@ async function main() {
 
     // 内容:资讯 / 介绍 / 知识库 / 活动 + 报名(B03-B07/B23 验证用)
     const news = [
-      { title: "长秋山森林公园 2026 年春季开园公告", summary: "即日起恢复全天预约入园，免费不售票。", status: "PUBLISHED" },
+      { title: "长秋山森林公园 2026 年春季开园公告", summary: "即日起恢复全天预约入园，景区免费开放，预约成功即可入园。", status: "PUBLISHED" },
       { title: "五一假期预约入园指南", summary: "请提前在小程序预约，携带身份证与车牌信息。", status: "PUBLISHED" },
       { title: "园区步道临时维护通知（草稿）", summary: null, status: "DRAFT" },
     ];
