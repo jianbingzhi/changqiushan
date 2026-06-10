@@ -266,9 +266,11 @@ export function AmapContainer({
   const overlayTextStyle = overlayDark ? { color: "var(--screen-text-dim, #9AD6B0)" } : undefined;
 
   return (
-    // 审计 P2-4:z-0 + isolate 把高德内部元素(logo z≈160)关进独立 stacking context,不与页面浮层竞争
+    // 审计 P2-4:z-0 + isolate 把高德内部元素(logo z≈160)关进独立 stacking context,不与页面浮层竞争。
+    // ⚠️ 地图 div 必须用 h-full/w-full 显式定尺寸,不能靠 absolute inset-0——
+    //    高德 SDK 初始化会把容器 position 强写成 relative,inset 定高随之失效、高度塌 0(线上实测)。
     <div className={cn("relative h-full w-full overflow-hidden", className)}>
-      <div ref={containerRef} className="absolute inset-0 z-0 isolate" />
+      <div ref={containerRef} className="h-full w-full z-0 isolate" />
       {(status === "idle" || status === "loading") && (
         <div className={cn("absolute inset-0 z-10 flex flex-col items-center justify-center gap-2", !overlayDark && "bg-muted")} style={overlayStyle}>
           <Loader2 className={cn("h-5 w-5 animate-spin", !overlayDark && "text-muted-foreground")} style={overlayTextStyle} aria-hidden />
