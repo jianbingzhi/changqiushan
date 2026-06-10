@@ -1,9 +1,9 @@
 import { analyticsRepository } from "@/modules/analytics";
 import { trafficRepository } from "@/modules/traffic";
-import { bookingRepository } from "@/modules/booking";
+import { bookingService } from "@/modules/booking";
 import { configService } from "@/modules/system";
 import { resolveInstantCapacity } from "@/shared/lib/capacity";
-import { chinaTodayDbDate } from "@/shared/lib/time";
+import { chinaToday } from "@/shared/lib/time";
 import { ScreenShell } from "@/lib/ui/screen/ScreenShell";
 import { ScreenHeader } from "@/lib/ui/screen/ScreenHeader";
 import { ScreenCard } from "@/lib/ui/screen/ScreenCard";
@@ -19,7 +19,6 @@ const PARK_STATUS_CN: Record<string, string> = { OPEN: "空闲", FULL: "已满",
 const PARK_TONE: Record<string, string> = { OPEN: "var(--screen-glow)", FULL: "var(--screen-red)", CLOSED: "var(--screen-orange)" };
 
 export default async function PosterScreenPage() {
-  const today = chinaTodayDbDate();
   const end = new Date();
   const start = new Date();
   start.setDate(start.getDate() - 29);
@@ -27,7 +26,7 @@ export default async function PosterScreenPage() {
   const [heat, lots, slots, daily, capacity] = await Promise.all([
     analyticsRepository.getWeeklyHourlyHeat().catch(() => []),
     trafficRepository.listParkingLots().catch(() => []),
-    bookingRepository.listSlotsByDate(today).catch(() => []),
+    bookingService.listSlotsForDate(chinaToday()).catch(() => []),
     analyticsRepository.getDailyTraffic(start, end).catch(() => []),
     configService.getInstantCapacity().catch(() => resolveInstantCapacity()),
   ]);

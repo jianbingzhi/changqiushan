@@ -1,10 +1,10 @@
-import { bookingRepository } from "@/modules/booking";
+import { bookingService } from "@/modules/booking";
 import { iotRepository } from "@/modules/iot";
 import { contentRepository } from "@/modules/content";
 import { analyticsRepository } from "@/modules/analytics";
 import { configService } from "@/modules/system";
 import { resolveInstantCapacity, CIRCUIT_BREAK_RATIO } from "@/shared/lib/capacity";
-import { chinaTodayDbDate } from "@/shared/lib/time";
+import { chinaToday } from "@/shared/lib/time";
 import { ScreenShell } from "@/lib/ui/screen/ScreenShell";
 import { SituationLive, type SituationData } from "./_situation-live";
 
@@ -20,9 +20,8 @@ const CHANNEL_CN: Record<string, string> = {
 };
 
 export default async function SituationScreenPage() {
-  const today = chinaTodayDbDate();
   const [slots, capacity, devices, profile, source, activities, pois] = await Promise.all([
-    bookingRepository.listSlotsByDate(today).catch(() => []),
+    bookingService.listSlotsForDate(chinaToday()).catch(() => []),
     configService.getInstantCapacity().catch(() => resolveInstantCapacity()),
     iotRepository.listDevices().catch(() => []),
     analyticsRepository.getProfileOverview().catch(() => []),

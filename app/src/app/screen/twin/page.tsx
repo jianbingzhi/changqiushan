@@ -1,10 +1,10 @@
 import { iotRepository } from "@/modules/iot";
 import { trafficRepository } from "@/modules/traffic";
 import { contentRepository } from "@/modules/content";
-import { bookingRepository } from "@/modules/booking";
+import { bookingService } from "@/modules/booking";
 import { configService } from "@/modules/system";
 import { resolveInstantCapacity, CIRCUIT_BREAK_RATIO } from "@/shared/lib/capacity";
-import { chinaTodayDbDate } from "@/shared/lib/time";
+import { chinaToday } from "@/shared/lib/time";
 import { ScreenShell } from "@/lib/ui/screen/ScreenShell";
 import { TwinLive, type TwinData } from "./_twin-live";
 
@@ -12,12 +12,11 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "数字孪生导览图 · 长秋山森林公园智慧景区" };
 
 export default async function TwinScreenPage() {
-  const today = chinaTodayDbDate();
   const [devices, lots, pois, slots, capacity] = await Promise.all([
     iotRepository.listDevices().catch(() => []),
     trafficRepository.listParkingLots().catch(() => []),
     contentRepository.listPois().catch(() => []),
-    bookingRepository.listSlotsByDate(today).catch(() => []),
+    bookingService.listSlotsForDate(chinaToday()).catch(() => []),
     configService.getInstantCapacity().catch(() => resolveInstantCapacity()),
   ]);
 

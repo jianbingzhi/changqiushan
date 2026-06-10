@@ -1,7 +1,7 @@
 import { analyticsRepository } from "@/modules/analytics";
 import { contentRepository } from "@/modules/content";
-import { bookingRepository } from "@/modules/booking";
-import { chinaTodayDbDate } from "@/shared/lib/time";
+import { bookingService } from "@/modules/booking";
+import { chinaToday } from "@/shared/lib/time";
 import { ScreenShell } from "@/lib/ui/screen/ScreenShell";
 import { ScreenHeader } from "@/lib/ui/screen/ScreenHeader";
 import { ScreenCard } from "@/lib/ui/screen/ScreenCard";
@@ -17,7 +17,7 @@ export default async function HeatmapScreenPage() {
   const [heat, pois, slots] = await Promise.all([
     analyticsRepository.getWeeklyHourlyHeat().catch(() => []),
     contentRepository.listPois().catch(() => []),
-    bookingRepository.listSlotsByDate(chinaTodayDbDate()).catch(() => []),
+    bookingService.listSlotsForDate(chinaToday()).catch(() => []),
   ]);
 
   const matrix = Array.from({ length: 7 }, () => Array<number>(24).fill(0));

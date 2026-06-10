@@ -1,11 +1,11 @@
-import { bookingRepository } from "@/modules/booking";
+import { bookingService } from "@/modules/booking";
 import { trafficRepository } from "@/modules/traffic";
 import { iotRepository } from "@/modules/iot";
 import { contentRepository } from "@/modules/content";
 import { analyticsRepository } from "@/modules/analytics";
 import { configService } from "@/modules/system";
 import { resolveInstantCapacity } from "@/shared/lib/capacity";
-import { chinaTodayDbDate, toCstDateStr } from "@/shared/lib/time";
+import { chinaToday, toCstDateStr } from "@/shared/lib/time";
 import { ScreenShell } from "@/lib/ui/screen/ScreenShell";
 import { ScreenHeader } from "@/lib/ui/screen/ScreenHeader";
 import { ScreenCard } from "@/lib/ui/screen/ScreenCard";
@@ -32,12 +32,11 @@ function profileValue(rows: { dimension: string; value: bigint }[], dim: string)
 }
 
 export default async function OverviewScreenPage() {
-  const today = chinaTodayDbDate();
   const rangeStart = new Date();
   rangeStart.setDate(rangeStart.getDate() - 371);
 
   const [slots, capacity, lots, activities, devices, profile, preference, daily] = await Promise.all([
-    bookingRepository.listSlotsByDate(today).catch(() => []),
+    bookingService.listSlotsForDate(chinaToday()).catch(() => []),
     configService.getInstantCapacity().catch(() => resolveInstantCapacity()),
     trafficRepository.listParkingLots().catch(() => []),
     contentRepository.listActivitiesWithCounts().catch(() => []),

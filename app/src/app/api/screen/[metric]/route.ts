@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { bookingRepository } from "@/modules/booking";
+import { bookingService } from "@/modules/booking";
 import { iotRepository } from "@/modules/iot";
 import { trafficRepository } from "@/modules/traffic";
 import { configService } from "@/modules/system";
 import { resolveInstantCapacity, CIRCUIT_BREAK_RATIO } from "@/shared/lib/capacity";
-import { chinaTodayDbDate } from "@/shared/lib/time";
+import { chinaToday } from "@/shared/lib/time";
 import { screenGatePassed } from "@/shared/auth/screen-gate";
 
 // 大屏公开只读轮询端点。/api/* 不过 middleware → 软门在此自校验。
@@ -19,9 +19,8 @@ const cache = new Map<string, { at: number; data: unknown }>();
 const RESOLVERS: Record<string, () => Promise<unknown>> = {
   // 在园 / 承载 / 熔断(90% 闪红的数据源)
   occupancy: async () => {
-    const today = chinaTodayDbDate();
     const [slots, capacity] = await Promise.all([
-      bookingRepository.listSlotsByDate(today).catch(() => []),
+      bookingService.listSlotsForDate(chinaToday()).catch(() => []),
       configService.getInstantCapacity().catch(() => resolveInstantCapacity()),
     ]);
     const occupancy = slots.reduce((s, sl) => s + sl.checkedInCount, 0);
@@ -39,7 +38,7 @@ const RESOLVERS: Record<string, () => Promise<unknown>> = {
 
   // 今日各时段占用(名称/容量/已约/在园/状态枚举)
   slots: async () => {
-    const slots = await bookingRepository.listSlotsByDate(chinaTodayDbDate()).catch(() => []);
+    const slots = await bookingService.listSlotsForDate(chinaToday()).catch(() => []);
     return slots.map((s) => ({
       name: s.name,
       startTime: s.startTime,
