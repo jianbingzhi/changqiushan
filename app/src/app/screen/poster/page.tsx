@@ -59,10 +59,21 @@ export default async function PosterScreenPage() {
           {/* 左列:专题一 GIS + 专题三 设施调度 + 专题四 多维分析 */}
           <div className="flex flex-col gap-4">
             <ScreenCard title="专题一 · 景区地图基础展示" className="flex-1">
-              <div className="flex h-full flex-col items-center justify-center gap-2 rounded-lg" style={{ border: "1px dashed var(--screen-card-border)", backgroundColor: "rgba(45,90,39,0.08)" }}>
-                <p className="text-[15px]" style={{ color: "var(--screen-text-dim)" }}>GIS 基础底图 · 2D / 2.5D / 3D</p>
-                <PlaceholderTag text="高德 GIS 底图待接入" />
-              </div>
+              {process.env.AMAP_KEY ? (
+                // 静态地图经服务端代理出图(/api/screen/staticmap 内拼 key,不泄进无登录大屏 HTML)
+                // eslint-disable-next-line @next/next/no-img-element -- 代理返回动态图片流,无需 next/image 优化
+                <img
+                  src="/api/screen/staticmap"
+                  alt="长秋山景区高德静态地图"
+                  className="h-full w-full rounded-lg object-cover"
+                  style={{ border: "1px solid var(--screen-card-border)" }}
+                />
+              ) : (
+                <div className="flex h-full flex-col items-center justify-center gap-2 rounded-lg" style={{ border: "1px dashed var(--screen-card-border)", backgroundColor: "rgba(45,90,39,0.08)" }}>
+                  <p className="text-[15px]" style={{ color: "var(--screen-text-dim)" }}>GIS 基础底图 · 2D / 2.5D / 3D</p>
+                  <PlaceholderTag text="高德地图 Key 未配置" />
+                </div>
+              )}
             </ScreenCard>
 
             <ScreenCard title="专题三 · 设施状态与资源调度">

@@ -4,6 +4,7 @@ import { ScreenHeader } from "@/lib/ui/screen/ScreenHeader";
 import { ScreenCard } from "@/lib/ui/screen/ScreenCard";
 import { PlaceholderTag } from "@/lib/ui/screen/PlaceholderTag";
 import { GaugeRing } from "@/lib/ui/screen/charts/GaugeRing";
+import { AmapContainer } from "@/lib/ui/map/AmapContainer";
 import { useScreenPoll } from "@/lib/ui/screen/use-screen-poll";
 import type { OccupancyMetric, AlertItem } from "../situation/_situation-live";
 
@@ -48,22 +49,35 @@ export function TwinLive({ data }: { data: TwinData }) {
             ))}
           </div>
 
-          <ScreenCard title="长秋山森林公园 导览图 / Tour Map" className="flex-1">
+          <ScreenCard title="长秋山森林公园 导览图" className="flex-1">
             <div className="relative flex h-full flex-col">
-              <div className="flex flex-1 items-center justify-center rounded-lg" style={{ border: "1px dashed var(--screen-card-border)", backgroundColor: "rgba(45,90,39,0.08)" }}>
-                <div className="text-center">
-                  <p className="text-[16px]" style={{ color: "var(--screen-text-dim)" }}>三维数字孪生导览底图</p>
-                  <p className="mt-2"><PlaceholderTag text="高德地图 key 待接入 · POI 坐标已就绪" /></p>
-                </div>
-              </div>
-              {/* POI 列表降级(真实坐标) */}
-              <div className="mt-2 grid grid-cols-3 gap-1.5">
-                {data.pois.slice(0, 12).map((p) => (
-                  <div key={p.name} className="flex items-center gap-1.5 rounded px-2 py-1 text-[12px]" style={{ backgroundColor: "var(--screen-card-bg)" }}>
-                    <span style={{ color: "var(--screen-glow)" }}>●</span>
-                    <span className="truncate" style={{ color: "var(--screen-text)" }}>{p.name}</span>
+              <div className="relative flex-1 overflow-hidden rounded-lg">
+                <AmapContainer
+                  mapStyle="dark"
+                  interactive={false}
+                  fitView
+                  center={data.center ? [data.center.lng, data.center.lat] : undefined}
+                  markers={data.pois.map((p) => ({ lng: p.lng, lat: p.lat, title: p.name, tone: "success" as const, label: p.name }))}
+                  fallback={
+                    /* 降级:地图不可用时回 POI 列表(真实坐标) */
+                    <div className="flex h-full flex-col items-center justify-center gap-2 p-4" style={{ backgroundColor: "rgba(45,90,39,0.08)" }}>
+                      <p className="text-[16px]" style={{ color: "var(--screen-text-dim)" }}>三维数字孪生导览底图</p>
+                      <div className="grid w-full grid-cols-3 gap-1.5">
+                        {data.pois.slice(0, 12).map((p) => (
+                          <div key={p.name} className="flex items-center gap-1.5 rounded px-2 py-1 text-[12px]" style={{ backgroundColor: "var(--screen-card-bg)" }}>
+                            <span style={{ color: "var(--screen-glow)" }}>●</span>
+                            <span className="truncate" style={{ color: "var(--screen-text)" }}>{p.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  }
+                />
+                {data.pois.length === 0 && (
+                  <div className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded px-3 py-1.5" style={{ backgroundColor: "var(--screen-card-bg)" }}>
+                    <PlaceholderTag text="暂无 POI 数据" />
                   </div>
-                ))}
+                )}
               </div>
               {/* 信息条 */}
               <div className="mt-2 flex items-center gap-6 rounded px-3 py-1.5 text-[12px]" style={{ backgroundColor: "var(--screen-card-bg)", color: "var(--screen-text-faint)" }}>
