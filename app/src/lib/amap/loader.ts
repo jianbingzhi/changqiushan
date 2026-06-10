@@ -8,8 +8,8 @@
 // - 无 key 直接拒绝 AMAP_KEY_MISSING,容器层据此显示「高德地图 Key 未配置」。
 // ⚠️ NEXT_PUBLIC_AMAP_SECURITY 打进 bundle 属演示级用法;生产应改 serviceHost
 //    (Nginx 代理 _AMapService)方案,不向浏览器下发安全密钥。
-
-import AMapLoader from "@amap/amap-jsapi-loader";
+// ⚠️ @amap/amap-jsapi-loader 模块求值期就摸 window,"use client" 组件 SSR 也会评估模块——
+//    必须延迟到 ensureAMap 调用时动态 import(顶层静态 import 会让大屏 SSR 500)。
 
 /* eslint-disable @typescript-eslint/no-namespace -- 高德 JS API 是 script 注入的全局命名空间,只能用 ambient namespace 声明 */
 declare global {
@@ -128,7 +128,9 @@ export function ensureAMap(plugins: string[] = []): Promise<AMapNamespace> {
 
   const doLoad = () =>
     withTimeout(
-      AMapLoader.load({ key, version: "2.0", plugins: missing }) as Promise<AMapNamespace>,
+      import("@amap/amap-jsapi-loader").then(
+        (m) => m.default.load({ key, version: "2.0", plugins: missing }) as Promise<AMapNamespace>,
+      ),
     );
 
   // 已有在途/已成功的加载 → 串联一次仅含缺失插件的增量 load
