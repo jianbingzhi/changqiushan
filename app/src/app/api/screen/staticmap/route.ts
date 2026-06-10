@@ -1,3 +1,6 @@
+import type { NextRequest } from "next/server";
+import { screenGatePassed } from "@/shared/auth/screen-gate";
+
 // 大屏 poster 专题一静态地图的服务端代理(评审修订 2):
 // AMAP_KEY 属 Web 服务 key,直接拼进 <img src> 会泄进无登录大屏 HTML——
 // 故由本路由在服务端拼 key 转发高德静态图,浏览器只见 /api/screen/staticmap。
@@ -11,10 +14,26 @@ const CENTER = "103.6147,30.2317";
 const ZOOM = "13";
 const SIZE = "1000*600";
 
-export async function GET() {
+// 与 /api/screen/[metric] 同口径:设软门时数据私有,防中间缓存跨用户复用
+function cacheControl(): string {
+  return process.env.SCREEN_TOKEN ? "private, max-age=300" : "public, max-age=300";
+}
+
+export async function GET(req: NextRequest) {
+  // 软门口径与 [metric] 路由对齐(审计 P2-4):配置 SCREEN_TOKEN 时本路由同样要凭据
+  if (!screenGatePassed(req.nextUrl.searchParams.get("k"), req.cookies.get("screen_token")?.value)) {
+    return Response.json(
+      { error: "缺少有效访问凭据" },
+      { status: 401, headers: { "cache-control": "no-store" } },
+    );
+  }
+
   const key = process.env.AMAP_KEY;
   if (!key) {
-    return Response.json({ error: "高德地图 Key 未配置" }, { status: 503 });
+    return Response.json(
+      { error: "高德地图 Key 未配置" },
+      { status: 503, headers: { "cache-control": "no-store" } },
+    );
   }
 
   const params = new URLSearchParams({
@@ -31,18 +50,24 @@ export async function GET() {
       next: { revalidate: 300 },
     });
     const contentType = res.headers.get("content-type") ?? "";
-    // 高德出错时返回 JSON(带 infocode)而非图片,转成 502 让 <img> onerror 走占位
+    // 高德出错时返回 JSON(带 infocode)而非图片,统一 502 固定文案(不透传上游错误体)
     if (!res.ok || !contentType.startsWith("image/")) {
-      return Response.json({ error: "高德静态地图服务暂不可用" }, { status: 502 });
+      return Response.json(
+        { error: "高德静态地图服务暂不可用" },
+        { status: 502, headers: { "cache-control": "no-store" } },
+      );
     }
     const buf = await res.arrayBuffer();
     return new Response(buf, {
       headers: {
         "content-type": contentType,
-        "cache-control": "public, max-age=300",
+        "cache-control": cacheControl(),
       },
     });
   } catch {
-    return Response.json({ error: "高德静态地图服务暂不可用" }, { status: 502 });
+    return Response.json(
+      { error: "高德静态地图服务暂不可用" },
+      { status: 502, headers: { "cache-control": "no-store" } },
+    );
   }
 }

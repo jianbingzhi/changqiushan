@@ -5,7 +5,7 @@
 // 根 div 用 -m-6 + h-[calc(100vh-4rem)] 抵消内边距,让高德路况瓦片铺满整页。
 // 浮层:① 左上 KPI 玻璃卡(页标题融入) ② 右侧 360px 可折叠面板(B10 摘要 + a11y 数据表) ③ 左下图例。
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PanelRightClose, PanelRightOpen } from "lucide-react";
 
 import { AmapContainer } from "@/lib/ui/map/AmapContainer";
@@ -28,12 +28,12 @@ const LEGEND = [
   ["拥堵", "bg-danger"],
 ] as const;
 
-function Kpi({ label, value, dotClass }: { label: string; value: number; dotClass: string }) {
+function Kpi({ label, value, dotClass }: { label: string; value: number | null; dotClass: string }) {
   return (
     <div className="flex items-center gap-1.5">
       <span className={`h-2 w-2 shrink-0 rounded-full ${dotClass}`} aria-hidden />
       <span className="text-[12px] text-muted-foreground">{label}</span>
-      <span className="text-[15px] font-bold tabular-nums text-foreground">{value}</span>
+      <span className="text-[15px] font-bold tabular-nums text-foreground">{value ?? "—"}</span>
       <span className="text-[12px] text-muted-foreground">条</span>
     </div>
   );
@@ -43,9 +43,19 @@ export function RoadMap({ source, conditions }: RoadConditionsResult) {
   const [panelOpen, setPanelOpen] = useState(true);
   const [tab, setTab] = useState<"summary" | "table">("summary");
 
-  const free = conditions.filter((c) => c.congestion === "畅通").length;
-  const slow = conditions.filter((c) => c.congestion === "缓行").length;
-  const jam  = conditions.filter((c) => c.congestion === "拥堵").length;
+  // 审计 P2-7:窄视口(内容区 <840px)下面板会盖住 KPI 卡——水合后下一帧收起
+  // (SSR 始终渲染展开态避免水合不一致;rAF 延迟避开 effect 内同步 setState)
+  useEffect(() => {
+    if (window.innerWidth >= 1280) return;
+    const id = requestAnimationFrame(() => setPanelOpen(false));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  // 审计 P2-5:数据源未接通时 KPI 显示「—」而非误导性 0
+  const live = source === "amap";
+  const free = live ? conditions.filter((c) => c.congestion === "畅通").length : null;
+  const slow = live ? conditions.filter((c) => c.congestion === "缓行").length : null;
+  const jam  = live ? conditions.filter((c) => c.congestion === "拥堵").length : null;
   const updatedAt = conditions[0]?.updatedAt ? formatCnDateTime(new Date(conditions[0].updatedAt)) : "—";
 
   // 诚实三态空态文案:未配置 / 服务异常 / 已接通但矩形内无路况(沿用原页面口径)
@@ -84,9 +94,10 @@ export function RoadMap({ source, conditions }: RoadConditionsResult) {
           <Kpi label="拥堵" value={jam} dotClass="bg-danger" />
           <div className="flex items-center gap-1.5">
             <span className="text-[12px] text-muted-foreground">最后更新</span>
-            <span className="text-[13px] font-medium text-foreground">{updatedAt}</span>
+            <span className="text-[13px] font-medium text-foreground">{live ? updatedAt : "—"}</span>
           </div>
         </div>
+        {!live && <p className="mt-1.5 text-[12px] text-muted-foreground">{emptyMessage}</p>}
       </section>
 
       {/* ③ 左下图例 */}
@@ -104,12 +115,13 @@ export function RoadMap({ source, conditions }: RoadConditionsResult) {
         <section className="absolute bottom-4 right-4 top-4 z-20 flex w-[360px] max-w-[calc(100%-2rem)] flex-col overflow-hidden rounded-lg border border-border bg-card/85 shadow-sm backdrop-blur">
           <header className="flex items-center justify-between gap-2 border-b border-border px-4 py-2.5">
             <h2 className="text-[14px] font-semibold text-foreground">拥堵摘要</h2>
-            <div className="flex items-center gap-1">
-              <button type="button" className={tabBtn(tab === "summary")} onClick={() => setTab("summary")}>摘要</button>
-              <button type="button" className={tabBtn(tab === "table")} onClick={() => setTab("table")}>数据表</button>
+            <div className="flex items-center gap-1" role="tablist" aria-label="路况数据视图">
+              <button type="button" role="tab" aria-selected={tab === "summary"} className={tabBtn(tab === "summary")} onClick={() => setTab("summary")}>摘要</button>
+              <button type="button" role="tab" aria-selected={tab === "table"} className={tabBtn(tab === "table")} onClick={() => setTab("table")}>数据表</button>
               <button
                 type="button"
                 aria-label="收起数据面板"
+                aria-expanded={true}
                 className="ml-1 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
                 onClick={() => setPanelOpen(false)}
               >
@@ -118,7 +130,7 @@ export function RoadMap({ source, conditions }: RoadConditionsResult) {
             </div>
           </header>
 
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto" role="tabpanel">
             {conditions.length === 0 ? (
               <EmptyState message={emptyMessage} />
             ) : tab === "summary" ? (
@@ -163,6 +175,7 @@ export function RoadMap({ source, conditions }: RoadConditionsResult) {
       ) : (
         <button
           type="button"
+          aria-expanded={false}
           onClick={() => setPanelOpen(true)}
           className="absolute right-4 top-4 z-20 flex items-center gap-1.5 rounded-lg border border-border bg-card/85 px-3 py-2 text-[13px] font-medium text-foreground shadow-sm backdrop-blur hover:bg-muted"
         >

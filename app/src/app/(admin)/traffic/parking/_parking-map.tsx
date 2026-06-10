@@ -5,7 +5,7 @@
 // 无坐标的停车场不上图,在概览卡片上标注「未配置坐标」。
 // 浮层:① 左上 KPI 玻璃卡(页标题融入) ② 右侧面板 Tab「概览/管理」(B11 卡片堆叠 + a11y 表 + 原 CRUD 表单) ③ 左下图例。
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PanelRightClose, PanelRightOpen } from "lucide-react";
 
 import { AmapContainer, type AmapMarkerInput } from "@/lib/ui/map/AmapContainer";
@@ -29,10 +29,10 @@ const CHIP_KEY: Record<ParkingLotRow["status"], "LOT_OPEN" | "LOT_FULL" | "LOT_C
   CLOSED: "LOT_CLOSED",
 };
 
-// P 标记三色图例(语义 token 随主题切换)
+// P 标记三色图例(语义 token 随主题切换;文案与 StatusChip 统一「开放/已满/关闭」)
 const LEGEND = [
   ["开放", "bg-success"],
-  ["满位", "bg-danger"],
+  ["已满", "bg-danger"],
   ["关闭", "bg-warning"],
 ] as const;
 
@@ -49,6 +49,14 @@ function Kpi({ label, value }: { label: string; value: number }) {
 export function ParkingMap({ lots }: { lots: ParkingLotView[] }) {
   const [panelOpen, setPanelOpen] = useState(true);
   const [tab, setTab] = useState<"overview" | "manage">("overview");
+
+  // 审计 P2-7:窄视口下面板会盖住 KPI 卡——水合后下一帧收起
+  // (SSR 始终渲染展开态避免水合不一致;rAF 延迟避开 effect 内同步 setState)
+  useEffect(() => {
+    if (window.innerWidth >= 1280) return;
+    const id = requestAnimationFrame(() => setPanelOpen(false));
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   const totalSpaces   = lots.reduce((s, p) => s + p.capacity, 0);
   const totalOccupied = lots.reduce((s, p) => s + p.occupied, 0);
@@ -88,7 +96,6 @@ export function ParkingMap({ lots }: { lots: ParkingLotView[] }) {
       <section className="absolute left-4 top-4 z-20 max-w-[calc(100%-2rem)] rounded-lg border border-border bg-card/85 px-4 py-3 shadow-sm backdrop-blur">
         <div className="flex items-baseline gap-2">
           <h1 className="text-[16px] font-bold leading-tight text-foreground">停车场动静态上图</h1>
-          <span className="text-[12px] text-muted-foreground">数据定时刷新</span>
         </div>
         <p className="mt-0.5 text-[12px] text-muted-foreground">景区停车场状态监控</p>
         <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5">
@@ -114,12 +121,13 @@ export function ParkingMap({ lots }: { lots: ParkingLotView[] }) {
         <section className="absolute bottom-4 right-4 top-4 z-20 flex w-[360px] max-w-[calc(100%-2rem)] flex-col overflow-hidden rounded-lg border border-border bg-card/85 shadow-sm backdrop-blur">
           <header className="flex items-center justify-between gap-2 border-b border-border px-4 py-2.5">
             <h2 className="text-[14px] font-semibold text-foreground">停车场数据</h2>
-            <div className="flex items-center gap-1">
-              <button type="button" className={tabBtn(tab === "overview")} onClick={() => setTab("overview")}>概览</button>
-              <button type="button" className={tabBtn(tab === "manage")} onClick={() => setTab("manage")}>管理</button>
+            <div className="flex items-center gap-1" role="tablist" aria-label="停车场数据视图">
+              <button type="button" role="tab" aria-selected={tab === "overview"} className={tabBtn(tab === "overview")} onClick={() => setTab("overview")}>概览</button>
+              <button type="button" role="tab" aria-selected={tab === "manage"} className={tabBtn(tab === "manage")} onClick={() => setTab("manage")}>管理</button>
               <button
                 type="button"
                 aria-label="收起数据面板"
+                aria-expanded={true}
                 className="ml-1 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
                 onClick={() => setPanelOpen(false)}
               >
@@ -128,7 +136,7 @@ export function ParkingMap({ lots }: { lots: ParkingLotView[] }) {
             </div>
           </header>
 
-          <div className="flex-1 overflow-y-auto p-3">
+          <div className="flex-1 overflow-y-auto p-3" role="tabpanel">
             {tab === "manage" ? (
               <ParkingForm lots={lots} />
             ) : lots.length === 0 ? (
@@ -202,6 +210,7 @@ export function ParkingMap({ lots }: { lots: ParkingLotView[] }) {
       ) : (
         <button
           type="button"
+          aria-expanded={false}
           onClick={() => setPanelOpen(true)}
           className="absolute right-4 top-4 z-20 flex items-center gap-1.5 rounded-lg border border-border bg-card/85 px-3 py-2 text-[13px] font-medium text-foreground shadow-sm backdrop-blur hover:bg-muted"
         >

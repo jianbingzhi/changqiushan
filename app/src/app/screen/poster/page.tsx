@@ -5,6 +5,7 @@ import { configService } from "@/modules/system";
 import { resolveInstantCapacity } from "@/shared/lib/capacity";
 import { chinaToday } from "@/shared/lib/time";
 import { ScreenShell } from "@/lib/ui/screen/ScreenShell";
+import { StaticMapImage } from "./_static-map";
 import { ScreenHeader } from "@/lib/ui/screen/ScreenHeader";
 import { ScreenCard } from "@/lib/ui/screen/ScreenCard";
 import { PlaceholderTag } from "@/lib/ui/screen/PlaceholderTag";
@@ -15,7 +16,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "运营宣传一张图 · 长秋山森林公园智慧景区" };
 
 const N = (v: bigint | number) => Number(v);
-const PARK_STATUS_CN: Record<string, string> = { OPEN: "空闲", FULL: "已满", CLOSED: "关闭" };
+const PARK_STATUS_CN: Record<string, string> = { OPEN: "开放", FULL: "已满", CLOSED: "关闭" };
 const PARK_TONE: Record<string, string> = { OPEN: "var(--screen-glow)", FULL: "var(--screen-red)", CLOSED: "var(--screen-orange)" };
 
 export default async function PosterScreenPage() {
@@ -60,14 +61,9 @@ export default async function PosterScreenPage() {
           <div className="flex flex-col gap-4">
             <ScreenCard title="专题一 · 景区地图基础展示" className="flex-1">
               {process.env.AMAP_KEY ? (
-                // 静态地图经服务端代理出图(/api/screen/staticmap 内拼 key,不泄进无登录大屏 HTML)
-                // eslint-disable-next-line @next/next/no-img-element -- 代理返回动态图片流,无需 next/image 优化
-                <img
-                  src="/api/screen/staticmap"
-                  alt="长秋山景区高德静态地图"
-                  className="h-full w-full rounded-lg object-cover"
-                  style={{ border: "1px solid var(--screen-card-border)" }}
-                />
+                // 静态地图经服务端代理出图(/api/screen/staticmap 内拼 key,不泄进无登录大屏 HTML);
+                // client 组件带 onError 兜底,代理 502 时回占位而非裂图(审计 P2-5)
+                <StaticMapImage />
               ) : (
                 <div className="flex h-full flex-col items-center justify-center gap-2 rounded-lg" style={{ border: "1px dashed var(--screen-card-border)", backgroundColor: "rgba(45,90,39,0.08)" }}>
                   <p className="text-[15px]" style={{ color: "var(--screen-text-dim)" }}>GIS 基础底图 · 2D / 2.5D / 3D</p>

@@ -279,6 +279,12 @@ export const bookingService = {
     }
     const tgt = toSlotDate(targetDate);
 
+    // 审计 P2-1:闭园日的派生视图为空但物化行照出,复制进去等于把闭园日变可约——前置拦截。
+    const tgtHoliday = await bookingRepository.getHoliday(tgt);
+    if (tgtHoliday?.closed) {
+      return err(ErrCode.INVALID_INPUT, "目标日为闭园日,不可复制时段");
+    }
+
     // 源日走派生合并视图:从任意有模板派生的日期也能复制出物化行(运营手调配额的逃生口)。
     const sourceSlots = await bookingService.listSlotsForDate(sourceDate);
     if (sourceSlots.length === 0) {

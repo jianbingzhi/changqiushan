@@ -3,6 +3,11 @@ import "dotenv/config";
 import { bookingService, bookingRepository } from "../src/modules/booking";
 import { db } from "../src/infrastructure/db/client";
 
+// 护栏:仅允许对本地库执行(脚本会 deleteMany 固定日期的时段行)
+if (!process.env.DATABASE_URL?.includes("localhost")) {
+  throw new Error("verify-t5-copy 仅限本地库(DATABASE_URL 须含 localhost)");
+}
+
 const SRC = "2026-06-24"; // 远期工作日:无物化行,仅模板派生
 const TGT = "2026-06-25";
 const d = (s: string) => new Date(`${s}T00:00:00Z`);

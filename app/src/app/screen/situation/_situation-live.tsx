@@ -77,7 +77,7 @@ export function SituationLive({ data }: { data: SituationData }) {
             <div className="mt-2 h-2.5 overflow-hidden rounded" style={{ backgroundColor: "rgba(232,245,233,0.12)" }}>
               <div className="h-full rounded" style={{ width: `${Math.min(100, pct)}%`, backgroundColor: warn ? "var(--screen-red)" : "var(--screen-glow)", boxShadow: "0 0 8px rgba(74,142,63,0.6)" }} />
             </div>
-            {updatedAt && <p className="mt-1 text-right text-[11px]" style={{ color: "var(--screen-text-faint)" }}>更新于 {updatedAt}</p>}
+            {updatedAt && <p className="mt-1 text-right text-[12px]" style={{ color: "var(--screen-text-faint)" }}>更新于 {updatedAt}</p>}
           </ScreenCard>
 
           <KpiTile title="今日累计入园核销" value={liveCheckedIn.toLocaleString("zh-CN")} unit="人次" valueSize={40} tone="highlight" sub={`履约率 ${fulfillRate}%`} />

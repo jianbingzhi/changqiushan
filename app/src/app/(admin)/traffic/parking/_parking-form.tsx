@@ -16,7 +16,7 @@ type Status = "OPEN" | "FULL" | "CLOSED";
 
 const STATUS_LABEL: Record<Status, string> = {
   OPEN: "开放",
-  FULL: "满位",
+  FULL: "已满",
   CLOSED: "关闭",
 };
 const STATUSES: Status[] = ["OPEN", "FULL", "CLOSED"];
@@ -121,64 +121,48 @@ export function ParkingForm({ lots }: { lots: ParkingLotRow[] }) {
         维护停车场名称、总车位、状态与上图坐标;已占用车位由设备同步链路实时写入,不在此处填写。
       </p>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-[13px]">
-          <thead>
-            <tr className="border-b border-border text-left text-muted-foreground">
-              <th className="py-2 pr-3 font-medium">停车场名称</th>
-              <th className="py-2 pr-3 text-right font-medium">总车位</th>
-              <th className="py-2 pr-3 font-medium">状态</th>
-              <th className="py-2 pr-3 font-medium">位置</th>
-              <th className="py-2 pr-3 font-medium">坐标</th>
-              <th className="py-2 font-medium">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {lots.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="py-10 text-center text-text-muted">
-                  暂无停车场,点击「新建停车场」开始录入
-                </td>
-              </tr>
-            ) : (
-              lots.map((lot) => (
-                <tr key={lot.id} className="border-b border-border-light last:border-0">
-                  <td className="py-2 pr-3 font-medium text-foreground">{lot.name}</td>
-                  <td className="py-2 pr-3 text-right tabular-nums">{lot.capacity}</td>
-                  <td className="py-2 pr-3">{STATUS_LABEL[lot.status]}</td>
-                  <td className="py-2 pr-3 text-muted-foreground">{lot.location || "—"}</td>
-                  <td className="py-2 pr-3 tabular-nums text-muted-foreground">
-                    {lot.lng != null && lot.lat != null ? `${lot.lng}, ${lot.lat}` : "—"}
-                  </td>
-                  <td className="py-2">
-                    <div className="flex items-center gap-1">
-                      <Button size="sm" variant="ghost" disabled={pending} onClick={() => openEdit(lot)} className="h-7 gap-1 px-2">
-                        <Pencil className="h-3.5 w-3.5" />
-                        编辑
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={pending}
-                        onClick={() => {
-                          if (window.confirm(`确认删除停车场「${lot.name}」?此操作不可恢复。`)) run(() => deleteParkingLotAction(lot.id));
-                        }}
-                        className="h-7 gap-1 px-2 text-danger hover:text-danger"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        删除
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      {/* 审计 P1-3:本组件现仅存活在 ~360px 浮层面板内,6 列表格横滚会把操作列推出视野——改卡片行,操作钮常驻可见 */}
+      <ul className="space-y-2">
+        {lots.length === 0 ? (
+          <li className="py-10 text-center text-[13px] text-text-muted">
+            暂无停车场,点击「新建停车场」开始录入
+          </li>
+        ) : (
+          lots.map((lot) => (
+            <li key={lot.id} className="rounded-md border border-border-light p-2.5">
+              <div className="flex items-center gap-2">
+                <p className="min-w-0 flex-1 truncate text-[13px] font-medium text-foreground">{lot.name}</p>
+                <span className="shrink-0 text-[12px] text-muted-foreground">{STATUS_LABEL[lot.status]}</span>
+                <Button size="sm" variant="ghost" disabled={pending} onClick={() => openEdit(lot)} className="h-7 shrink-0 gap-1 px-2">
+                  <Pencil className="h-3.5 w-3.5" />
+                  编辑
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={pending}
+                  onClick={() => {
+                    if (window.confirm(`确认删除停车场「${lot.name}」?此操作不可恢复。`)) run(() => deleteParkingLotAction(lot.id));
+                  }}
+                  className="h-7 shrink-0 gap-1 px-2 text-danger hover:text-danger"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  删除
+                </Button>
+              </div>
+              <p className="mt-1 text-[12px] text-muted-foreground">
+                总车位 <span className="tabular-nums">{lot.capacity}</span>
+                {lot.location ? ` · ${lot.location}` : ""}
+                {lot.lng != null && lot.lat != null ? ` · ${lot.lng}, ${lot.lat}` : " · 未配置坐标"}
+              </p>
+            </li>
+          ))
+        )}
+      </ul>
 
       {open && (
-        <div className="mt-4 grid grid-cols-2 gap-3 border-t border-border-light pt-4 sm:grid-cols-3">
+        // 审计 P1-2:sm: 是视口断点,360px 面板内会触发 3 列致字段挤压——窄容器一律单列
+        <div className="mt-4 grid grid-cols-1 gap-3 border-t border-border-light pt-4">
           <div className="space-y-1.5">
             <label htmlFor="lot-name" className="text-[12px] text-muted-foreground">停车场名称</label>
             <Input id="lot-name" value={form.name} maxLength={80} placeholder="如:游客中心停车场"
@@ -196,7 +180,7 @@ export function ParkingForm({ lots }: { lots: ParkingLotRow[] }) {
               {STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
             </select>
           </div>
-          <div className="space-y-1.5 sm:col-span-3">
+          <div className="space-y-1.5">
             <label htmlFor="lot-location" className="text-[12px] text-muted-foreground">位置描述(选填)</label>
             <Input id="lot-location" value={form.location} maxLength={255} placeholder="如:景区南门入口右侧"
               onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))} />
@@ -211,7 +195,7 @@ export function ParkingForm({ lots }: { lots: ParkingLotRow[] }) {
             <Input id="lot-lat" type="number" step="any" placeholder="如:30.05" value={form.lat}
               onChange={(e) => setForm((f) => ({ ...f, lat: e.target.value }))} />
           </div>
-          <div className="col-span-2 flex items-center gap-2 sm:col-span-3">
+          <div className="flex items-center gap-2">
             <Button size="sm" disabled={pending} onClick={submit}>
               {pending ? "提交中…" : form.id ? "保存修改" : "确认新建"}
             </Button>

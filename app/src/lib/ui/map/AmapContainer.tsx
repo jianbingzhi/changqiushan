@@ -96,6 +96,8 @@ export function AmapContainer({
   // 挂载即进入 loading(状态机 idle 仅为语义占位,首帧即在加载)
   const [status, setStatus] = useState<Status>("loading");
   const [errorText, setErrorText] = useState(MSG_LOAD_FAILED);
+  // 审计 P2-1:error 态可就地重试(自增 key 重跑 init effect),不必整页刷新
+  const [attempt, setAttempt] = useState(0);
 
   // 初始化只跑一次;经 ref 读「当下」props,避免依赖变化导致地图重建。
   // ref 写入放 effect(每次渲染后同步),不在 render 期间写。
@@ -127,6 +129,7 @@ export function AmapContainer({
         });
         // INVALID_USER_DOMAIN 等鉴权失败不会让 load reject,只能在 map error 事件兜底
         map.on("error", () => {
+          if (disposed) return; // 审计 P2-2:卸载后事件晚到不再 setState
           setErrorText(MSG_LOAD_FAILED);
           setStatus("error");
         });
@@ -151,7 +154,8 @@ export function AmapContainer({
       mapRef.current?.destroy();
       mapRef.current = null;
     };
-  }, []);
+    // attempt 自增 = 用户点「重试」,整段重跑(loader 失败已回滚缓存,可真重试)
+  }, [attempt]);
 
   // —— 深浅主题:显式 mapStyle 固定;否则跟随 html.dark(MutationObserver) ——
   useEffect(() => {
@@ -255,21 +259,42 @@ export function AmapContainer({
     };
   }, [status, traffic]);
 
+  // 审计 P1-1:显式 mapStyle="dark"(大屏 always-dark 语境)时,覆盖层不能跟随后台
+  // html.dark 的 token(后台浅色时会闪白块),改用固定深色(--screen-* 在大屏作用域可解析,带回退值)。
+  const overlayDark = mapStyle === "dark";
+  const overlayStyle = overlayDark ? { backgroundColor: "var(--screen-bg, #0D1A12)" } : undefined;
+  const overlayTextStyle = overlayDark ? { color: "var(--screen-text-dim, #9AD6B0)" } : undefined;
+
   return (
+    // 审计 P2-4:z-0 + isolate 把高德内部元素(logo z≈160)关进独立 stacking context,不与页面浮层竞争
     <div className={cn("relative h-full w-full overflow-hidden", className)}>
-      <div ref={containerRef} className="absolute inset-0" />
+      <div ref={containerRef} className="absolute inset-0 z-0 isolate" />
       {(status === "idle" || status === "loading") && (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-muted">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-hidden />
-          <p className="text-[13px] text-muted-foreground">地图加载中…</p>
+        <div className={cn("absolute inset-0 z-10 flex flex-col items-center justify-center gap-2", !overlayDark && "bg-muted")} style={overlayStyle}>
+          <Loader2 className={cn("h-5 w-5 animate-spin", !overlayDark && "text-muted-foreground")} style={overlayTextStyle} aria-hidden />
+          <p className={cn("text-[13px]", !overlayDark && "text-muted-foreground")} style={overlayTextStyle}>地图加载中…</p>
         </div>
       )}
       {status === "error" && (
-        <div className="absolute inset-0 z-10 bg-card">
+        <div className={cn("absolute inset-0 z-10", !overlayDark && "bg-card")} style={overlayStyle}>
           {fallback}
-          <p className="absolute inset-x-0 bottom-0 z-10 bg-card/85 px-3 py-1.5 text-center text-[12px] text-muted-foreground">
-            {errorText}
-          </p>
+          <div
+            className={cn("absolute inset-x-0 bottom-0 z-10 flex items-center justify-center gap-3 px-3 py-1.5", !overlayDark && "bg-card/85")}
+            style={overlayDark ? { backgroundColor: "rgba(13,26,18,0.85)" } : undefined}
+          >
+            <p className={cn("text-[12px]", !overlayDark && "text-muted-foreground")} style={overlayTextStyle}>{errorText}</p>
+            <button
+              type="button"
+              onClick={() => { setStatus("loading"); setAttempt((a) => a + 1); }}
+              className={cn(
+                "shrink-0 rounded border px-2 py-0.5 text-[12px]",
+                !overlayDark && "border-border text-foreground hover:bg-muted",
+              )}
+              style={overlayDark ? { borderColor: "var(--screen-card-border, #2D5A27)", color: "var(--screen-text, #E8F5E9)" } : undefined}
+            >
+              重试
+            </button>
+          </div>
         </div>
       )}
     </div>
