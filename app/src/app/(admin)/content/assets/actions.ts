@@ -10,8 +10,12 @@ import {
   deleteObject,
   publicUrl,
   isAllowedImageType,
+  isAllowedVideoType,
   extForContentType,
+  extForVideoType,
   MAX_UPLOAD_BYTES,
+  maxVideoUploadBytes,
+  type UploadKind,
 } from "@/infrastructure/storage";
 
 export type AssetActionResult = { ok: boolean; message: string; url?: string };
@@ -28,22 +32,41 @@ export type PresignActionResult =
 
 const STAGING_PREFIX = "staging/";
 
+// T2c kind 分叉:image 走既有白名单/10MB;video 只收 mp4(H.264)、上限 env 化(缺省 100MB)。
+// 校验通过返回 null,否则返回中文错误信息;ext 由服务端按 contentType 派生。
+function validateUpload(kind: UploadKind, contentType: string, size: number): { error: string } | { ext: string } {
+  if (kind === "video") {
+    if (!isAllowedVideoType(contentType)) {
+      return { error: "仅支持 MP4(H.264 编码)视频" };
+    }
+    const max = maxVideoUploadBytes();
+    if (!Number.isFinite(size) || size <= 0 || size > max) {
+      return { error: `视频大小须在 ${Math.floor(max / 1024 / 1024)}MB 以内` };
+    }
+    return { ext: extForVideoType(contentType) };
+  }
+  if (!isAllowedImageType(contentType)) {
+    return { error: "仅支持 JPG / PNG / WebP / GIF 图片" };
+  }
+  if (!Number.isFinite(size) || size <= 0 || size > MAX_UPLOAD_BYTES) {
+    return { error: "图片大小须在 10MB 以内" };
+  }
+  return { ext: extForContentType(contentType) };
+}
+
 // 预签名直传:服务端权威校验白名单/大小,key 由服务端派生(防路径注入),返回直传 URL。
 export async function presignUploadAction(input: {
   contentType: string;
   size: number;
+  kind?: UploadKind;
 }): Promise<PresignActionResult> {
   const auth = await requireRole(ADMIN_UP);
   if (!auth.ok) return { ok: false, message: auth.message };
 
-  if (!isAllowedImageType(input.contentType)) {
-    return { ok: false, message: "仅支持 JPG / PNG / WebP / GIF 图片" };
-  }
-  if (!Number.isFinite(input.size) || input.size <= 0 || input.size > MAX_UPLOAD_BYTES) {
-    return { ok: false, message: "图片大小须在 10MB 以内" };
-  }
+  const checked = validateUpload(input.kind ?? "image", input.contentType, input.size);
+  if ("error" in checked) return { ok: false, message: checked.error };
 
-  const key = `${STAGING_PREFIX}${randomUUID()}.${extForContentType(input.contentType)}`;
+  const key = `${STAGING_PREFIX}${randomUUID()}.${checked.ext}`;
   try {
     const { uploadUrl } = await getSignedUploadUrl(key, input.contentType, {
       contentLength: input.size,
@@ -61,22 +84,22 @@ export async function commitAssetAction(input: {
   contentType: string;
   size: number;
   activityId?: string;
+  kind?: UploadKind;
 }): Promise<AssetActionResult> {
   const auth = await requireRole(ADMIN_UP);
   if (!auth.ok) return { ok: false, message: auth.message };
 
-  if (!isAllowedImageType(input.contentType)) {
-    return { ok: false, message: "图片类型不合法" };
-  }
-  if (!Number.isFinite(input.size) || input.size <= 0 || input.size > MAX_UPLOAD_BYTES) {
-    return { ok: false, message: "图片大小须在 10MB 以内" };
-  }
-  // 防路径穿越:stagingKey 后缀必须是 presign 派生的 <uuid>.<ext> 形态,杜绝 "../" 改写任意 key。
+  const kind = input.kind ?? "image";
+  const checked = validateUpload(kind, input.contentType, input.size);
+  if ("error" in checked) return { ok: false, message: checked.error };
+
+  // 防路径穿越:stagingKey 后缀必须是 presign 派生的 <uuid>.<ext> 形态,杜绝 "../" 改写任意 key;
+  // 且后缀须与本次 kind 派生的扩展名一致(防 image 凭据提交 mp4 之类的串用)。
   if (!input.stagingKey.startsWith(STAGING_PREFIX)) {
     return { ok: false, message: "上传凭据无效" };
   }
   const suffix = input.stagingKey.slice(STAGING_PREFIX.length);
-  if (!/^[\w-]+\.(jpg|png|webp|gif)$/i.test(suffix)) {
+  if (!/^[\w-]+\.(jpg|png|webp|gif|mp4)$/i.test(suffix) || !suffix.toLowerCase().endsWith(`.${checked.ext}`)) {
     return { ok: false, message: "上传凭据无效" };
   }
 
@@ -84,7 +107,7 @@ export async function commitAssetAction(input: {
   try {
     await moveObject(input.stagingKey, finalKey);
   } catch {
-    return { ok: false, message: "图片转存失败,请重试" };
+    return { ok: false, message: "素材转存失败,请重试" };
   }
 
   const res = await assetService.archiveAsset({
