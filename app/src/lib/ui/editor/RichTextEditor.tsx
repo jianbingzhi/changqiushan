@@ -1,29 +1,68 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { useEditor, EditorContent, type Editor } from "@tiptap/react";
+import { useEditor, EditorContent, Node, mergeAttributes, type Editor } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import {
   Bold, Italic, Strikethrough, Heading2, Heading3,
-  List, ListOrdered, Quote, Link2, ImageIcon, ImageUp, Undo2, Redo2,
+  List, ListOrdered, Quote, Link2, ImageIcon, ImageUp, Loader2, Undo2, Redo2, Video,
 } from "lucide-react";
 import { cn } from "@/lib/ui/utils";
 
 // 图片直传由调用方(app 层)注入,保持本组件在 lib 层不依赖 app 的 server action(架构边界)。
 export type UploadImage = (file: File) => Promise<{ ok: boolean; url?: string; message: string }>;
+// 视频直传与图片完全同构:成功返回 ok+url(公网地址),失败返回 ok=false+中文 message。
+export type UploadVideo = UploadImage;
 
 interface Props {
   value: string;
   onChange: (html: string) => void;
   placeholder?: string;
   onUploadImage?: UploadImage;
+  // 仅在注入时工具栏才渲染视频按钮;不提供「填地址」退路(视频必须走自家直传链路)
+  onUploadVideo?: UploadVideo;
   // "document" = Word 式文档画布:无外框、工具栏吸顶、正文区更高
   variant?: "default" | "document";
 }
 
 const IMAGE_ACCEPT = "image/jpeg,image/png,image/webp,image/gif";
+const VIDEO_ACCEPT = "video/mp4";
+
+// 自定义视频节点:块级 atom,渲染原生 <video controls>(contenteditable 内可直接播放)。
+// atom 自带选中态,选中后退格即可删除,无需 NodeView/额外按键处理;
+// 官方 youtube 扩展是 iframe 嵌入,不适用自家桶直传的 mp4,故自定义(零新依赖)。
+// 服务端 sanitize 已放行 video[src,poster,controls,preload] 且 src 收口自家桶。
+const VideoNode = Node.create({
+  name: "video",
+  group: "block",
+  atom: true,
+  draggable: true,
+
+  addAttributes() {
+    // 默认 attribute 解析即 element.getAttribute("src"/"poster"),无需自定义取值
+    return {
+      src: { default: null },
+      poster: { default: null },
+    };
+  },
+
+  parseHTML() {
+    return [{ tag: "video[src]" }];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return [
+      "video",
+      mergeAttributes(HTMLAttributes, {
+        controls: "controls",
+        preload: "metadata",
+        class: "max-w-full rounded-lg",
+      }),
+    ];
+  },
+});
 
 function ToolbarButton({
   onClick, active, disabled, label, children,
@@ -52,13 +91,22 @@ function ToolbarButton({
   );
 }
 
-function Toolbar({ editor, onUploadImage }: { editor: Editor; onUploadImage?: UploadImage }) {
+function Toolbar({
+  editor, onUploadImage, onUploadVideo,
+}: {
+  editor: Editor;
+  onUploadImage?: UploadImage;
+  onUploadVideo?: UploadVideo;
+}) {
   // a11y:用内联受控输入替代原生弹窗(读屏不可达、不可键盘取消)
   const [field, setField] = useState<null | "link" | "image">(null);
   const [url, setUrl] = useState("");
-  const [uploading, setUploading] = useState(false);
+  // 上传中状态按类型拆开:图片上传中不锁视频按钮,视频上传中不锁图片按钮
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
   const [uploadErr, setUploadErr] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const videoFileRef = useRef<HTMLInputElement>(null);
   const urlInputId = useId(); // 同页多实例时 label/input 关联不撞 id
 
   async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -66,13 +114,28 @@ function Toolbar({ editor, onUploadImage }: { editor: Editor; onUploadImage?: Up
     e.target.value = "";
     if (!file || !onUploadImage) return;
     setUploadErr(null);
-    setUploading(true);
+    setUploadingImage(true);
     try {
       const res = await onUploadImage(file);
       if (res.ok && res.url) editor.chain().focus().setImage({ src: res.url }).run();
       else setUploadErr(res.message);
     } finally {
-      setUploading(false);
+      setUploadingImage(false);
+    }
+  }
+
+  async function onPickVideo(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !onUploadVideo) return;
+    setUploadErr(null);
+    setUploadingVideo(true);
+    try {
+      const res = await onUploadVideo(file);
+      if (res.ok && res.url) editor.chain().focus().insertContent({ type: "video", attrs: { src: res.url } }).run();
+      else setUploadErr(res.message);
+    } finally {
+      setUploadingVideo(false);
     }
   }
 
@@ -100,6 +163,9 @@ function Toolbar({ editor, onUploadImage }: { editor: Editor; onUploadImage?: Up
   return (
     <>
       <input ref={fileRef} type="file" accept={IMAGE_ACCEPT} className="hidden" onChange={onPickFile} />
+      {onUploadVideo && (
+        <input ref={videoFileRef} type="file" accept={VIDEO_ACCEPT} className="hidden" onChange={onPickVideo} />
+      )}
       <div className="flex flex-wrap items-center gap-0.5 border-b border-border bg-[#FAFAFA] px-2 py-1.5" role="toolbar" aria-label="富文本格式工具栏">
         <ToolbarButton label="加粗" active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}><Bold className="h-4 w-4" /></ToolbarButton>
         <ToolbarButton label="斜体" active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()}><Italic className="h-4 w-4" /></ToolbarButton>
@@ -115,16 +181,27 @@ function Toolbar({ editor, onUploadImage }: { editor: Editor; onUploadImage?: Up
         {/* 图片按钮:有上传能力则直接打开文件选择上传;否则退回填图片地址 */}
         <ToolbarButton
           label={onUploadImage ? "上传图片" : "插入图片(图片地址)"}
-          disabled={uploading}
+          disabled={uploadingImage}
           active={field === "image"}
           onClick={onUploadImage ? () => fileRef.current?.click() : openImage}
         >
-          {onUploadImage ? <ImageUp className="h-4 w-4" /> : <ImageIcon className="h-4 w-4" />}
+          {uploadingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : onUploadImage ? <ImageUp className="h-4 w-4" /> : <ImageIcon className="h-4 w-4" />}
         </ToolbarButton>
+        {/* 视频按钮:仅注入 onUploadVideo 时渲染,无「填地址」退路;气泡栏不加(块级媒体非选中文字语境) */}
+        {onUploadVideo && (
+          <ToolbarButton
+            label="上传视频(mp4)"
+            disabled={uploadingVideo}
+            onClick={() => videoFileRef.current?.click()}
+          >
+            {uploadingVideo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Video className="h-4 w-4" />}
+          </ToolbarButton>
+        )}
         <span className="mx-1 h-5 w-px bg-border" />
         <ToolbarButton label="撤销" disabled={!editor.can().undo()} onClick={() => editor.chain().focus().undo().run()}><Undo2 className="h-4 w-4" /></ToolbarButton>
         <ToolbarButton label="重做" disabled={!editor.can().redo()} onClick={() => editor.chain().focus().redo().run()}><Redo2 className="h-4 w-4" /></ToolbarButton>
-        {uploading && <span className="ml-1 text-[12px] text-muted-foreground">图片上传中…</span>}
+        {uploadingImage && <span className="ml-1 text-[12px] text-muted-foreground">图片上传中…</span>}
+        {uploadingVideo && <span className="ml-1 text-[12px] text-muted-foreground">视频上传中,大文件请耐心等候…</span>}
       </div>
 
       {uploadErr && <p className="border-b border-border bg-[#FEF2F2] px-3 py-1.5 text-[12px] text-danger">{uploadErr}</p>}
@@ -157,11 +234,13 @@ function Toolbar({ editor, onUploadImage }: { editor: Editor; onUploadImage?: Up
   );
 }
 
-export function RichTextEditor({ value, onChange, placeholder, onUploadImage, variant = "default" }: Props) {
+export function RichTextEditor({ value, onChange, placeholder, onUploadImage, onUploadVideo, variant = "default" }: Props) {
   const documentMode = variant === "document";
   // 拖入/粘贴的 handler 在 useEditor 初始化时固化,用 ref 取最新的上传函数。
   const uploadRef = useRef<UploadImage | undefined>(onUploadImage);
   useEffect(() => { uploadRef.current = onUploadImage; }, [onUploadImage]);
+  const uploadVideoRef = useRef<UploadVideo | undefined>(onUploadVideo);
+  useEffect(() => { uploadVideoRef.current = onUploadVideo; }, [onUploadVideo]);
 
   const editor = useEditor({
     immediatelyRender: false, // Next SSR 安全:避免水合不一致
@@ -170,6 +249,7 @@ export function RichTextEditor({ value, onChange, placeholder, onUploadImage, va
         link: { openOnClick: false, HTMLAttributes: { class: "text-primary underline" } },
       }),
       Image.configure({ HTMLAttributes: { class: "max-w-full rounded-lg" } }),
+      VideoNode,
     ],
     content: value,
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
@@ -180,33 +260,60 @@ export function RichTextEditor({ value, onChange, placeholder, onUploadImage, va
           : "richtext-content min-h-[220px] px-4 py-3 focus:outline-none",
         ...(placeholder ? { "data-placeholder": placeholder } : {}),
       },
-      // 粘贴图片 → 直传后在光标处插入
+      // 粘贴图片/视频(mp4)→ 按类型双分发,直传后在光标处插入
       handlePaste: (view, event) => {
-        const img = Array.from(event.clipboardData?.files ?? []).find((f) => f.type.startsWith("image/"));
-        if (!img || !uploadRef.current) return false;
-        event.preventDefault();
-        void uploadRef.current(img).then((res) => {
-          if (res.ok && res.url) {
-            const node = view.state.schema.nodes.image.create({ src: res.url });
-            view.dispatch(view.state.tr.replaceSelectionWith(node));
-          }
-        });
-        return true;
+        const files = Array.from(event.clipboardData?.files ?? []);
+        const img = files.find((f) => f.type.startsWith("image/"));
+        if (img && uploadRef.current) {
+          event.preventDefault();
+          void uploadRef.current(img).then((res) => {
+            if (res.ok && res.url) {
+              const node = view.state.schema.nodes.image.create({ src: res.url });
+              view.dispatch(view.state.tr.replaceSelectionWith(node));
+            }
+          });
+          return true;
+        }
+        const vid = files.find((f) => f.type === "video/mp4");
+        if (vid && uploadVideoRef.current) {
+          event.preventDefault();
+          void uploadVideoRef.current(vid).then((res) => {
+            if (res.ok && res.url) {
+              const node = view.state.schema.nodes.video.create({ src: res.url });
+              view.dispatch(view.state.tr.replaceSelectionWith(node));
+            }
+          });
+          return true;
+        }
+        return false;
       },
-      // 拖入图片 → 直传后在落点处插入
+      // 拖入图片/视频(mp4)→ 按类型双分发,直传后在落点处插入
       handleDrop: (view, event) => {
-        const img = Array.from(event.dataTransfer?.files ?? []).find((f) => f.type.startsWith("image/"));
-        if (!img || !uploadRef.current) return false;
-        event.preventDefault();
+        const files = Array.from(event.dataTransfer?.files ?? []);
+        const img = files.find((f) => f.type.startsWith("image/"));
+        const vid = files.find((f) => f.type === "video/mp4");
         const at = view.posAtCoords({ left: event.clientX, top: event.clientY })?.pos;
-        void uploadRef.current(img).then((res) => {
-          if (res.ok && res.url) {
-            const node = view.state.schema.nodes.image.create({ src: res.url });
-            const pos = at ?? view.state.selection.from;
-            view.dispatch(view.state.tr.insert(pos, node));
-          }
-        });
-        return true;
+        if (img && uploadRef.current) {
+          event.preventDefault();
+          void uploadRef.current(img).then((res) => {
+            if (res.ok && res.url) {
+              const node = view.state.schema.nodes.image.create({ src: res.url });
+              view.dispatch(view.state.tr.insert(at ?? view.state.selection.from, node));
+            }
+          });
+          return true;
+        }
+        if (vid && uploadVideoRef.current) {
+          event.preventDefault();
+          void uploadVideoRef.current(vid).then((res) => {
+            if (res.ok && res.url) {
+              const node = view.state.schema.nodes.video.create({ src: res.url });
+              view.dispatch(view.state.tr.insert(at ?? view.state.selection.from, node));
+            }
+          });
+          return true;
+        }
+        return false;
       },
     },
   });
@@ -234,7 +341,7 @@ export function RichTextEditor({ value, onChange, placeholder, onUploadImage, va
     return (
       <div className="bg-card">
         <div className="sticky top-0 z-10 -mx-1 bg-card/95 backdrop-blur">
-          <Toolbar editor={editor} onUploadImage={onUploadImage} />
+          <Toolbar editor={editor} onUploadImage={onUploadImage} onUploadVideo={onUploadVideo} />
         </div>
         {bubble}
         <EditorContent editor={editor} />
@@ -244,7 +351,7 @@ export function RichTextEditor({ value, onChange, placeholder, onUploadImage, va
 
   return (
     <div className="rounded-lg border border-border bg-card">
-      <Toolbar editor={editor} onUploadImage={onUploadImage} />
+      <Toolbar editor={editor} onUploadImage={onUploadImage} onUploadVideo={onUploadVideo} />
       {bubble}
       <EditorContent editor={editor} />
     </div>

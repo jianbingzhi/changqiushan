@@ -69,7 +69,7 @@ export function ContentForm({
   initial?: Record<string, unknown> | null;
 }) {
   const router = useRouter();
-  const { uploadImage } = useImageUpload();
+  const { uploadImage, uploadVideo } = useImageUpload();
   const richKey = RICH_FIELD[model].key;
   const metaFields = META_FIELDS[model];
 
@@ -150,6 +150,7 @@ export function ContentForm({
             value={rich}
             onChange={setRich}
             onUploadImage={uploadImage}
+            onUploadVideo={uploadVideo}
             placeholder={`开始撰写${RICH_FIELD[model].label}…`}
           />
         </div>
