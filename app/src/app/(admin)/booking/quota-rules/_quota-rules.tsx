@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, Trash2, CalendarPlus } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/lib/ui/button";
 import { Input } from "@/lib/ui/input";
 import { DatePicker } from "@/lib/ui/date-picker";
@@ -12,7 +12,6 @@ import {
   deleteTemplateAction,
   saveHolidayAction,
   deleteHolidayAction,
-  generateSlotsNowAction,
   type RuleActionResult,
   type TemplatePayload,
 } from "./actions";
@@ -163,16 +162,6 @@ export function QuotaRules({
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-[15px] font-semibold text-foreground">时段模板</h2>
           <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={pending}
-              onClick={() => run(() => generateSlotsNowAction(), setTplMsg)}
-              className="gap-1"
-            >
-              <CalendarPlus className="h-4 w-4" />
-              立即生成未来时段
-            </Button>
             <Button
               size="sm"
               onClick={() => {

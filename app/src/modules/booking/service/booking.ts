@@ -277,13 +277,14 @@ export const bookingService = {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(sourceDate) || !/^\d{4}-\d{2}-\d{2}$/.test(targetDate)) {
       return err(ErrCode.INVALID_INPUT, "日期格式无效");
     }
-    const src = toSlotDate(sourceDate);
     const tgt = toSlotDate(targetDate);
 
-    const sourceSlots = await bookingRepository.listSlotsByDate(src);
+    // 源日走派生合并视图:从任意有模板派生的日期也能复制出物化行(运营手调配额的逃生口)。
+    const sourceSlots = await bookingService.listSlotsForDate(sourceDate);
     if (sourceSlots.length === 0) {
       return err(ErrCode.NOT_FOUND, "来源日无时段可复制");
     }
+    // ⚠️ 目标日去重必须保持裸物化读:派生视图对任何日期恒有行,会判"已全存在"使复制永久空操作。
     const existingTimes = new Set(
       (await bookingRepository.listSlotsByDate(tgt)).map((s) => s.startTime),
     );

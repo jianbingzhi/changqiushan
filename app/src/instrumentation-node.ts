@@ -46,19 +46,9 @@ export async function registerNode() {
     console.error("[instrumentation] pg-boss analytics refresh register failed", e);
   });
 
-  // BE-A3 每日滚动生成时段。cron 走 UTC:`0 18 * * *` = UTC 18:00 = 北京次日 02:00(凌晨低峰,
-  // 与 vercel.json 同一墙钟,两入口一致)。薄壳:读 horizon 配置 → 调 rollGenerateSlots。
-  await boss.createQueue("roll-slots").catch(() => {});
-  await boss.schedule("roll-slots", "0 18 * * *", {}).catch(() => {});
-  await boss.work("roll-slots", async () => {
-    const { slotRollService } = await import("@/modules/booking");
-    const { configService } = await import("@/modules/system");
-    const horizon = await configService.getInt("slot.horizon_days", 14);
-    const res = await slotRollService.rollGenerateSlots(horizon);
-    if (!res.ok) console.error("[instrumentation] roll-slots failed", res.message);
-  }).catch((e: unknown) => {
-    console.error("[instrumentation] pg-boss roll-slots register failed", e);
-  });
+  // B26 收尾:时段已改「规则派生 + 首单惰性物化」,roll-slots cron 预生成废弃。
+  // 清掉历史 schedule 行,防止无 worker 的 job 每日堆积(幂等;跑过一次后可删)。
+  await boss.unschedule("roll-slots").catch(() => {});
 
   // 熔断(红线4)已移到核销写路径内联(checkin service 的 pauseSlotsForCircuitBreak),
   // 自托管与 serverless 都成立,故此处不再挂 bus 监听(避免双触发)。

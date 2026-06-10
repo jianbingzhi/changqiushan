@@ -1,11 +1,11 @@
 // system 模块 — 授权(RBAC)、账号编排、操作审计、运营配置
 // 认证/密码/会话由 GoTrue 管; sys_profile.id = GoTrue auth.users.id (UUID)
 
-// 通用 KV 运营配置:瞬时承载量、告警比例、滚动天数、默认配额 等运营可改值
+// 通用 KV 运营配置:瞬时承载量、告警比例、默认配额、防黄牛上限 等运营可改值
 // 读经 system 模块 configService(进程内缓存 TTL 60s);其他模块所需配置由 app 路由层注入
 model SysConfig {
-  key       String   @id                          // "park.instant_capacity" / "slot.horizon_days"
-  value     String                                 // "5000" / "14"
+  key       String   @id                          // "park.instant_capacity" / "booking.daily_total_stock"
+  value     String                                 // "5000" / "10000"
   valueType String   @map("value_type") @db.VarChar(10)  // int/float/bool/json/string
   label     String   @db.VarChar(80)               // 中文标签:"瞬时承载量"
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)

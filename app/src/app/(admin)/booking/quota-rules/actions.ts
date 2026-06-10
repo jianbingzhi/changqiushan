@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireRole, ADMIN_UP } from "@/infrastructure/auth/guard";
-import { quotaRuleService, slotRollService } from "@/modules/booking";
+import { quotaRuleService } from "@/modules/booking";
 import { configService } from "@/modules/system";
 
 export type RuleActionResult = { ok: boolean; message: string };
@@ -117,24 +117,4 @@ export async function saveBookingLimitsAction(payload: BookingLimitsPayload): Pr
 
   revalidatePath("/booking/quota-rules");
   return { ok: true, message: "已保存预约总量规则" };
-}
-
-// BE-A3:立即生成未来 N 天时段(免等当晚 cron);horizon 从 SysConfig 读出注入(app 层组合)。
-export async function generateSlotsNowAction(): Promise<RuleActionResult> {
-  const auth = await requireRole(ADMIN_UP);
-  if (!auth.ok) return { ok: false, message: auth.message };
-
-  const horizon = await configService.getInt("slot.horizon_days", 14);
-  const res = await slotRollService.rollGenerateSlots(horizon);
-  if (!res.ok) return { ok: false, message: res.message };
-
-  if (res.value.candidates === 0) {
-    return { ok: false, message: "未生成:请先新建并启用时段模板" };
-  }
-  revalidatePath("/booking/quota-rules");
-  revalidatePath("/booking/slots");
-  return {
-    ok: true,
-    message: `已按 ${res.value.days} 天展开:新建 ${res.value.created} 个时段(跳过已存在 ${res.value.candidates - res.value.created} 个,闭园 ${res.value.closedDays} 天)`,
-  };
 }
