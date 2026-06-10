@@ -17,8 +17,8 @@ export type RoadConditionsResult = {
 };
 
 // 长秋山景区外接矩形(成都蒲江,GCJ-02):左下角经,纬;右上角经,纬。
-// 高德要求对角线 <10km,矩形以景区为中心收窄,联调若报参数错再调。
-const SCENIC_RECTANGLE = "103.52,30.21;103.59,30.27";
+// 中心取考证点(103.6147,30.2317,蒲江长秋山脊);对角线约 8.4km,符合高德 <10km 限制。
+const SCENIC_RECTANGLE = "103.585,30.205;103.645,30.260";
 
 const AMAP_TRAFFIC_URL = "https://restapi.amap.com/v3/traffic/status/rectangle";
 

@@ -271,6 +271,27 @@ async function main() {
       }
     }
 
+    // 导览 POI(T1b):坐标全部 GCJ-02(蒲江长秋山,WGS-84 考证点经标准加偏换算,中心 103.6147,30.2317)。
+    // 固定字面量 UUID + ON CONFLICT DO NOTHING 幂等;消费方:大屏 situation/twin/heatmap + /api/c/poi。
+    const pois = [
+      { id: "a1b2c3d4-0000-4000-8000-000000000001", name: "1号停车场",       category: "停车场",   lng: 103.607693, lat: 30.240227, order: 1, desc: "景区西北山脚主停车场,海拔约 480 米,紧邻进山公路,距景区大门约 150 米,大巴与自驾主入口。" },
+      { id: "a1b2c3d4-0000-4000-8000-000000000002", name: "景区大门",         category: "出入口",   lng: 103.608694, lat: 30.239728, order: 2, desc: "长秋山森林公园主入口,位于西北山脚,设预约核销闸机与无车声明通道。" },
+      { id: "a1b2c3d4-0000-4000-8000-000000000003", name: "游客中心",         category: "服务设施", lng: 103.610495, lat: 30.238529, order: 3, desc: "大门内约 220 米,提供预约补录、咨询导览、医疗点与饮水补给,海拔约 490 米。" },
+      { id: "a1b2c3d4-0000-4000-8000-000000000004", name: "2号停车场",       category: "停车场",   lng: 103.612197, lat: 30.237231, order: 4, desc: "半山换乘停车场,海拔约 505 米,节假日满载时与 1 号停车场联动分流。" },
+      { id: "a1b2c3d4-0000-4000-8000-000000000005", name: "樱桃林步道口",     category: "步道节点", lng: 103.616701, lat: 30.234736, order: 5, desc: "上山步道第一节点,海拔约 576 米,穿越樱桃林与雷竹林,设里程桩与应急呼叫柱。" },
+      { id: "a1b2c3d4-0000-4000-8000-000000000006", name: "长秋山顶观景台",   category: "观景台",   lng: 103.614699, lat: 30.228734, order: 6, desc: "园区制高点,海拔约 767 米,西眺蒲江河谷与县城,晴日可远望西岭雪山,设客流监控点。" },
+      { id: "a1b2c3d4-0000-4000-8000-000000000007", name: "半山休憩亭",       category: "休憩点",   lng: 103.620705, lat: 30.230741, order: 7, desc: "山脊鞍部仿木休憩亭,海拔约 715 米,连接观景台与南脊步道,配休息座椅与观景护栏。" },
+      { id: "a1b2c3d4-0000-4000-8000-000000000008", name: "南脊摩崖步道节点", category: "步道节点", lng: 103.619704, lat: 30.222739, order: 8, desc: "南段山脊步道节点,海拔约 686 米,通往长秋山摩崖造像方向,为南线巡检与折返点。" },
+    ];
+    for (const p of pois) {
+      await pool.query(
+        `INSERT INTO content_poi (id,name,category,latitude,longitude,description,sort_order,status,created_at,updated_at)
+         VALUES ($1::uuid,$2,$3,$4,$5,$6,$7,'PUBLISHED'::"ContentStatus",NOW(),NOW())
+         ON CONFLICT (id) DO NOTHING`,
+        [p.id, p.name, p.category, p.lat, p.lng, p.desc, p.order],
+      );
+    }
+
     // IoT 设备 + 近 24h 心跳(B20 列表 / B21 详情验证用)
     const devices = [
       { name: "东门闸机-01", type: "闸机", location: "东门入口", status: "ONLINE" },
