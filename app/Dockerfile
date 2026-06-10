@@ -27,6 +27,11 @@ RUN pnpm exec prisma generate
 # 缺 DATABASE_URL 即 throw。给一个构建期占位串(driver adapter 懒连接,build 不真连);
 # 运行期由 compose 注入真实 DATABASE_URL 覆盖,占位值不进运行镜像的 env。
 ENV DATABASE_URL="postgresql://build:build@127.0.0.1:5432/build?schema=public"
+# NEXT_PUBLIC_* 是构建期内联进客户端 bundle 的,必须经 build args 传入(.env 被 dockerignore)。
+# 不传(默认空)= 地图显「Key 未配置」诚实态;传了 = docker QA 可测真地图。仅演示级 key 可这样用。
+ARG NEXT_PUBLIC_AMAP_KEY=""
+ARG NEXT_PUBLIC_AMAP_SECURITY=""
+ENV NEXT_PUBLIC_AMAP_KEY=$NEXT_PUBLIC_AMAP_KEY NEXT_PUBLIC_AMAP_SECURITY=$NEXT_PUBLIC_AMAP_SECURITY
 # 限速构建:NEXT_BUILD_LIMIT=1 → next.config 启用 cpus:2 + workerThreads:false,主动让出 CPU
 RUN NEXT_BUILD_LIMIT=1 pnpm build
 

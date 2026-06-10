@@ -5,6 +5,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      # NEXT_PUBLIC_* 构建期内联,从宿主 env 透传(不设=空=地图「Key 未配置」诚实态)
+      args:
+        NEXT_PUBLIC_AMAP_KEY: ${NEXT_PUBLIC_AMAP_KEY:-}
+        NEXT_PUBLIC_AMAP_SECURITY: ${NEXT_PUBLIC_AMAP_SECURITY:-}
     image: changqiushan-app:latest
     container_name: changqiushan-app
     restart: unless-stopped
@@ -28,6 +32,8 @@ services:
       GOTRUE_JWT_SECRET: ${GOTRUE_JWT_SECRET}
       # B16:cookie 寿命与 GoTrue JWT 寿命对齐(下方 gotrue 服务同值),消除提前掉线
       GOTRUE_JWT_EXP: "604800"
+      # 高德服务端 Web key(REST 路况/staticmap 代理),运行期注入;不设=诚实 unconfigured 态
+      AMAP_KEY: ${AMAP_KEY:-}
       # B21:内网 http(VPN)QA 必须 false,否则浏览器不回传 secure cookie → 登录"没反应";
       # 生产经 https 反代时置 true(D4)。
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
@@ -178,3 +184,12 @@ services:
 volumes:
   postgres_data:
   minio_data:
+
+# 高德 v4 CDN 节点本地不可达、宿主实际走 IPv6 出网——默认网络开 v6(Docker 27+ 原生 NAT66),
+# 容器与宿主同路径访问 restapi/webapi.amap.com。
+networks:
+  default:
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: fd0c:7177:1::/64
