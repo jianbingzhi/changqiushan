@@ -85,7 +85,8 @@ declare global {
 
 export type AMapNamespace = typeof AMap;
 
-const LOAD_TIMEOUT_MS = 10_000;
+// 20s:线上实测首访冷加载(JS API ~200KB+init 链)在普通网络可超 10s,过紧会把首屏打成 error 逼用户点重试
+const LOAD_TIMEOUT_MS = 20_000;
 
 let amapPromise: Promise<AMapNamespace> | null = null;
 const loadedPlugins = new Set<string>();
