@@ -6,17 +6,20 @@ const HOLD_MS = 5 * 60 * 1000
 
 interface BookingDraftState {
   slotId: string | null
+  // B26:选中日期(YYYY-MM-DD),下单随 slotId 一并提交以支持派生时段惰性物化
+  date: string | null
   slotLabel: string | null
   holdExpiresAt: number | null
-  selectSlot: (slotId: string, label: string) => void
+  selectSlot: (slotId: string, date: string, label: string) => void
   clear: () => void
 }
 
 export const useBookingDraftStore = create<BookingDraftState>((set) => ({
   slotId: null,
+  date: null,
   slotLabel: null,
   holdExpiresAt: null,
-  selectSlot: (slotId, label) =>
-    set({ slotId, slotLabel: label, holdExpiresAt: Date.now() + HOLD_MS }),
-  clear: () => set({ slotId: null, slotLabel: null, holdExpiresAt: null }),
+  selectSlot: (slotId, date, label) =>
+    set({ slotId, date, slotLabel: label, holdExpiresAt: Date.now() + HOLD_MS }),
+  clear: () => set({ slotId: null, date: null, slotLabel: null, holdExpiresAt: null }),
 }))

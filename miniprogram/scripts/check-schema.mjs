@@ -21,8 +21,18 @@ function extract(src) {
   return { fields, messages }
 }
 
+// B35:后端 schema.ts 同文件含多个 schema(createBookingSchema + admin 的 createSlotSchema 等),
+// 只截取 createBookingSchema 声明块比对——否则会把建时段字段/文案误算成"端内缺失"(C 端不建时段)。
+function sliceSchemaBlock(src, name) {
+  const start = src.indexOf(`export const ${name}`)
+  if (start < 0) throw new Error(`后端未找到 ${name}`)
+  const rest = src.slice(start + 1)
+  const nextExport = rest.indexOf('\nexport const ')
+  return nextExport < 0 ? src.slice(start) : src.slice(start, start + 1 + nextExport)
+}
+
 const front = extract(readFileSync(FRONT, 'utf8'))
-const back = extract(readFileSync(BACK, 'utf8'))
+const back = extract(sliceSchemaBlock(readFileSync(BACK, 'utf8'), 'createBookingSchema'))
 
 const errors = []
 

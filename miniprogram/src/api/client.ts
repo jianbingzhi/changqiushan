@@ -1,8 +1,12 @@
 import Taro from '@tarojs/taro'
 import { useAuthStore } from '@/store/authStore'
 
-// 联调指向本地 BFF;上线改 ICP 备案域名并在 project.config 打开 urlCheck
-export const API_BASE = 'http://localhost:3000/api/c'
+// 联调后端基址(三选一,按环境改):
+//   · Vercel 公网(默认,带最新修复,真机/工具都够得到,https 利于真机预览): https://changqiushan.vercel.app/api/c
+//   · 本地 docker 经 WireGuard(Windows 工具打 Linux 栈):                  http://10.7.0.1:3000/api/c
+//   · Linux 本机(仅 H5 dev server 同机调试时):                            http://localhost:3000/api/c
+// 注:非 https / 非备案域名,微信开发者工具须勾「不校验合法域名」。上线改 ICP 备案域名并打开 urlCheck。
+export const API_BASE = 'https://changqiushan.vercel.app/api/c'
 
 export type ApiResult<T> =
   | { ok: true; data: T }

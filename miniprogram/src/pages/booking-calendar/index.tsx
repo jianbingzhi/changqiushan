@@ -30,7 +30,7 @@ export default function BookingCalendar() {
     if (!ensureLoggedIn()) return
     useBookingDraftStore
       .getState()
-      .selectSlot(slot.id, `${formatCnDate(selected)} ${slot.startTime}-${slot.endTime}`)
+      .selectSlot(slot.id, toDateParam(selected), `${formatCnDate(selected)} ${slot.startTime}-${slot.endTime}`)
     Taro.navigateTo({ url: '/pages/booking-form/index' })
   }
 

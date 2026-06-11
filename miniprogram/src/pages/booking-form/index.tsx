@@ -38,6 +38,8 @@ export default function BookingForm() {
     if (!draft.slotId) return
     const input = {
       slotId: draft.slotId,
+      // B26:带上选中日期,派生(未物化)时段下单时后端据此惰性物化;缺则订未物化时段会被判"时段不存在"
+      ...(draft.date ? { date: draft.date } : {}),
       visitorName: visitorName.trim(),
       idCard: idCard.trim(),
       phone: phone.trim(),
