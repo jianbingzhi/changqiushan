@@ -32,6 +32,10 @@ services:
       GOTRUE_JWT_SECRET: ${GOTRUE_JWT_SECRET}
       # B16:cookie 寿命与 GoTrue JWT 寿命对齐(下方 gotrue 服务同值),消除提前掉线
       GOTRUE_JWT_EXP: "604800"
+      # B40:C 端游客 JWT 密钥(独立于 GoTrue)。不设=空密钥,jose HMAC 抛「Zero-length key」→
+      # 登录签发/校验全失败 → C 端 /api/c 鉴权整体 401(登录/预约/核销/我的预约不可用)。
+      # 生产须用强随机值并随泄露轮换;Vercel env 同样必须配,否则真机小程序连登录都过不了。
+      VISITOR_JWT_SECRET: ${VISITOR_JWT_SECRET:-changqiushan_visitor_dev_secret_2026}
       # 高德服务端 Web key(REST 路况/staticmap 代理),运行期注入;不设=诚实 unconfigured 态
       AMAP_KEY: ${AMAP_KEY:-}
       # B21:内网 http(VPN)QA 必须 false,否则浏览器不回传 secure cookie → 登录"没反应";
