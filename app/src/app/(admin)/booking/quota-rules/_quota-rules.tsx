@@ -177,7 +177,7 @@ export function QuotaRules({
           </div>
         </div>
         <p className="mb-3 text-xs text-text-muted">
-          按日期类型(工作日 / 周末 / 节假日)定义时段;每日滚动生成按当日类型选用对应模板,各渠道名额随模板带出。
+          按日期类型(工作日 / 周末 / 节假日)定义时段;各日期读取时按当日类型即时套用对应模板派生时段(首单自动落库),各渠道名额随模板带出。
         </p>
 
         <div className="overflow-x-auto">
@@ -288,7 +288,7 @@ export function QuotaRules({
             <label className="col-span-2 flex items-center gap-2 text-[13px] text-foreground sm:col-span-4">
               <input type="checkbox" checked={tplForm.enabled}
                 onChange={(e) => setTplForm((f) => ({ ...f, enabled: e.target.checked }))} />
-              启用该模板(停用后滚动生成将跳过)
+              启用该模板(停用后对应日期类型不再派生该时段,已落库时段不受影响)
             </label>
             <div className="col-span-2 flex items-center gap-2 sm:col-span-4">
               <Button size="sm" disabled={pending} onClick={submitTemplate}>
@@ -308,7 +308,7 @@ export function QuotaRules({
       <section className="rounded-lg border border-border bg-card p-4">
         <h2 className="mb-1 text-[15px] font-semibold text-foreground">特例日历(调休 / 节假日 / 闭园)</h2>
         <p className="mb-3 text-xs text-text-muted">
-          中国调休不可纯星期推算,需运营手录:指定某日的日期类型,或勾选「闭园」当日不生成时段。
+          中国调休不可纯星期推算,需运营手录:指定某日的日期类型,或勾选「闭园」当日无任何可约时段。
         </p>
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

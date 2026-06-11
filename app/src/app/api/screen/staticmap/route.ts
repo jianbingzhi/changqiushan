@@ -19,6 +19,12 @@ function cacheControl(): string {
   return process.env.SCREEN_TOKEN ? "private, max-age=300" : "public, max-age=300";
 }
 
+// 模块级内存缓存(仿 [metric] 路由),300s TTL,只缓存校验过 content-type 的成功图——
+// b-103 评审 #5:此前用 fetch next:{revalidate} 缓存,Next 只看 status===200 不看 body,
+// 高德配额/QPS 超限习惯返回 200+JSON 错误体,会被钉进 Data Cache 5 分钟、持续 502。
+const TTL_MS = 300_000;
+let cached: { buf: ArrayBuffer; contentType: string; at: number } | null = null;
+
 export async function GET(req: NextRequest) {
   // 软门口径与 [metric] 路由对齐(审计 P2-4):配置 SCREEN_TOKEN 时本路由同样要凭据
   if (!screenGatePassed(req.nextUrl.searchParams.get("k"), req.cookies.get("screen_token")?.value)) {
@@ -44,11 +50,15 @@ export async function GET(req: NextRequest) {
     scale: "2",
   });
 
-  try {
-    // fetch 级缓存 5 分钟:大屏轮询/多屏并发不重复打高德
-    const res = await fetch(`${AMAP_STATIC_URL}?${params.toString()}`, {
-      next: { revalidate: 300 },
+  if (cached && Date.now() - cached.at < TTL_MS) {
+    return new Response(cached.buf, {
+      headers: { "content-type": cached.contentType, "cache-control": cacheControl() },
     });
+  }
+
+  try {
+    // no-store:缓存自管(只缓存成功图),不让 Data Cache 把 200+JSON 错误体钉住 5 分钟
+    const res = await fetch(`${AMAP_STATIC_URL}?${params.toString()}`, { cache: "no-store" });
     const contentType = res.headers.get("content-type") ?? "";
     // 高德出错时返回 JSON(带 infocode)而非图片,统一 502 固定文案(不透传上游错误体)
     if (!res.ok || !contentType.startsWith("image/")) {
@@ -58,6 +68,7 @@ export async function GET(req: NextRequest) {
       );
     }
     const buf = await res.arrayBuffer();
+    cached = { buf, contentType, at: Date.now() };
     return new Response(buf, {
       headers: {
         "content-type": contentType,

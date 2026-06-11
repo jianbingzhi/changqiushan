@@ -71,7 +71,7 @@ export function AssetLibrary({ assets }: { assets: AssetRow[] }) {
           <Upload className="h-4 w-4" />
           {busy ? "上传中…" : "上传图片素材"}
         </Button>
-        <span className="text-xs text-muted-foreground">支持 JPG / PNG / WebP / GIF,单张 10MB 以内</span>
+        <span className="text-xs text-muted-foreground">支持 JPG / PNG / WebP / GIF,单张 10MB 以内;视频经内容编辑器上传后也在此归档</span>
       </div>
 
       {msg && (
@@ -89,7 +89,15 @@ export function AssetLibrary({ assets }: { assets: AssetRow[] }) {
           {assets.map((a) => (
             <div key={a.id} className="overflow-hidden rounded-lg border border-border bg-card">
               <div className="relative aspect-video bg-muted">
-                <Image src={a.url} alt={a.name} fill sizes="(max-width:1024px) 50vw, 25vw" className="object-cover" unoptimized />
+                {/* b-103 评审 #4:mp4 走 <video> 出首帧,塞进 <img> 必裂图 */}
+                {a.type.startsWith("video/") ? (
+                  <video src={a.url} preload="metadata" muted className="h-full w-full object-cover" aria-label={a.name} />
+                ) : (
+                  <Image src={a.url} alt={a.name} fill sizes="(max-width:1024px) 50vw, 25vw" className="object-cover" unoptimized />
+                )}
+                {a.type.startsWith("video/") && (
+                  <span className="absolute left-1.5 top-1.5 rounded bg-foreground/70 px-1.5 py-0.5 text-[12px] text-background">视频</span>
+                )}
               </div>
               <div className="p-2.5">
                 <p className="truncate text-[13px] font-medium text-foreground" title={a.name}>{a.name}</p>

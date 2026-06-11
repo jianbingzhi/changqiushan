@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { sanitizeRichText } from "./sanitize";
+import { sanitizeRichText, findRejectedVideoSrcs } from "./sanitize";
 
 // T2b 视频闸门:仅放行自家公共桶前缀的 mp4,外链/危险标签全剥。
 const BASE = "https://media.example.com";
@@ -50,5 +50,19 @@ describe("sanitizeRichText · video 闸门(T2b)", () => {
     expect(out).not.toContain("iframe");
     expect(out).toContain("<a href=");
     expect(out).toContain("<img src=");
+  });
+
+  // b-103 评审 #2:前缀注入(权威来源 publicUrl)优先于 env 兜底推导
+  it("mediaPrefix 注入优先于 env:换前缀后旧前缀视频被判拒", () => {
+    const NEW = "https://cdn.example.net/bucket";
+    const html = `<video src="${BASE}/v.mp4"></video>`;
+    expect(sanitizeRichText(html, { mediaPrefix: NEW })).not.toContain("video");
+    expect(sanitizeRichText(`<video src="${NEW}/v.mp4"></video>`, { mediaPrefix: NEW })).toContain("video");
+  });
+
+  it("findRejectedVideoSrcs:列出会被剥除的视频 src,合法视频不误报", () => {
+    const html = `<video src="${BASE}/ok.mp4"></video><video src="https://evil.example.org/x.mp4"></video><video></video>`;
+    expect(findRejectedVideoSrcs(html)).toEqual(["https://evil.example.org/x.mp4", ""]);
+    expect(findRejectedVideoSrcs(`<video src="${BASE}/ok.mp4"></video>`)).toEqual([]);
   });
 });

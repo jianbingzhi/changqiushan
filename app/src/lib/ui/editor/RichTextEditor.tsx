@@ -30,6 +30,13 @@ interface Props {
 const IMAGE_ACCEPT = "image/jpeg,image/png,image/webp,image/gif";
 const VIDEO_ACCEPT = "video/mp4";
 
+// 拖入/粘贴兜底提示:与文件选择器 accept 口径一致(b-103 评审 #3)
+function unsupportedFilesHint(files: File[]): string {
+  return files.some((f) => f.type.startsWith("video/"))
+    ? "仅支持 H.264 编码的 mp4 视频"
+    : "仅支持图片(JPG/PNG/WebP/GIF)或 mp4 视频";
+}
+
 // 自定义视频节点:块级 atom,渲染原生 <video controls>(contenteditable 内可直接播放)。
 // atom 自带选中态,选中后退格即可删除,无需 NodeView/额外按键处理;
 // 官方 youtube 扩展是 iframe 嵌入,不适用自家桶直传的 mp4,故自定义(零新依赖)。
@@ -241,6 +248,8 @@ export function RichTextEditor({ value, onChange, placeholder, onUploadImage, on
   useEffect(() => { uploadRef.current = onUploadImage; }, [onUploadImage]);
   const uploadVideoRef = useRef<UploadVideo | undefined>(onUploadVideo);
   useEffect(() => { uploadVideoRef.current = onUploadVideo; }, [onUploadVideo]);
+  // 拖入/粘贴不支持的文件类型时的提示(b-103 评审 #3);setState 标识稳定,可被固化的 handler 闭包持有
+  const [mediaDropErr, setMediaDropErr] = useState<string | null>(null);
 
   const editor = useEditor({
     immediatelyRender: false, // Next SSR 安全:避免水合不一致
@@ -285,6 +294,12 @@ export function RichTextEditor({ value, onChange, placeholder, onUploadImage, on
           });
           return true;
         }
+        // 兜底:粘贴了不支持的文件类型 → 拦下并提示,不让 PM 按文本路径产出脏内容
+        if (files.length > 0) {
+          event.preventDefault();
+          setMediaDropErr(unsupportedFilesHint(files));
+          return true;
+        }
         return false;
       },
       // 拖入图片/视频(mp4)→ 按类型双分发,直传后在落点处插入
@@ -313,6 +328,14 @@ export function RichTextEditor({ value, onChange, placeholder, onUploadImage, on
           });
           return true;
         }
+        // 兜底(b-103 评审 #3):编辑器内任何文件拖放都不放给浏览器默认行为——
+        // ProseMirror 已拦 dragover 使编辑区成为合法 drop 目标,此处若返回 false 且未
+        // preventDefault,Chrome 会把当前页导航成本地文件,未保存正文全丢。
+        if (files.length > 0) {
+          event.preventDefault();
+          setMediaDropErr(unsupportedFilesHint(files));
+          return true;
+        }
         return false;
       },
     },
@@ -337,11 +360,19 @@ export function RichTextEditor({ value, onChange, placeholder, onUploadImage, on
     </BubbleMenu>
   );
 
+  const dropErrBar = mediaDropErr ? (
+    <div role="alert" className="flex items-center justify-between gap-2 px-3 py-1.5 text-[12px] text-destructive">
+      <span>{mediaDropErr}</span>
+      <button type="button" onClick={() => setMediaDropErr(null)} className="shrink-0 text-muted-foreground hover:text-foreground">知道了</button>
+    </div>
+  ) : null;
+
   if (documentMode) {
     return (
       <div className="bg-card">
         <div className="sticky top-0 z-10 -mx-1 bg-card/95 backdrop-blur">
           <Toolbar editor={editor} onUploadImage={onUploadImage} onUploadVideo={onUploadVideo} />
+          {dropErrBar}
         </div>
         {bubble}
         <EditorContent editor={editor} />
@@ -352,6 +383,7 @@ export function RichTextEditor({ value, onChange, placeholder, onUploadImage, on
   return (
     <div className="rounded-lg border border-border bg-card">
       <Toolbar editor={editor} onUploadImage={onUploadImage} onUploadVideo={onUploadVideo} />
+      {dropErrBar}
       {bubble}
       <EditorContent editor={editor} />
     </div>

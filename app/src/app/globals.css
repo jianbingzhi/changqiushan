@@ -177,6 +177,9 @@ body {
 .richtext-view a { color: var(--color-primary); text-decoration: underline; }
 .richtext-content img,
 .richtext-view img { max-width: 100%; border-radius: 0.5rem; margin: 0.5em 0; }
+/* video 与 img 同约束:消毒会剥 class,样式只能靠选择器兜(b-103 评审附注) */
+.richtext-content video,
+.richtext-view video { max-width: 100%; border-radius: 0.5rem; margin: 0.5em 0; }
 .richtext-content:focus { outline: none; }
 /* 空编辑器占位 */
 .richtext-content p.is-editor-empty:first-child::before {

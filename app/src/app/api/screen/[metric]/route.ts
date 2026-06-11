@@ -15,12 +15,23 @@ export const dynamic = "force-dynamic";
 const TTL_MS = 15_000;
 const cache = new Map<string, { at: number; data: unknown }>();
 
+// occupancy 与 slots 共用同一份「今日时段」取数:派生读内部是 4 个查询,两 metric 各自
+// 缓存 miss 时会翻倍打 DB——共享一层 15s memo,同窗只取一次(b-103 评审附注)。
+let slotsMemo: { at: number; data: Awaited<ReturnType<typeof bookingService.listSlotsForDate>> } | null = null;
+async function todaySlots() {
+  const now = Date.now();
+  if (slotsMemo && now - slotsMemo.at < TTL_MS) return slotsMemo.data;
+  const data = await bookingService.listSlotsForDate(chinaToday()).catch(() => []);
+  slotsMemo = { at: now, data };
+  return data;
+}
+
 // ── 指标白名单:每个 metric → PII-free 聚合 resolver ──────────────────────────
 const RESOLVERS: Record<string, () => Promise<unknown>> = {
   // 在园 / 承载 / 熔断(90% 闪红的数据源)
   occupancy: async () => {
     const [slots, capacity] = await Promise.all([
-      bookingService.listSlotsForDate(chinaToday()).catch(() => []),
+      todaySlots(),
       configService.getInstantCapacity().catch(() => resolveInstantCapacity()),
     ]);
     const occupancy = slots.reduce((s, sl) => s + sl.checkedInCount, 0);
@@ -38,7 +49,7 @@ const RESOLVERS: Record<string, () => Promise<unknown>> = {
 
   // 今日各时段占用(名称/容量/已约/在园/状态枚举)
   slots: async () => {
-    const slots = await bookingService.listSlotsForDate(chinaToday()).catch(() => []);
+    const slots = await todaySlots();
     return slots.map((s) => ({
       name: s.name,
       startTime: s.startTime,

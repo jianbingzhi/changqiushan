@@ -45,6 +45,8 @@ services:
       S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-changqiushan_minio_dev}
       S3_BUCKET: ${S3_BUCKET:-changqiushan-media}
       S3_FORCE_PATH_STYLE: "true"
+      # T2c 视频上传上限(字节):不透传则容器内永远走代码缺省 100MB(b-103 评审 #6)
+      MAX_VIDEO_UPLOAD_BYTES: ${MAX_VIDEO_UPLOAD_BYTES:-}
     # 绑 0.0.0.0 以便经 VPN(10.7.0.1)访问;pg/gotrue 仅 127.0.0.1 不外露
     ports:
       - "3000:3000"
@@ -187,6 +189,9 @@ volumes:
 
 # 高德 v4 CDN 节点本地不可达、宿主实际走 IPv6 出网——默认网络开 v6(Docker 27+ 原生 NAT66),
 # 容器与宿主同路径访问 restapi/webapi.amap.com。
+# ⚠️ 硬前提:宿主内核须启用 IPv6(disable_ipv6=0)——否则创建网络即失败、整栈起不来;
+# 迁到无 v6 的主机时删掉本 networks 段即可回退(代价:容器内高德直连可能复发原 bug)。
+# Docker <27 不会创建失败,只是缺默认 NAT66(需手动开 ip6tables)。(b-103 评审 #8)
 networks:
   default:
     enable_ipv6: true

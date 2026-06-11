@@ -129,12 +129,13 @@ export async function commitAssetAction(input: {
   return { ok: true, message: `已上传素材「${res.value.name}」`, url: res.value.url };
 }
 
-// 封面/编辑器的「从素材库选择」用:返回已归档图片素材(轻量行)。
+// 封面「从素材库选择」弹层用(唯一消费方):封面只能是图片,服务端过滤视频资产——
+// 否则 mp4 在弹层裂图且可被选成封面流向 C 端图片位(b-103 评审 #4)。
 export async function listAssetsAction(): Promise<AssetPickRow[]> {
   const auth = await requireRole(ADMIN_UP);
   if (!auth.ok) return [];
   const assets = await assetService.listAssets().catch(() => []);
-  return assets.map((a) => ({
+  return assets.filter((a) => !a.type.startsWith("video/")).map((a) => ({
     id: a.id,
     name: a.name,
     url: a.url,

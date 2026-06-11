@@ -8,7 +8,8 @@ import {
   createSignupSchema,
 } from "../domain/schema";
 import { contentRepository } from "../repository";
-import { sanitizeRichText } from "../domain/sanitize";
+import { sanitizeRichText, findRejectedVideoSrcs } from "../domain/sanitize";
+import { publicUrl } from "@/infrastructure/storage";
 
 type ContentModel = "intro" | "activity" | "knowledge" | "news";
 
@@ -18,12 +19,25 @@ const RICH_HTML_FIELD: Record<ContentModel, string> = {
 };
 
 // 就地消毒 data 上的富正文字段(若存在且为字符串)。create/update 共用。
-function sanitizeRichField<T extends Record<string, unknown>>(model: ContentModel, data: T): T {
+// b-103 评审 #2:① 域名收口前缀从 publicUrl("") 注入(与上传落库的 URL 同源,杜绝影子推导漂移);
+// ② 正文若含会被收口剥除的视频,直接拒绝保存——静默剥除会在存储域名变更后吞掉旧正文视频。
+function sanitizeRichField<T extends Record<string, unknown>>(
+  model: ContentModel,
+  data: T,
+): Result<T> {
   const key = RICH_HTML_FIELD[model];
   if (typeof data[key] === "string") {
-    (data as Record<string, unknown>)[key] = sanitizeRichText(data[key] as string);
+    const mediaPrefix = publicUrl("");
+    const rejected = findRejectedVideoSrcs(data[key] as string, { mediaPrefix });
+    if (rejected.length > 0) {
+      return err(
+        ErrCode.INVALID_INPUT,
+        `正文包含 ${rejected.length} 处非本站存储的视频，无法保存：请删除该视频后重试（若更换过存储域名，请重新上传视频）`,
+      );
+    }
+    (data as Record<string, unknown>)[key] = sanitizeRichText(data[key] as string, { mediaPrefix });
   }
-  return data;
+  return ok(data);
 }
 
 const CREATE_SCHEMAS = {
@@ -87,7 +101,9 @@ export const contentService = {
   async createContent(model: ContentModel, raw: unknown): Promise<Result<{ id: string }>> {
     const parsed = CREATE_SCHEMAS[model].safeParse(raw);
     if (!parsed.success) return err(ErrCode.INVALID_INPUT, parsed.error.issues[0].message);
-    const d = sanitizeRichField(model, parsed.data as Record<string, unknown>);
+    const sanitized = sanitizeRichField(model, parsed.data as Record<string, unknown>);
+    if (!sanitized.ok) return sanitized;
+    const d = sanitized.value;
     let row: { id: string };
     switch (model) {
       case "intro":     row = await contentRepository.createIntro(d as never); break;
@@ -160,7 +176,9 @@ export const contentService = {
     if (!existing) return err(ErrCode.NOT_FOUND, "内容不存在");
     const parsed = UPDATE_SCHEMAS[model].safeParse(raw);
     if (!parsed.success) return err(ErrCode.INVALID_INPUT, parsed.error.issues[0].message);
-    await setStatus(model, id, sanitizeRichField(model, parsed.data as Record<string, unknown>));
+    const sanitized = sanitizeRichField(model, parsed.data as Record<string, unknown>);
+    if (!sanitized.ok) return sanitized;
+    await setStatus(model, id, sanitized.value);
     return ok(undefined);
   },
 };

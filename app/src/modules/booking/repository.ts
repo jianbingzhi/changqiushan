@@ -239,6 +239,21 @@ export const bookingRepository = {
     });
   },
 
+  // 红线4: 当日全园在园人数 = 该日各物化时段 checked_in_count 之和(派生虚拟行恒 0,不漏计)。
+  async sumCheckedInForDate(date: Date): Promise<number> {
+    const r = await db.bookingSlot.aggregate({ where: { date }, _sum: { checkedInCount: true } });
+    return r._sum.checkedInCount ?? 0;
+  },
+
+  // 红线4: 直读 system_config 取瞬时承载量原值——与 checkin 核销写路径同模式(raw 点查,
+  // 避免 import system 模块破 eslint-boundaries);解析与缺配兜底交给 shared resolveInstantCapacity。
+  async getInstantCapacityRaw(): Promise<string | null> {
+    const rows = await db.$queryRaw<{ value: string }[]>(Prisma.sql`
+      SELECT value FROM system_config WHERE key = 'park.instant_capacity' LIMIT 1
+    `);
+    return rows[0]?.value ?? null;
+  },
+
   async createBookingOptimistic(data: CreateBookingData): Promise<Booking> {
     const col = CHANNEL_COL[data.channel];
     const qrCode = "bk-" + randomBytes(29).toString("hex");

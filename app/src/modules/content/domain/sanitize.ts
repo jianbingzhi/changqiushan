@@ -11,22 +11,42 @@ export const RICHTEXT_ALLOWED_TAGS = [
 
 // video.src/poster 域名收口:仅放行自家公共桶基址前缀,外链一律剥除——
 // 防带宽盗用与内容失控(img 历史未收口属存量口径,增量从严合理)。
-// 口径与 infrastructure/storage publicUrl() 一致;此处直读 env 不引 infrastructure,
-// 保持 domain 纯函数可单测(storage 模块带 server-only 标记)。
-function ownMediaPrefix(): string {
+// 前缀的权威来源是 infrastructure/storage publicUrl(""),由 service 层注入(b-103 评审 #2:
+// 此处早先复刻 env 推导链形成影子副本,publicUrl 拼法一变即漂移)。下面的 env 推导仅作
+// 未注入时的兜底,保持 domain 纯函数可单测——勿在其上叠加新逻辑,改口径去 s3-client。
+function fallbackMediaPrefix(): string {
   const base =
     process.env.S3_PUBLIC_BASE_URL ||
     `${(process.env.S3_PUBLIC_ENDPOINT ?? process.env.S3_ENDPOINT ?? "http://localhost:9000").replace(/\/$/, "")}/${process.env.S3_BUCKET ?? "changqiushan-media"}`;
   return `${base.replace(/\/$/, "")}/`;
 }
 
-const isOwnMedia = (url: string | undefined): url is string =>
-  Boolean(url && url.startsWith(ownMediaPrefix()));
+const normalizePrefix = (p?: string) =>
+  p ? `${p.replace(/\/$/, "")}/` : fallbackMediaPrefix();
+
+const isOwnMedia = (url: string | undefined, prefix: string): url is string =>
+  Boolean(url && url.startsWith(prefix));
+
+export type SanitizeOptions = { mediaPrefix?: string };
 
 // 服务端消毒:存盘前过白名单,清掉 script/iframe/style/onclick/越界 class 等。
 // sanitize-html 仅 Node 端可跑;必须在每个写入口(create/update)强制调用,客户端编辑器输出不可信。
-export function sanitizeRichText(html: string): string {
+export function sanitizeRichText(html: string, opts?: SanitizeOptions): string {
   if (!html) return "";
+  return doSanitize(html, normalizePrefix(opts?.mediaPrefix));
+}
+
+// 正文里「会被域名收口整节点剥除」的视频 src 清单(缺失 src 记为空串)。
+// service 在存盘前调用:命中即拒绝保存并报错,而非静默剥除——否则存储域名变更后,
+// 运营仅改标题重新保存就会让旧正文视频无声消失(b-103 评审 #2 数据丢失场景)。
+export function findRejectedVideoSrcs(html: string, opts?: SanitizeOptions): string[] {
+  if (!html) return [];
+  const rejected: string[] = [];
+  doSanitize(html, normalizePrefix(opts?.mediaPrefix), (src) => rejected.push(src));
+  return rejected;
+}
+
+function doSanitize(html: string, prefix: string, onRejectedVideo?: (src: string) => void): string {
   return sanitizeHtml(html, {
     allowedTags: [...RICHTEXT_ALLOWED_TAGS],
     allowedAttributes: {
@@ -48,14 +68,17 @@ export function sanitizeRichText(html: string): string {
         tagName,
         attribs: {
           ...(attribs.src ? { src: attribs.src } : {}),
-          ...(isOwnMedia(attribs.poster) ? { poster: attribs.poster } : {}),
+          ...(isOwnMedia(attribs.poster, prefix) ? { poster: attribs.poster } : {}),
           controls: "controls",
           preload: "metadata",
         },
       }),
     },
     // src 缺失或非自家公共桶 → 整个 video 节点剥除
-    exclusiveFilter: (frame) =>
-      frame.tag === "video" && !isOwnMedia(frame.attribs["src"]),
+    exclusiveFilter: (frame) => {
+      const bad = frame.tag === "video" && !isOwnMedia(frame.attribs["src"], prefix);
+      if (bad) onRejectedVideo?.(frame.attribs["src"] ?? "");
+      return bad;
+    },
   });
 }

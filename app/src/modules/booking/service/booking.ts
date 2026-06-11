@@ -4,9 +4,11 @@ import {
 } from "../repository";
 import type { BookingListFilter, SlotDefinition, BookingLimits } from "../repository";
 import { createBookingSchema, createSlotSchema } from "../domain/schema";
-import { assertDualElements, canBook, canCancel } from "../domain/rules";
+import { assertDualElements, canBook, canCancel, isCircuitBroken } from "../domain/rules";
 import { deriveSlots, type DerivedSlot } from "../domain/slot-derive";
 import { ok, err, ErrCode, type Result } from "@/shared/result";
+import { resolveInstantCapacity } from "@/shared/lib/capacity";
+import { chinaTodayDbDate } from "@/shared/lib/time";
 import { Prisma } from "@prisma/client";
 import type { Booking, BookingSlot, BookingSlotStatus } from "@prisma/client";
 
@@ -125,9 +127,19 @@ export const bookingService = {
         : err(ErrCode.SLOT_FULL, "该渠道名额已满");
     }
 
-    // 红线4 熔断不在此处按单时段口径预判(分母错且对未物化派生行 checkedIn 恒 0)。
-    // 真正口径统一的执行点在核销写路径(checkin):全园在园/瞬时承载 ≥90% → PAUSE 当日全部 ACTIVE 时段,
-    // 随后 canBook(status=ACTIVE) 即拒绝新单。此处只信任时段 status,避免重复且错误的园区级判定。
+    // 红线4 园区级熔断守卫:核销路径的 PAUSE(checkin 内联 UPDATE)只够得到已物化行,
+    // 派生时段无行可改、恒 ACTIVE,仅信任 status 会被绕过——当日下单一律活算
+    // 「全园在园 / 瞬时承载」,达 90% 即拒,物化/派生两路同闸(b-103 评审 #1)。
+    // 恢复语义:物化行 PAUSED 等运营恢复;本守卫随在园数回落自动放行,两者取严不冲突。
+    if (def.date.getTime() === chinaTodayDbDate().getTime()) {
+      const [inPark, capRaw] = await Promise.all([
+        bookingRepository.sumCheckedInForDate(def.date),
+        bookingRepository.getInstantCapacityRaw(),
+      ]);
+      if (isCircuitBroken(inPark, resolveInstantCapacity(capRaw))) {
+        return err(ErrCode.CIRCUIT_BREAKER_OPEN, "在园人数已达承载上限，当日预约已暂停");
+      }
+    }
 
     // 单证 N=1(默认)快路径预判:命中即免入事务;N>1 由事务内计数 + advisory 锁处理。
     if ((limits?.perIdCard ?? 1) <= 1) {
@@ -197,13 +209,22 @@ export const bookingService = {
   // 取代裸 listSlotsByDate 作为对外读口;repo 仍保留供合并。
   async listSlotsForDate(dateStr: string): Promise<SlotView[]> {
     const date = toSlotDate(dateStr);
-    const [materialized, templates, holiday] = await Promise.all([
+    const [materialized, templates, holiday, capRaw] = await Promise.all([
       bookingRepository.listSlotsByDate(date),
       bookingRepository.listEnabledTemplates(),
       bookingRepository.getHoliday(date),
+      bookingRepository.getInstantCapacityRaw(),
     ]);
+    // 红线4 显示口径:熔断时派生行同样置 PAUSED——核销路径的 PAUSE 只改物化行,派生行若仍显
+    // ACTIVE,大屏闪红与时段板「可约」会自相矛盾。inPark 直接复用已取回的物化行,零额外查询;
+    // 非当日 checkedIn 恒 0,天然不误伤(b-103 评审 #1)。
+    const inPark = materialized.reduce((s, m) => s + m.checkedInCount, 0);
+    const broken = isCircuitBroken(inPark, resolveInstantCapacity(capRaw));
     const byStart = new Map<string, SlotView>();
-    for (const d of deriveSlots(dateStr, templates, holiday)) byStart.set(d.startTime, derivedToView(d));
+    for (const d of deriveSlots(dateStr, templates, holiday)) {
+      const v = derivedToView(d);
+      byStart.set(d.startTime, broken ? { ...v, status: "PAUSED" } : v);
+    }
     for (const m of materialized) byStart.set(m.startTime, materializedToView(m)); // 已物化优先
     return [...byStart.values()].sort((a, b) => a.startTime.localeCompare(b.startTime));
   },
