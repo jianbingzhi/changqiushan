@@ -6,17 +6,22 @@
 git push origin deploy-demo        # 触发部署(双推则同时 push jianbingzhi,但只在配了 secrets 的库真部署)
 ```
 
-完成后访问:
-- 后台 `http://<服务器IP>:3000/login` — 超管 `13900000000` / `Admin@12345`(登录后改密)
-- 大屏 `http://<服务器IP>:3000/screen`
-- 媒体 `http://<服务器IP>:9000`(需安全组放行 9000)
+完成后访问(默认经 **Caddy 统一入口 :80**,只需放行 80):
+- 后台 `http://<服务器IP>/login` — 超管 `13900000000` / `Admin@12345`(登录后改密)
+- 大屏 `http://<服务器IP>/screen`
+- 媒体 `http://<服务器IP>/changqiushan-media/...`(经 Caddy 反代 MinIO,预签名 SigV4 保持有效)
+
+> 有备案域名后:设 secret `SITE_ADDRESS=<域名>` 重部署 → Caddy 自动签发并强制 HTTPS(再放行 443)。
+> 不想用 Caddy:置环境 `WITH_CADDY=0`,回退直连 `:3000`/`:9000`(需放行这两个口)。
 
 ## 组成
 
 | 文件 | 作用 |
 |---|---|
 | `.github/workflows/deploy-demo-server.yml` | runner checkout → tar 经 SSH 推代码 → 调 remote-setup.sh |
-| `app/deploy/remote-setup.sh` | 服务器端幂等脚本:装 Docker→生成 .env→build→分阶段起栈→migrate/seed→起 app→冒烟 |
+| `app/deploy/remote-setup.sh` | 服务器端幂等脚本:装 Docker→生成 .env→build→分阶段起栈→migrate/seed→起 app+Caddy→冒烟 |
+| `app/docker-compose.demo.yml` | 演示叠加层:加 Caddy(80/443)统一入口,反代 app + MinIO。不影响 dev |
+| `app/Caddyfile` | 路由:`/changqiushan-media/*`→MinIO;`/api/sse/*`→app(禁缓冲);其余→app |
 
 ## 一次性配置:GitHub Secrets
 
@@ -37,8 +42,9 @@ repo → Settings → Secrets and variables → Actions:
 ## ⚠️ 阿里云安全组前置(否则 Actions 连不上)
 
 - `22/tcp`:GitHub runner 出口 IP 不固定 → demo 阶段需对 `0.0.0.0/0` 开放(用密码登录有风险,见下「加固」)。
-- `3000/tcp`:后台 + C 端 BFF。
-- `9000/tcp`:媒体(MinIO),不开则图片加载不出,其余功能正常。
+- `80/tcp`:Caddy 统一入口(后台 / C 端 BFF / 大屏 / 媒体全走它)。**只需开这一个业务口。**
+- `443/tcp`:仅在配了备案域名(`SITE_ADDRESS`)后才需要。
+- (`WITH_CADDY=0` 回退模式才需 `3000` + `9000`。)
 
 ## 幂等与升级
 

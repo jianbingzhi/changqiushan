@@ -18,6 +18,19 @@ SEED_MARKER="/opt/changqiushan/.seeded"
 NETWORK="${PROJECT}_default"
 # 数据库连接(容器内网名);与 docker-compose.yml 内 postgres 默认口令对齐
 DB_URL="postgresql://changqiushan:changqiushan_dev@postgres:5432/changqiushan?schema=public"
+# Caddy 统一入口(默认开):叠加 demo override,对外只走 80;媒体经 /<bucket>/* 反代 MinIO
+WITH_CADDY="${WITH_CADDY:-1}"
+if [ "$WITH_CADDY" = "1" ]; then
+  COMPOSE=(docker compose -p "$PROJECT" -f docker-compose.yml -f docker-compose.demo.yml)
+  S3_PUBLIC="http://${PUBLIC_HOST}"          # 经 Caddy:80,path-style 媒体
+  APP_BASE="http://${PUBLIC_HOST}"
+  SMOKE_URL="http://127.0.0.1/login"
+else
+  COMPOSE=(docker compose -p "$PROJECT")
+  S3_PUBLIC="http://${PUBLIC_HOST}:9000"     # 直连 MinIO 端口
+  APP_BASE="http://${PUBLIC_HOST}:${APP_PORT}"
+  SMOKE_URL="http://127.0.0.1:${APP_PORT}/login"
+fi
 
 cd "$APP_DIR"
 log(){ printf '\n\033[1;36m== %s ==\033[0m\n' "$*"; }
@@ -70,7 +83,7 @@ VISITOR_JWT_SECRET="$(openssl rand -hex 32)"
 MINIO_ROOT_USER="changqiushan"
 MINIO_ROOT_PASSWORD="$(openssl rand -hex 16)"
 S3_ENDPOINT="http://minio:9000"
-S3_PUBLIC_ENDPOINT="http://${PUBLIC_HOST}:9000"
+S3_PUBLIC_ENDPOINT="${S3_PUBLIC}"
 S3_BUCKET="changqiushan-media"
 S3_FORCE_PATH_STYLE="true"
 # —— 红线4 承载力(占位,待 PRD 正式值)——
@@ -86,7 +99,8 @@ AI_MODEL="${AI_MODEL:-}"
 AI_API_KEY="${AI_API_KEY:-}"
 EOF
 else
-  log ".env 已存在 — 保留(不轮换密钥)"
+  log ".env 已存在 — 保留(不轮换密钥);仅校正媒体公网端点以匹配 Caddy 开关"
+  sed -i "s#^S3_PUBLIC_ENDPOINT=.*#S3_PUBLIC_ENDPOINT=\"${S3_PUBLIC}\"#" .env
 fi
 JWT_SECRET="$(grep '^GOTRUE_JWT_SECRET=' .env | cut -d'"' -f2)"
 [ -n "$JWT_SECRET" ] || die ".env 缺 GOTRUE_JWT_SECRET"
@@ -96,7 +110,7 @@ JWT_SECRET="$(grep '^GOTRUE_JWT_SECRET=' .env | cut -d'"' -f2)"
 #    专供 migrate/seed(runner 不含 src,tsx @/ 别名解析不了)。多阶段缓存共享,tools 近乎免费。
 # ---------------------------------------------------------------------------
 log "构建 app 镜像(next build,较慢)"
-docker compose -p "$PROJECT" build app
+"${COMPOSE[@]}" build app
 log "标记 build 阶段为 tools 镜像(供 migrate/seed)"
 docker build --target build -t changqiushan-tools .
 
@@ -104,7 +118,7 @@ docker build --target build -t changqiushan-tools .
 # 6) 起底座(不含 app):postgres / gotrue / minio
 # ---------------------------------------------------------------------------
 log "启动底座 postgres/gotrue/minio"
-docker compose -p "$PROJECT" up -d postgres gotrue minio minio-init
+"${COMPOSE[@]}" up -d postgres gotrue minio minio-init
 
 log "等 Postgres healthy"
 for i in $(seq 1 60); do
@@ -151,25 +165,35 @@ docker run --rm --network "$NETWORK" \
 # ---------------------------------------------------------------------------
 # 9) 起/更新 app + 冒烟
 # ---------------------------------------------------------------------------
-log "启动 app"
-docker compose -p "$PROJECT" up -d app
+if [ "$WITH_CADDY" = "1" ]; then
+  log "启动 app + Caddy 统一入口(:80)"
+  "${COMPOSE[@]}" up -d app caddy
+else
+  log "启动 app"
+  "${COMPOSE[@]}" up -d app
+fi
 
-log "等 app 健康"
+log "等服务健康(冒烟 ${SMOKE_URL})"
 ok=""
 for i in $(seq 1 40); do
-  code="$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${APP_PORT}/login" 2>/dev/null || true)"
+  code="$(curl -s -o /dev/null -w '%{http_code}' "$SMOKE_URL" 2>/dev/null || true)"
   [ "$code" = "200" ] && { ok=1; break; }
   sleep 3
 done
 
-docker compose -p "$PROJECT" ps
+"${COMPOSE[@]}" ps
 if [ -n "$ok" ]; then
   printf '\n\033[1;32m========================================================\n'
   printf '✅ 部署成功\n'
-  printf '   后台:  http://%s:%s/login\n' "$PUBLIC_HOST" "$APP_PORT"
-  printf '   大屏:  http://%s:%s/screen\n' "$PUBLIC_HOST" "$APP_PORT"
+  printf '   后台:  %s/login\n' "$APP_BASE"
+  printf '   大屏:  %s/screen\n' "$APP_BASE"
   printf '   超管:  手机号 13900000000 / 密码 Admin@12345 (登录后请改密)\n'
-  printf '   媒体:  http://%s:9000 (需安全组放行 9000 才能看图)\n' "$PUBLIC_HOST"
+  if [ "$WITH_CADDY" = "1" ]; then
+    printf '   媒体:  %s/changqiushan-media/...(经 Caddy,只需放行 80)\n' "$APP_BASE"
+    printf '   入口:  Caddy 统一 :80(有域名设 SITE_ADDRESS=<域名> 即自动 HTTPS)\n'
+  else
+    printf '   媒体:  %s:9000(需安全组放行 9000)\n' "$PUBLIC_HOST"
+  fi
   printf '========================================================\033[0m\n'
 else
   die "app 未在预期时间内返回 200,查 docker logs changqiushan-app"

@@ -8,7 +8,8 @@
 #   可选:DEMO_PUBLIC_HOST(默认=DEMO_SSH_HOST)、AMAP_KEY、NEXT_PUBLIC_AMAP_KEY、
 #         NEXT_PUBLIC_AMAP_SECURITY、WECHAT_APPID、WECHAT_SECRET、AI_BASE_URL、AI_MODEL、AI_API_KEY
 # ⚠️ 前置:阿里云安全组放行 22(GitHub runner 出口 IP 不固定→需对 0.0.0.0/0 开 22,demo 取舍;
-#         生产应换 SSH key + 限源)。另放行 3000(后台)与 9000(媒体)。
+#         生产应换 SSH key + 限源)。另放行 80(Caddy 统一入口:后台/BFF/大屏/媒体全走它)。
+#         有备案域名后再放行 443(设 SITE_ADDRESS=<域名> → Caddy 自动 HTTPS)。
 # 未配齐 DEMO_SSH_* 的库(如 jianbingzhi)→ guard 自动跳过,不报错。
 
 name: 部署到演示服务器

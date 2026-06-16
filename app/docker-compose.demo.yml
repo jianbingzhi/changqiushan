@@ -1,0 +1,28 @@
+# 演示部署叠加层:在基础 compose 之上加 Caddy 统一入口(80/443),反代 app + MinIO 媒体。
+# 不影响 dev:dev 仍只用 docker-compose.yml;本文件仅由 app/deploy/remote-setup.sh 叠加:
+#   docker compose -f docker-compose.yml -f docker-compose.demo.yml ...
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: changqiushan-caddy
+    restart: unless-stopped
+    depends_on:
+      - app
+      - minio
+    cpus: 0.5
+    mem_limit: 128m
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      # 默认 :80 纯 HTTP(IP 演示)。有备案域名后设 SITE_ADDRESS=<域名> → Caddy 自动签发并强制 HTTPS。
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+      TZ: Asia/Shanghai
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:
