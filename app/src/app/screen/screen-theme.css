@@ -5,7 +5,7 @@
 .screen-root {
   /* —— 背景层 —— */
   --screen-bg-outer: #050d05; /* letterbox 外层黑底 */
-  --screen-bg: #0a1f0a; /* 1920×1080 画布底(深森林墨绿) */
+  --screen-bg: #0a1f0a; /* 固定画布底(深森林墨绿) */
   --screen-card-bg: rgba(45, 90, 39, 0.15); /* 半透明深绿卡片底 */
   --screen-card-bg-strong: rgba(45, 90, 39, 0.28);
   --screen-card-border: rgba(74, 142, 63, 0.4);
