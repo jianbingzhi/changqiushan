@@ -191,14 +191,13 @@ volumes:
   postgres_data:
   minio_data:
 
-# 高德 v4 CDN 节点本地不可达、宿主实际走 IPv6 出网——默认网络开 v6(Docker 27+ 原生 NAT66),
-# 容器与宿主同路径访问 restapi/webapi.amap.com。
-# ⚠️ 硬前提:宿主内核须启用 IPv6(disable_ipv6=0)——否则创建网络即失败、整栈起不来;
-# 迁到无 v6 的主机时删掉本 networks 段即可回退(代价:容器内高德直连可能复发原 bug)。
-# Docker <27 不会创建失败,只是缺默认 NAT66(需手动开 ip6tables)。(b-103 评审 #8)
-networks:
-  default:
-    enable_ipv6: true
-    ipam:
-      config:
-        - subnet: fd0c:7177:1::/64
+# 网络出网策略(b-103 评审 #8 / demo 服务器 156.229.22.155 修正):
+# 历史上为绕「高德 v4 CDN 节点本地不可达」在默认网络开过 IPv6(配 NAT66 走宿主 v6 出网)。
+# 但该方案只在宿主有可用公网 IPv6 时成立;迁到「仅 v4」主机(如本演示机)后,开 v6 反而给容器
+# 一条指向黑洞 ULA 网关的 v6 默认路由——容器 fetch 高德优先选 v6 → 直接 ETIMEDOUT,路况/静态图全 502。
+# 实测本机容器 IPv4 直连 restapi.amap.com 正常,故保持 IPv4-only(不声明 networks 段即默认 v4 网络)。
+# 若迁回有公网 IPv6 + NAT66 的主机,可恢复:
+#   networks:
+#     default:
+#       enable_ipv6: true
+#       ipam: { config: [ { subnet: fd0c:7177:1::/64 } ] }
