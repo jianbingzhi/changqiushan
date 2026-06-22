@@ -7,6 +7,7 @@ import { analyticsRepository } from "@/modules/analytics";
 import { configService } from "@/modules/system";
 import { fetchWeather } from "@/infrastructure/amap";
 import { resolveInstantCapacity, CIRCUIT_BREAK_RATIO } from "@/shared/lib/capacity";
+import { buildDispatch, PARKING_FULL_RATIO } from "@/shared/lib/dispatch";
 import { chinaToday } from "@/shared/lib/time";
 import { screenGatePassed } from "@/shared/auth/screen-gate";
 
@@ -17,10 +18,7 @@ export const dynamic = "force-dynamic";
 const TTL_MS = 15_000;
 const cache = new Map<string, { at: number; data: unknown }>();
 
-// 调度策略触发线:在园承载率 ≥ 此值即提示运营介入(低于 90% 熔断线,提前预警)。
-const DISPATCH_WARN_PCT = 80;
-// 停车场视为「接近满载」的占用率阈值。
-const PARKING_FULL_RATIO = 0.9;
+// 调度阈值常量见 @/shared/lib/dispatch(DISPATCH_WARN_PCT / PARKING_FULL_RATIO),页面与本端点共用。
 
 // occupancy 与 slots 共用同一份「今日时段」取数:派生读内部是 4 个查询,两 metric 各自
 // 缓存 miss 时会翻倍打 DB——共享一层 15s memo,同窗只取一次(b-103 评审附注)。
@@ -141,39 +139,13 @@ const RESOLVERS: Record<string, () => Promise<unknown>> = {
     const occupancy = slots.reduce((s, sl) => s + sl.checkedInCount, 0);
     const pct = capacity > 0 ? Math.round((occupancy / capacity) * 100) : 0;
 
-    const fullLots = lots.filter((l) => l.capacity > 0 && l.occupied / l.capacity >= PARKING_FULL_RATIO);
-    const soldOutSlots = slots.filter((s) => s.capacity > 0 && s.bookedCount >= s.capacity);
-    const alertDevices = devices.filter((d) => d.status === "ALERT" || d.status === "OFFLINE");
-
-    const triggers: string[] = [];
-    const strategies: string[] = [];
-
-    if (pct >= DISPATCH_WARN_PCT) {
-      triggers.push(`在园承载率 ${pct}%`);
-      strategies.push("加强入口分流,临时下调高峰时段放量,密切监控承载率逼近熔断线");
-    }
-    if (fullLots.length > 0) {
-      triggers.push(`${fullLots.map((l) => l.name).join("、")} 接近满载`);
-      strategies.push("全园广播疏导,引导车辆转至余位较多的停车场");
-    }
-    if (soldOutSlots.length > 0) {
-      triggers.push(`${soldOutSlots.length} 个时段名额售罄`);
-      strategies.push("关闭已满时段预约入口,引导游客改约邻近空闲时段");
-    }
-    if (alertDevices.length > 0) {
-      const names = alertDevices.slice(0, 3).map((d) => d.name).join("、");
-      triggers.push(`${alertDevices.length} 台设备告警/离线`);
-      strategies.push(`派运维核查告警设备:${names}${alertDevices.length > 3 ? " 等" : ""}`);
-    }
-
-    const active = strategies.length > 0;
-    return {
-      active,
-      status: active ? "alert" : "calm",
-      situation: active ? `检测到 ${triggers.join(";")}` : "当前运行平稳",
-      strategies,
-      generatedAt: new Date().toISOString(),
-    };
+    const result = buildDispatch({
+      occupancyPct: pct,
+      fullLotNames: lots.filter((l) => l.capacity > 0 && l.occupied / l.capacity >= PARKING_FULL_RATIO).map((l) => l.name),
+      soldOutSlotCount: slots.filter((s) => s.capacity > 0 && s.bookedCount >= s.capacity).length,
+      alertDeviceNames: devices.filter((d) => d.status === "ALERT" || d.status === "OFFLINE").map((d) => d.name),
+    });
+    return { ...result, generatedAt: new Date().toISOString() };
   },
 };
 
