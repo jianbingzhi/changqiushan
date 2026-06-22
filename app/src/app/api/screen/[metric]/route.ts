@@ -3,7 +3,9 @@ import type { NextRequest } from "next/server";
 import { bookingService } from "@/modules/booking";
 import { iotRepository } from "@/modules/iot";
 import { trafficRepository } from "@/modules/traffic";
+import { analyticsRepository } from "@/modules/analytics";
 import { configService } from "@/modules/system";
+import { fetchWeather } from "@/infrastructure/amap";
 import { resolveInstantCapacity, CIRCUIT_BREAK_RATIO } from "@/shared/lib/capacity";
 import { chinaToday } from "@/shared/lib/time";
 import { screenGatePassed } from "@/shared/auth/screen-gate";
@@ -14,6 +16,11 @@ export const dynamic = "force-dynamic";
 
 const TTL_MS = 15_000;
 const cache = new Map<string, { at: number; data: unknown }>();
+
+// 调度策略触发线:在园承载率 ≥ 此值即提示运营介入(低于 90% 熔断线,提前预警)。
+const DISPATCH_WARN_PCT = 80;
+// 停车场视为「接近满载」的占用率阈值。
+const PARKING_FULL_RATIO = 0.9;
 
 // occupancy 与 slots 共用同一份「今日时段」取数:派生读内部是 4 个查询,两 metric 各自
 // 缓存 miss 时会翻倍打 DB——共享一层 15s memo,同窗只取一次(b-103 评审附注)。
@@ -90,6 +97,83 @@ const RESOLVERS: Record<string, () => Promise<unknown>> = {
     return devices
       .filter((d) => d.status === "ALERT" || d.status === "OFFLINE")
       .map((d) => ({ name: d.name, location: d.location, status: d.status, lastSeen: d.lastSeen }));
+  },
+
+  // 顶栏实时天气(高德 weatherInfo;诚实三态,不含 AQI)。
+  weather: async () => fetchWeather(),
+
+  // 今日游客画像雷达(5 轴,全部来自现有聚合查询;0~100 整数百分比)。
+  // 男性/青年来自身份证派生画像,自驾/午前来自出行偏好,本市占比按城市去重计数算。
+  profileRadar: async () => {
+    const [profile, travel, cities] = await Promise.all([
+      analyticsRepository.getProfileOverview().catch(() => []),
+      analyticsRepository.getTravelPreference().catch(() => []),
+      analyticsRepository.getVisitorRegionByCity().catch(() => []),
+    ]);
+    const pct = (rows: { dimension: string; percentage: number }[], dim: string) => {
+      const row = rows.find((r) => r.dimension === dim);
+      return row ? Math.round(row.percentage) : 0;
+    };
+    const totalCity = cities.reduce((s, c) => s + Number(c.visitor_count), 0);
+    const chengdu = cities.find((c) => c.code === "5101" || c.name.includes("成都"));
+    const localPct =
+      totalCity > 0 && chengdu ? Math.round((Number(chengdu.visitor_count) / totalCity) * 100) : 0;
+    return {
+      axes: [
+        { key: "male",      label: "男性占比",     value: pct(profile, "性别·男") },
+        { key: "youth",     label: "青年(18-30)", value: pct(profile, "年龄·18-30岁") },
+        { key: "local",     label: "本市(成都)",   value: localPct },
+        { key: "selfDrive", label: "自驾出行",     value: pct(travel, "出行·自驾") },
+        { key: "morning",   label: "午前入园",     value: pct(travel, "时段·上午(12时前)") },
+      ],
+    };
+  },
+
+  // 智能调度策略(规则模板,非 AI):按真实态势触发,平时空态、特殊时给可执行编号策略。
+  // 纯展示,无执行动作(actuator)——供人工按策略执行。
+  dispatch: async () => {
+    const [slots, capacity, lots, devices] = await Promise.all([
+      todaySlots(),
+      configService.getInstantCapacity().catch(() => resolveInstantCapacity()),
+      trafficRepository.listParkingLots().catch(() => []),
+      iotRepository.listDevices().catch(() => []),
+    ]);
+    const occupancy = slots.reduce((s, sl) => s + sl.checkedInCount, 0);
+    const pct = capacity > 0 ? Math.round((occupancy / capacity) * 100) : 0;
+
+    const fullLots = lots.filter((l) => l.capacity > 0 && l.occupied / l.capacity >= PARKING_FULL_RATIO);
+    const soldOutSlots = slots.filter((s) => s.capacity > 0 && s.bookedCount >= s.capacity);
+    const alertDevices = devices.filter((d) => d.status === "ALERT" || d.status === "OFFLINE");
+
+    const triggers: string[] = [];
+    const strategies: string[] = [];
+
+    if (pct >= DISPATCH_WARN_PCT) {
+      triggers.push(`在园承载率 ${pct}%`);
+      strategies.push("加强入口分流,临时下调高峰时段放量,密切监控承载率逼近熔断线");
+    }
+    if (fullLots.length > 0) {
+      triggers.push(`${fullLots.map((l) => l.name).join("、")} 接近满载`);
+      strategies.push("全园广播疏导,引导车辆转至余位较多的停车场");
+    }
+    if (soldOutSlots.length > 0) {
+      triggers.push(`${soldOutSlots.length} 个时段名额售罄`);
+      strategies.push("关闭已满时段预约入口,引导游客改约邻近空闲时段");
+    }
+    if (alertDevices.length > 0) {
+      const names = alertDevices.slice(0, 3).map((d) => d.name).join("、");
+      triggers.push(`${alertDevices.length} 台设备告警/离线`);
+      strategies.push(`派运维核查告警设备:${names}${alertDevices.length > 3 ? " 等" : ""}`);
+    }
+
+    const active = strategies.length > 0;
+    return {
+      active,
+      status: active ? "alert" : "calm",
+      situation: active ? `检测到 ${triggers.join(";")}` : "当前运行平稳",
+      strategies,
+      generatedAt: new Date().toISOString(),
+    };
   },
 };
 
