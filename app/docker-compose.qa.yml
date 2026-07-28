@@ -1,0 +1,70 @@
+# 测试专用端口 override（验收环境用，不改主 compose）
+#
+# 用法：docker compose -f docker-compose.yml -f docker-compose.qa.yml up -d
+#
+# 为什么需要：验收机上 3000 / 5433 / 9000 / 9001 / 9999 已被同机其它项目占用，
+# 直接 up 会 bind 失败。本文件只重映射【宿主侧】端口，容器内网端口一律不动。
+#
+# ⚠️ 只改宿主端口，不动 GOTRUE_JWT_ISSUER / API_EXTERNAL_URL —— 那两个是写进 JWT 的
+# `iss` 声明字符串（http://localhost:9999），与宿主端口无关；改了会让应用侧 issuer
+# 校验拒掉所有真实登录 token。
+services:
+  app:
+    ports: !override
+      - "3200:3000"
+
+  postgres:
+    ports: !override
+      - "127.0.0.1:5443:5432"
+
+  gotrue:
+    ports: !override
+      - "127.0.0.1:9998:9999"
+
+  minio:
+    ports: !override
+      - "9010:9000"
+      - "127.0.0.1:9011:9001"
+
+  # 一次性数据初始化容器（迁移 / seed / 建超管）。
+  # 复用 Dockerfile 的 build 阶段——那一层有完整源码 + devDependencies（prisma CLI、tsx、dotenv），
+  # 运行镜像里没有 scripts/ 也没有这些工具，所以初始化不能在 app 容器里做。
+  # 靠 profiles 关着，`up -d` 不会拉起它；要用时显式：
+  #   docker compose -f docker-compose.yml -f docker-compose.qa.yml --profile seed run --rm seeder <命令>
+  seeder:
+    profiles: ["seed"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: build
+    container_name: changqiushan-seeder
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      TZ: Asia/Shanghai
+      DATABASE_URL: postgresql://changqiushan:changqiushan_dev@postgres:5432/changqiushan?schema=public
+      GOTRUE_URL: http://gotrue:9999
+      GOTRUE_JWT_SECRET: ${GOTRUE_JWT_SECRET}
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["echo 'seeder ready'"]
+    restart: "no"
+
+# ⚠️ 本验收机专属：容器网络需要 IPv6，否则高德不可达。
+#
+# 实测本机（Linode，有公网 IPv6 2600:3c01::/64）：
+#   curl -4 restapi.amap.com → 超时失败
+#   curl -6 restapi.amap.com → 200，0.7s
+# 即高德在本机【只有 v6 可达】。而 main 的 compose 已按演示服务器（无公网 v6）改成
+# IPv4-only —— 那对演示机是对的，但在本机会让容器连不上高德（路况/staticmap 全挂），
+# 导致 N07 之类依赖高德的验收项无法进行。
+#
+# 结论：该配置【与宿主出网能力强绑定，不存在一个静态值对所有主机都对】。
+# 这里只为把本机验收环境跑通而重新开启 v6；此文件是测试专用 override，不影响 main 的部署语义。
+# 该「怎么设都有一边坏」的结构性问题已单独立 issue，由开发方决定长期方案。
+networks:
+  default:
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: fd0c:7177:2::/64

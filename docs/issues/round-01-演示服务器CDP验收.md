@@ -80,6 +80,25 @@ const INITIAL: FormState = { date: chinaToday(), ... };   // ← 模块作用域
 
 **证据**：`docs/issues/assets/round-01-N01-onsite-ssr陈旧日期.png`（禁 JS + 禁缓存下的服务端原样输出）
 
+**r3 复验（测试，2026 年 7 月 28 日）：服务端部分已通过，深色/水合部分待真机**
+
+本机 docker 全栈（`main` @ `6d27afa` 构建的镜像）+ GoTrue 真登录态，直接取服务端 HTML：
+
+| 检查 | 结果 |
+|---|---|
+| SSR 里的预约日期 | **2026 年 7 月 28 日** = 当日 ✔️（原为陈旧 6 天的 7 月 22 日） |
+| 时段下拉首帧文案 | **「加载时段中」** ✔️；「当日暂无可预约时段」**已不出现** |
+| 该路由是否仍被静态预渲染 | `prerender-manifest.json` 中**无 `onsite`**；响应头 `Cache-Control: private, no-cache, no-store, must-revalidate` ✔️ |
+
+**产生 6 天陈旧的那套「静态化 + 模块作用域求值」冻结机制已被结构性移除**（源码改为 `useState(createOnsiteForm)` 渲染时求值，另有 `form-state.test.ts` 守卫）。
+
+⚠️ **本条尚不能定 `pass`**，两点未验：
+
+1. **无 `Minified React error #418`** —— 需读浏览器 console。
+2. **该页深色主题跟随**（原为全站唯一丢 `dark` 的页）—— 需真机切主题观察 `<html>` class。
+
+⚠️ 另注：镜像构建于今日，**「日期显示为今天」本身不足以证明冻结解除**（被冻结的值恰好也是今天）。上表第三行「路由不再静态预渲染」才是本轮的实质证据。**真正的终验需跨天复查一次**（部署后隔日再看首屏日期是否跟着走）。
+
 ---
 
 ### N02 🟡 中 · 富文本编辑器工具栏深色主题下是整条白条（B36 线上复现）
@@ -102,6 +121,23 @@ DIV  class="flex flex-wrap items-center gap-0.5 border-b border-border bg-[#FAFA
 **期望**：工具栏走 `bg-muted` / `bg-card` 语义 token，激活态走 `bg-primary/10`。
 
 **证据**：`docs/issues/assets/round-01-N02-富文本工具栏深色白条.png`
+
+**r3 复验（测试，2026 年 7 月 28 日）：结构已证，视觉待真机**
+
+从运行中容器取真实下发的样式表，逐个数原硬编码浅色值的出现次数：
+
+| 值 | 原用途 | 复验结果 |
+|---|---|---|
+| `#FAFAFA` | 工具栏底 | **0 次** ✔️ |
+| `#E8F0E6` | 激活态 | **0 次** ✔️ |
+| `#FEF2F2` | 错误条 | **0 次** ✔️ |
+
+三处全部从产物中消失（原 issue 只锁定了工具栏一处，另两处修复方一并收口）。
+
+**待真机**：深色下工具栏实际观感是否已融入画布，仍需 CDP 目视，故暂不定 `pass`。
+
+> 顺带核查：CSS 中仍存在 `.text-[#374151]` 工具类，但全仓 grep 显示**只有 `theme-tokens.test.ts` 的守卫注释**引用该字面量（Tailwind 扫到测试文件即生成），**无任何组件在用**，不构成残留缺陷。
+> 另有 7 处同族硬编码（`system/page.tsx:82` 等）修复方已如实登记进 `docs/待办清单.md` 并标为超本轮范围的 🔵 低余项 —— 属公开留痕，非隐藏回归。
 
 ---
 
@@ -135,7 +171,7 @@ DIV  class="flex flex-wrap items-center gap-0.5 border-b border-border bg-[#FAFA
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | ✅ fix（`app/src/app/globals.css`：`:root{color-scheme:light}` / `.dark{color-scheme:dark}`）|
+| 状态 | ✔️ **pass**（r3 复验，2026 年 7 月 28 日，实测真实下发的 CSS 产物）|
 | 复现 | 稳定 |
 
 **现象**：深色主题下 `document.documentElement` 与 `body` 的 computed `color-scheme` 均为 `normal`（未声明 `dark`），原生控件保持浅色渲染。
@@ -143,6 +179,17 @@ DIV  class="flex flex-wrap items-center gap-0.5 border-b border-border bg-[#FAFA
 **实测**：全站扫描原生 `select` / `input[type=date|checkbox|time]`，**只有 `/booking/onsite` 的时段下拉是原生 `<select>`**（computed `background-color: rgb(255,255,255)`），其余页面都用了 shadcn 组件，因此当前可见影响面很小。**但与 N01 联动** —— onsite 目前根本进不了深色主题，等 N01 修好后这个白控件才会暴露出来。
 
 **期望**：深色主题下声明 `color-scheme: dark`（`html.dark { color-scheme: dark }`）。
+
+**r3 复验（测试，2026 年 7 月 28 日）：通过 ✔️**
+
+不看源码、直接取运行中容器**真实下发**的样式表（`/_next/static/chunks/0rufqegiu2-w0.css`，56,075 字节），两条声明都在：
+
+```
+:root{ … color-scheme:light; --bg:#f9fafb; … }
+.dark { … color-scheme:dark;  --bg:#0f1713; … }
+```
+
+本条的验收契约就是「深色下声明 `color-scheme: dark`」，已在真实构建产物中确证，故定 `pass`。原生 `<select>` 随之变深是浏览器对该声明的标准行为，届时与 N01 的真机复验一并顺带目视确认。
 
 ---
 
@@ -195,12 +242,24 @@ DIV  class="flex flex-wrap items-center gap-0.5 border-b border-border bg-[#FAFA
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | ✅ fix（`app/src/infrastructure/amap/index.ts` `resolveFetchedAt`）|
+| 状态 | ✔️ **pass**（r3 复验，2026 年 7 月 28 日，docker 真实环境 + 高德真实数据）|
 | 页面 | `/traffic/road` |
 
 **现象**：页面「最后更新」与右侧拥堵摘要每条的时间戳，均随请求时刻走（连续两次访问分别显示 10:41 / 10:44），而数据本身有 60s 缓存，实际可旧至 60 秒。
 
 **期望**：展示语义改为「约 1 分钟内」，或透出真实取数时刻。
+
+**r3 复验（测试，2026 年 7 月 28 日）：通过 ✔️**
+
+本机 docker 全栈 + 高德**真实数据**（`infocode=10000`，京昆高速畅通 2 条），同一登录态连续三次取页面：
+
+| 采样时刻（北京） | 页面「最后更新」 | 判读 |
+|---|---|---|
+| 17:17:30 | 17:16 | **不等于当前时刻** —— 是真实取数时间 |
+| 17:18:05（+35s，仍在 60s 缓存窗口内） | **17:16，未变** | 旧 bug 是每次都跟当前时刻跳，已消除 |
+| 17:18:45（超过 60s 缓存） | 17:18，已刷新 | 缓存过期后如实更新，未被钉死 |
+
+三点同时成立才算通过：①不跟请求时刻走 ②缓存窗口内稳定 ③缓存过期后会更新。本条纯服务端渲染文本，**不依赖浏览器**，故 r3 即可定 `pass`。
 
 ---
 
@@ -236,11 +295,53 @@ DIV  class="flex flex-wrap items-center gap-0.5 border-b border-border bg-[#FAFA
 
 ---
 
+### N09 🟡 中 · compose 的 IPv6 开关与宿主出网能力强绑定，**怎么设都有一边坏**（r3 复验期间实测发现）
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | 🆕（本轮复验搭环境时撞出，非页面缺陷，属工程/部署） |
+| 类型 | 工程/部署 |
+| 发现方式 | 在验收机上按 `main` 起 docker 全栈，路况页报「高德路况服务暂不可用」，逐层排查得出 |
+
+**现象**：`app/docker-compose.yml` 的默认网络是否开 IPv6，**没有一个静态值对所有宿主都正确**——两种设法各会在一类主机上打断高德：
+
+| compose 设置 | 无公网 IPv6 的主机（演示服务器 `156.229.22.155`） | 有公网 IPv6 的主机（本验收机，Linode） |
+|---|---|---|
+| `enable_ipv6: true` + ULA 子网 | ❌ 容器拿到指向黑洞的 v6 默认路由 → 高德 `ETIMEDOUT` → 路况/staticmap 全 502（即 `434b73f` 修的 bug） | ✅ 经 NAT66 走宿主 v6 出网，正常 |
+| **IPv4-only**（不声明 `networks` 段，= `main` 现状） | ✅ 正常（本轮已验证） | ❌ **容器连不上高德**（见下方实测） |
+
+**本机实测数据**（验收机，2026 年 7 月 28 日）：
+
+```
+宿主 curl -4 restapi.amap.com  → 超时失败
+宿主 curl -6 restapi.amap.com  → 200，0.70s
+宿主公网 v6 地址               → 2600:3c01::2000:28ff:fee2:9270/64
+容器（IPv4-only）DNS 解析      → 106.11.43.113(v4) + 2408:4001:f00::173(v6)
+容器（IPv4-only）fetch 高德    → FAIL，10.6s（走 v4 打不通）
+容器（IPv4-only）fetch 百度    → 200（证明出网本身是通的，仅高德 v4 不可达）
+容器（改回开 v6）fetch 高德    → OK，1.2s，infocode=10000
+```
+
+即**高德在本机只有 v6 可达**，这正是当初写 `enable_ipv6: true` 想解决的原始问题；而演示机上恰好相反。`main` 上原注释其实已经预告过这个代价（「迁到无 v6 的主机时删掉本 networks 段即可回退（代价：容器内高德直连可能复发原 bug）」），本轮把它变成了实测事实。
+
+**影响**：`main` 现在这份 compose 只对「无公网 IPv6」的主机成立。任何在有公网 v6 的机器上按 `main` 起栈的人（本验收机就是一例），会看到路况页与 staticmap 直接不可用，且报错文案指向「请检查 Key 或网络」——**会把人误导到 key 上去查**，与 `434b73f` 修复前的误导方向如出一辙，只是换了一类主机。
+
+**期望**（方案由开发方定，这里只提约束）：让该项**可按宿主配置，而不是在仓库里写死一个值**。可选路径举例——
+
+1. 把 v6 开关做成 env 驱动的可选 override 文件（如 `docker-compose.ipv6.yml`），部署文档写明「宿主有公网 v6 就叠加这个」；
+2. 或让应用侧对高德请求显式指定地址族 / 加超时快速回落，使网络层怎么配都能连通；
+3. 或统一经反代出网，把出网路径收敛到一处。
+
+**当前规避**：本验收环境用 `app/docker-compose.qa.yml`（测试专用 override）重新开启 v6 把栈跑通，文件内已写明缘由。**该 override 只作测试环境用，不改变 `main` 的部署语义。**
+
+---
+
 ## 二、需人工验证（本验收方不下结论）
 
 | 项 | 原因 |
 |---|---|
 | **行政图 tooltip 深色样式**（待办清单 §二 theme-QA 复检项 ②） | CDP 在 echarts canvas 上派发 `mouseMoved` 扫了 6 个坐标点，均未触发 tooltip DOM。属 CDP 鼠标事件的已知易错场景（canvas 内部命中判定 / 时序），**不足以判定通过或失败**，请人工在真机浏览器上悬停确认。 |
+| **N01 / N02 / N03 / N05 的真机目视确认**（r3 阻塞） | r3 复验期间 **CDP 真机浏览器不可达**：WireGuard 本端 `wg0`（10.7.0.1）正常，但对端 **10.7.0.2 ping 100% 丢包、`:9222` 无响应**，即 Windows 侧 Chrome 未在线。这 4 条的验收契约都是「深色下看颜色 / 读 console」，**按纪律不得用无头浏览器顶替，也不凭源码推定**，故一律停在 `fix`。**请人工把真机 Chrome（带 `--remote-debugging-port=9222`）拉起来，或指定其它真机方式**，我随即复验。 |
 
 ---
 
@@ -273,5 +374,26 @@ DIV  class="flex flex-wrap items-center gap-0.5 border-b border-border bg-[#FAFA
 | r4 | 2026-07-28 | 修复 | 据 r3 复审修改 | 4 项全改（含 ② 直接消除，未按"记为残留"处理） | ① `_content-form.tsx` 同族硬编码清零：`placeholder:text-[#C0C4CC]`→`placeholder:text-text-muted`、`text-[#374151]`→`text-foreground`；② 不只记残留——新增 `useMounted()`，后台图表（`Heatmap724` auto 变体 / 行政图）**挂载前只占位、不初始化 echarts**，挂载后按真实主题一次画成，浅色首帧从源头消除（大屏 `variant="dark"` 路径不受影响）；③ 删无消费者的 `splitLine`；④ 更正 `mapBorder` 注释（浅色为白缝，非 `--border`）。另按建议把 `(admin)` 下 7 处超范围同族硬编码登记进 `docs/待办清单.md`。新增 2 条守卫单测（`_content-form` 硬编码清零 / 后台图表挂载前不初始化），`pnpm test` 88 passed、lint / tsc / build 全过 |
 | r3 | 2026-07-28 | 评审 | code review | **issues（需小改后复审）**——修复方 `main-fixer_A` @ `0ecc045`（6 条修复 + 15 条单测）。核心修法全部核实成立：N01 路由为 ƒ Dynamic（`(admin)/layout.tsx:12` 用 `cookies()`）+ `createOnsiteForm()` 渲染时求值正确；N02/N04/N07 正确;N03/N05 `EChart` 带 `notMerge`，option 驱动全量重绘成立；N08「main 上 weather 0 命中」独立复核属实；`pnpm test` 85 passed 复跑属实；文档回填合规（只标 fix 未越权 pass）。**发现 2 中 2 低**：① 🟡 `content/_content-form.tsx:132,142` 残留 `placeholder:text-[#C0C4CC]`、`:165` `text-[#374151]`——本提交已改此文件却漏了同族硬编码，`text-[#374151]` 深色下深字压深底，就落在 N02 同一张编辑页；② 🟡 `use-dark-mode.ts` `getServerSnapshot` 恒 false → 深色用户硬刷新时后台图表首帧按浅色 palette 画一帧再翻深（passive effect 后才纠正），属 N03/N05 同类的一帧残留，需在 issue 文档记为已知残留并由测试真机确认是否可感知；③ 🔵 `admin-chart-palette.ts` `splitLine` 字段无任何消费者（应删或接线）；④ 🔵 `mapBorder` 注释称 `= --border` 但 LIGHT 值实为 `#FFFFFF`（沿旧设计），注释失实。另:`(admin)` 下 `system/page.tsx:82`、`riskcontrol/blacklist/_action-buttons.tsx:32`、`content/activities/*` 等 7 处同族硬编码 hex 超出本轮 issue 范围,建议登记待办不必本轮修 | 深审:code-reviewer 独立过一遍 + 评审逐项核 diff/token/EChart/时区/文档 |
 | r2b | 2026-07-28 | 修复 | 逐条修复 | 6 条 `fix`，N08 阻塞挂起，N06 归人工 | 分支 `main-fixer_A`。N01 模块作用域日期改渲染时求值；N02 编辑器三处硬编码改 token；N03/N05 新建 `admin-chart-palette` 收口后台图表双主题取色；N04 补 `color-scheme`；N07 取数时刻改读上游响应头 `Date`。新增 15 条单测（`form-state.test.ts` / `fetched-at.test.ts` / `theme-tokens.test.ts`），`pnpm test` 85 passed、`lint` / `tsc --noEmit` / `build` 全过 |
+| r3 | 2026-07-28 | 测试 | 复验（`main` @ `6d27afa`） | **N04 / N07 → `pass`**；N01 服务端部分通过；N02 结构通过；**N01/N02/N03/N05 因 CDP 真机不可达停在 `fix`**；**新立 N09** | 环境见下方「r3 复验环境」 |
 | r2 | 2026-07-28 | 测试 | 派工 | N01–N05 / N07 / N08 共 7 条经人工批准，一次性交**修复方**（N06 除外，单独交人工定分支策略） | mesh note `6dc7e86f` |
 | r1 | 2026-07-28 | 测试 | 线上 CDP 验收 | 8 条 issue + 1 条待人工 | 演示服务器 `156.229.22.155`（`deploy-demo` @ `9befd9c`） |
+
+---
+
+## 五、r3 复验环境（2026 年 7 月 28 日，测试方自建）
+
+⚠️ 本轮 **r1 验收对象是演示服务器上的 `deploy-demo` 产物**，而修复合并进的是 `main`。演示机上跑的代码**不含本批修复**，在那里复验只会看到旧行为。故 r3 另起一套 `main` 的真实 docker 环境：
+
+| 项 | 内容 |
+|---|---|
+| 代码 | `main` @ `6d27afa`（修复方 squash 合并点） |
+| 方式 | `docker compose -f docker-compose.yml -f docker-compose.qa.yml up -d`，**镜像本地重建**（`globals.css` 与多个 client 组件改动必须重建才生效，热更覆盖不到） |
+| 容器 | `changqiushan-app` / `postgres:18` / `gotrue` / `minio`，app healthy |
+| 数据 | `prisma migrate deploy` → `prisma/seed.ts`（35 个时段 / 1911 条预约 / 3 个物化视图）→ `scripts/seed-admin.ts`（超管 `13900000000`） |
+| 登录 | 经 GoTrue 密码授权取真 token，以 `sb-access-token` cookie 访问，受保护路由 200、无 cookie 307 |
+| 高德 | 容器内直连 `restapi.amap.com` 返回 `infocode=10000`，路况为**真实数据** |
+| 端口 | 验收机 3000/5433/9000/9001/9999 均被同机其它项目占用，故经 `docker-compose.qa.yml` 重映射为 **3200 / 5443 / 9010 / 9011 / 9998**（`ports: !override`，仅改宿主侧，不动写进 JWT 的 `iss`） |
+
+**测试环境配置文件**：`app/docker-compose.qa.yml`（测试专用 override，随本轮提交）。内含三件事：① 端口重映射；② 一次性 `seeder` 服务（复用 Dockerfile 的 `build` 阶段跑迁移/seed —— 运行镜像里没有 `scripts/` 也没有 prisma CLI 与 tsx，初始化做不了）；③ 为本机重新开启容器 IPv6（见 N09）。
+
+**未能完成的部分**：CDP 真机浏览器不可达（10.7.0.2 无响应），N01 的水合/深色副作用与 N02/N03/N05 的深色目视全部挂起，等真机恢复后继续。
