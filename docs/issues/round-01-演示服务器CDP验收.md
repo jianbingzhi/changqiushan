@@ -159,7 +159,7 @@ DIV  class="flex flex-wrap items-center gap-0.5 border-b border-border bg-[#FAFA
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | 🆕 |
+| 状态 | 🛠️ **部分解决** —— compose IPv4-only 修复经人工指示已 cherry-pick 进 `main`（`6e67f18`，源自 `434b73f`）；**其余 8 个提交仍只在 `deploy-demo`，分支策略待人工裁决** |
 | 类型 | 工程/集成（非页面缺陷） |
 
 **现象**：`git log main..origin/deploy-demo` 有 9 个提交，`origin/deploy-demo..main` **为空** —— 即 `main` 完全落后，缺失以下全部内容：
@@ -176,6 +176,14 @@ DIV  class="flex flex-wrap items-center gap-0.5 border-b border-border bg-[#FAFA
 **附带**：`PLAN.md` / `docs/待办清单.md` 均**未登记 B104 超宽融合指挥总屏**，`docs/待办清单.md` §五 仍写「大屏 C1–C7」共 7 块。
 
 **期望**：由人工裁决 —— 是把 `deploy-demo` 合回 `main`，还是明确 `deploy-demo` 为长期部署分支并在 `AGENTS.md` / `PLAN.md` 写明分支策略。**这条建议交人工定方向，不宜由修复方自行合并。**
+
+**处置进展（2026 年 7 月 28 日）**：
+
+- ✅ **`434b73f` compose IPv4-only 已按人工指示 cherry-pick 进 `main`**（`6e67f18`，`cherry-pick -x` 保留来源溯源）。原 `networks:` 段整段移除，回到 Docker 默认 IPv4-only；原作者「迁回有公网 IPv6 + NAT66 主机时如何恢复」的注释一并带入。
+  - 验证 ①：`docker compose config` 解析通过，渲染结果 `networks: default: name: app_default`，**无 `enable_ipv6`、无 `ipam`**。
+  - 验证 ②（运行时）：以该 compose 建栈（临时项目 `cqsnettest`，仅 create 不启动，验完已连网络一并清除、无残留），`docker network inspect` → **`EnableIPv6=false`，`IPAM=172.27.0.0/16`**（纯 v4）。
+  - 佐证 ③：演示服务器本就跑此修复版，本轮验收实测高德路况为真实数据、`staticmap` 稳定 200。
+- ⏳ **仍未解决**：其余 8 个提交（B104 超宽总屏、大屏三 metric、Caddy 入口、部署 CI、b-104 计划文档）仍只在 `deploy-demo`；`PLAN.md` / `docs/待办清单.md` 仍未登记 B104（§五 仍写「大屏 C1–C7」共 7 块）。**分支策略仍待人工裁决。**
 
 ---
 
