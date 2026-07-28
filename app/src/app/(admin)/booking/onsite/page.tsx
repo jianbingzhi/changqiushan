@@ -7,32 +7,9 @@ import { Button } from "@/lib/ui/button";
 import { Input } from "@/lib/ui/input";
 import { DatePicker } from "@/lib/ui/date-picker";
 import { cn } from "@/lib/ui/utils";
-import { chinaToday, formatCnDate } from "@/shared/lib/time";
+import { formatCnDate } from "@/shared/lib/time";
 import { getOnsiteSlots, submitOnsiteBooking, type OnsiteSlotOption } from "./actions";
-
-interface FormState {
-  date: string;
-  slotId: string;
-  slotLabel: string;
-  visitorName: string;
-  phone: string;
-  idCard: string;
-  hasVehicle: boolean | null;
-  plate: string;
-  noVehicleDeclared: boolean;
-}
-
-const INITIAL: FormState = {
-  date: chinaToday(),
-  slotId: "",
-  slotLabel: "",
-  visitorName: "",
-  phone: "",
-  idCard: "",
-  hasVehicle: null,
-  plate: "",
-  noVehicleDeclared: false,
-};
+import { createOnsiteForm, type FormState } from "./form-state";
 
 const STEPS = ["选择时段", "游客信息", "车辆信息", "确认提交"];
 
@@ -94,11 +71,12 @@ function validate(step: number, form: FormState): Partial<Record<string, string>
 
 export default function OnsitePage() {
   const [step, setStep] = useState(0);
-  const [form, setForm] = useState<FormState>(INITIAL);
+  const [form, setForm] = useState<FormState>(createOnsiteForm);
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
   const [submitted, setSubmitted] = useState(false);
   const [slots, setSlots] = useState<OnsiteSlotOption[]>([]);
-  const [loadingSlots, setLoadingSlots] = useState(false);
+  // 首帧(SSR/水合)时段还没拉,初始即"加载中",避免首屏谎称「当日暂无可预约时段」(round-01 N01)
+  const [loadingSlots, setLoadingSlots] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -106,7 +84,7 @@ export default function OnsitePage() {
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      if (!form.date) { setSlots([]); return; }
+      if (!form.date) { setSlots([]); setLoadingSlots(false); return; }
       setLoadingSlots(true);
       try {
         const list = await getOnsiteSlots(form.date);
@@ -157,13 +135,13 @@ export default function OnsitePage() {
     return (
       <div className="max-w-xl">
         <PageHeader title="现场补录面板" description="现场快速录入预约信息" />
-        <div className="rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] p-8 text-center space-y-4">
+        <div className="rounded-xl border border-success/30 bg-success/10 p-8 text-center space-y-4">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary">
             <Check className="h-6 w-6 text-white" />
           </div>
           <p className="text-foreground font-semibold text-lg">预约单已提交</p>
           <p className="text-[13px] text-muted-foreground">游客 {form.visitorName} 的预约信息已成功录入系统</p>
-          <Button onClick={() => { setForm(INITIAL); setStep(0); setSubmitted(false); setSubmitError(null); }}>
+          <Button onClick={() => { setForm(createOnsiteForm()); setStep(0); setSubmitted(false); setSubmitError(null); }}>
             继续录入
           </Button>
         </div>
@@ -252,7 +230,7 @@ export default function OnsitePage() {
                   className={cn(
                     "flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors",
                     form.hasVehicle === v
-                      ? "border-primary bg-[#F0FDF4] text-primary"
+                      ? "border-primary bg-primary/10 text-primary"
                       : "border-border text-muted-foreground hover:border-primary/40",
                   )}
                 >
@@ -311,7 +289,7 @@ export default function OnsitePage() {
         )}
 
         {submitError && step === STEPS.length - 1 && (
-          <p className="rounded-lg border border-[#FECACA] bg-[#FEF2F2] px-3 py-2 text-[13px] text-danger">
+          <p className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-[13px] text-danger">
             {submitError}
           </p>
         )}

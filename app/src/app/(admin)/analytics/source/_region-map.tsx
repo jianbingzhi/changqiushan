@@ -4,6 +4,8 @@ import * as React from "react";
 import type { EChartsOption } from "echarts";
 import { echarts } from "@/lib/ui/screen/echarts-setup";
 import { EChart } from "@/lib/ui/screen/charts/EChart";
+import { useDarkMode, useMounted } from "@/lib/ui/use-dark-mode";
+import { adminChartPalette } from "@/lib/ui/charts/admin-chart-palette";
 import { EmptyState } from "@/lib/ui/empty-state";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/lib/ui/table";
 import chinaGeo from "@/lib/ui/geo/china-provinces.json";
@@ -39,9 +41,19 @@ export function RegionMap({ provinceData }: { provinceData: RegionDatum[] }) {
   const cur = stack[stack.length - 1];
   const maxVal = Math.max(1, ...cur.data.map((d) => d.visitorCount));
 
+  // round-01 N05:地块/描边/色阶/浮层原先写死浅色,深色主题下是一大块亮面。
+  // 后台图表走 echarts 默认主题,配色只能由 option 给 —— 主题一变 option 变,setOption 即重绘。
+  const dark = useDarkMode();
+  const pal = adminChartPalette(dark);
+  // 挂载前不初始化 echarts,免得深色用户先看到一帧浅色地图(见 useMounted)
+  const mounted = useMounted();
+
   const option: EChartsOption = {
     tooltip: {
       trigger: "item",
+      backgroundColor: pal.tooltipBg,
+      borderColor: pal.tooltipBorder,
+      textStyle: { color: pal.tooltipText },
       formatter: (p) => {
         const d = p as { name?: string; value?: number };
         return `${d.name ?? ""}<br/>到访游客 ${Number.isFinite(d.value) ? d.value : 0} 人`;
@@ -54,8 +66,8 @@ export function RegionMap({ provinceData }: { provinceData: RegionDatum[] }) {
       bottom: 16,
       calculable: true,
       text: ["多", "少"],
-      textStyle: { color: "#6B7280" },
-      inRange: { color: ["#EAF6EC", "#A5D6A7", "#66BB6A", "#388E3C", "#1B5E20"] },
+      textStyle: { color: pal.mutedText },
+      inRange: { color: pal.mapRange },
     },
     series: [
       {
@@ -63,8 +75,8 @@ export function RegionMap({ provinceData }: { provinceData: RegionDatum[] }) {
         map: cur.mapName,
         roam: false,
         label: { show: false },
-        emphasis: { label: { show: true }, itemStyle: { areaColor: "#FFD54F" } },
-        itemStyle: { borderColor: "#FFFFFF", borderWidth: 0.5, areaColor: "#F3F4F6" },
+        emphasis: { label: { show: true }, itemStyle: { areaColor: pal.mapEmphasis } },
+        itemStyle: { borderColor: pal.mapBorder, borderWidth: 0.5, areaColor: pal.mapArea },
         data: cur.data.map((d) => ({ name: d.name, value: d.visitorCount })),
       },
     ],
@@ -143,7 +155,9 @@ export function RegionMap({ provinceData }: { provinceData: RegionDatum[] }) {
               加载中…
             </div>
           )}
-          <EChart option={option} theme={null} height={360} onEvents={onEvents} />
+          {mounted
+            ? <EChart option={option} theme={null} height={360} onEvents={onEvents} />
+            : <div style={{ height: 360, width: "100%" }} aria-hidden />}
         </div>
 
         {/* 等价数据表 */}

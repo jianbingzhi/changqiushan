@@ -1,22 +1,12 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
 import { ChevronDown, HelpCircle, Bell, Maximize2, Sun, Moon } from "lucide-react";
 
-// 主题态的唯一真相是 <html> 的 .dark 类(防 FOUC 脚本在水合前已置)。用 useSyncExternalStore
-// 直接订阅该类的变化:服务端快照恒为浅色(false),客户端读真实类,天然无水合 mismatch。
-function subscribeHtmlClass(onChange: () => void) {
-  const observer = new MutationObserver(onChange);
-  observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-  return () => observer.disconnect();
-}
+import { useDarkMode } from "./use-dark-mode";
 
 function ThemeToggle() {
-  const dark = useSyncExternalStore(
-    subscribeHtmlClass,
-    () => document.documentElement.classList.contains("dark"),
-    () => false,
-  );
+  // 主题态订阅收口在 use-dark-mode(图表配色也读同一个源)
+  const dark = useDarkMode();
 
   function toggle() {
     const next = !dark;

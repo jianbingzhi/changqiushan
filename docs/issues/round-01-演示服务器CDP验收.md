@@ -14,6 +14,8 @@
 
 > 状态：🆕 未修 · 🛠️ 部分 · ✅ fix（实现方自检通过）· ✔️ pass（**仅本验收方**可标）
 >
+> 修复进度（r2，2026 年 7 月 28 日）：**N01 / N02 / N03 / N04 / N05 / N07 = `fix`**；**N08 阻塞于 N06 未修**（在 `main` 上不成立，见该条「修复方结论」）；**N06 归人工裁决**。
+>
 > ⚠️ 本轮验收对象是 **`deploy-demo` 分支的产物**。`main` 落后 9 个提交（N06），因此本轮的「通过」结论**不能直接迁移到 `main`**。
 
 ---
@@ -24,7 +26,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | 🆕 |
+| 状态 | ✅ fix（`app/src/app/(admin)/booking/onsite/form-state.ts` + `page.tsx`）|
 | 页面 | 现场补录面板 `/booking/onsite` |
 | 复现 | 3/3（禁 JS + 禁 HTTP 缓存下同样复现，排除浏览器缓存） |
 
@@ -84,7 +86,7 @@ const INITIAL: FormState = { date: chinaToday(), ... };   // ← 模块作用域
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | 🆕（待办清单 §二 已登记为 B36，本轮线上确认仍在） |
+| 状态 | ✅ fix（`app/src/lib/ui/editor/RichTextEditor.tsx`，三处硬编码一并收口）|
 | 页面 | `/content/news/new`（以及所有挂 `RichTextEditor` 的编辑页） |
 | 复现 | 稳定复现 |
 
@@ -107,7 +109,7 @@ DIV  class="flex flex-wrap items-center gap-0.5 border-b border-border bg-[#FAFA
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | 🆕 |
+| 状态 | ✅ fix（`app/src/lib/ui/charts/admin-chart-palette.ts` + `Heatmap724.tsx`）|
 | 页面 | `/analytics/heatmap` 「时段 × 星期预约热力」 |
 | 复现 | 稳定复现 |
 
@@ -125,13 +127,15 @@ DIV  class="flex flex-wrap items-center gap-0.5 border-b border-border bg-[#FAFA
 
 **证据**：`docs/issues/assets/round-01-N03-热力图深色白底.png`（**刷新之后**拍的）
 
+> **修复附注（r4）**：code review r3 ② 指出「深色用户硬刷新时图表会先按浅色画一帧再翻深」（`useDarkMode()` 的服务端快照只能是浅色）。该项**未按「记为已知残留」处理，而是直接消除**：后台图表在客户端挂载前只渲染等高占位、不初始化 echarts，挂载后按真实主题一次画成（`lib/ui/use-dark-mode.ts` 的 `useMounted()`）。真机是否还有可感知的闪动，仍以测试验收为准。
+
 ---
 
 ### N04 🔵 低 · 深色主题未声明 `color-scheme`，原生表单控件白底
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | 🆕（对应待办清单 §二 theme-QA 复检项 ④，本轮确认） |
+| 状态 | ✅ fix（`app/src/app/globals.css`：`:root{color-scheme:light}` / `.dark{color-scheme:dark}`）|
 | 复现 | 稳定 |
 
 **现象**：深色主题下 `document.documentElement` 与 `body` 的 computed `color-scheme` 均为 `normal`（未声明 `dark`），原生控件保持浅色渲染。
@@ -146,7 +150,7 @@ DIV  class="flex flex-wrap items-center gap-0.5 border-b border-border bg-[#FAFA
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | 🆕（已知设计取舍，登记留痕） |
+| 状态 | ✅ fix（`app/src/app/(admin)/analytics/source/_region-map.tsx` 改走 `adminChartPalette`）|
 | 页面 | `/analytics/source` 「来源地区分布(行政区划下钻)」 |
 
 **现象**：深色主题下中国行政图地块为白/浅灰，在深色卡片上是一大块亮面。与待办清单 §二「`analytics/source` 行政图 `theme={null}` + 硬编码色为已知必中点」一致。数据本身正确（四川省 688 / 广东省 370 / 重庆市 351 / 浙江省 293，与右侧表格一致）。
@@ -191,7 +195,7 @@ DIV  class="flex flex-wrap items-center gap-0.5 border-b border-border bg-[#FAFA
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | 🆕（= 待办清单 §一 b-103 审计微项 ①，本轮线上确认） |
+| 状态 | ✅ fix（`app/src/infrastructure/amap/index.ts` `resolveFetchedAt`）|
 | 页面 | `/traffic/road` |
 
 **现象**：页面「最后更新」与右侧拥堵摘要每条的时间戳，均随请求时刻走（连续两次访问分别显示 10:41 / 10:44），而数据本身有 60s 缓存，实际可旧至 60 秒。
@@ -204,7 +208,7 @@ DIV  class="flex flex-wrap items-center gap-0.5 border-b border-border bg-[#FAFA
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | 🆕 |
+| 状态 | 🆕 **阻塞于 N06，未修**（见下方「修复方结论」）|
 | 页面 | `/screen/command`（已接） vs `/screen/overview`（仍标待接入） |
 
 **现象**：
@@ -214,6 +218,21 @@ DIV  class="flex flex-wrap items-center gap-0.5 border-b border-border bg-[#FAFA
 - `docs/待办清单.md` §五 也仍写「🆕 天气 / AQI（C5）—— 外部气象 API；现占位标注」。
 
 **期望**：口径统一 —— overview 接上同一个 metric（AQI 若确实没有，占位文案收窄为「AQI 待接入」），并回填待办清单 §五。
+
+**修复方结论（2026 年 7 月 28 日）：本条在 `main` 上不成立，阻塞于 N06，未修。**
+
+天气 metric 的后端（`/api/screen/weather` 及 `infrastructure/amap` 的 `fetchWeather`）来自 `deploy-demo` 的 `c846702`，**`main` 上根本不存在**——在 `main` 上 `grep -rn weather app/src/` 为 0 命中，`/api/screen/[metric]` 白名单里也没有 `weather`。
+
+因此在 `main` 上：
+
+| 页面 | `main` 现状 |
+|---|---|
+| `/screen/command` | `page.tsx:112` = `<PlaceholderTag text="天气/空气质量待接入" />` |
+| `/screen/overview` | `page.tsx:103` = `<PlaceholderTag text="天气/AQI 待接入" />` |
+
+两屏**都是占位、口径本就一致**，`docs/待办清单.md` §五 写「待接入」对 `main` 也属实。本条描述的不一致只存在于**演示服务器跑的 `deploy-demo` 产物**上。
+
+在 `main` 上"修"这条只有两条路，都不该由修复方自行决定：① 把 `deploy-demo` 合回 `main`（= N06，已交人工定分支策略，明确不由修复方合并）；② 在 `main` 上另写一份天气 metric（与 `deploy-demo` 的实现重复，日后合并必冲突）。**故本条挂起，随 N06 的分支裁决一并处置。**
 
 ---
 
@@ -251,6 +270,8 @@ DIV  class="flex flex-wrap items-center gap-0.5 border-b border-border bg-[#FAFA
 | 轮次 | 日期 | 角色 | 类型 | 结论 | 说明 |
 |---|---|---|---|---|---|
 | r5 | 2026-07-28 | 评审 | code review 复审 | **clean（可合并）**——`main-fixer_A` @ `7fd54f9`,r3 四项全部核实已改:① `_content-form.tsx` 硬编码清零（`placeholder:text-text-muted` / `text-foreground`,token 均存在）;② 图表浅色首帧未按「记残留」而是直接消除:`useMounted()`（`useSyncExternalStore(subscribeNever,()=>true,()=>false)`）挂载前只渲染等高占位、不初始化 echarts——语义核实:水合首帧服务端/客户端快照同为 false 无 mismatch,水合后补一次渲染按真实主题一次画成;客户端路由跳转时 `getSnapshot()=true` 即刻出图无占位闪动;大屏 `variant="dark"` 早退分支不受影响,`variant="light"` 已无调用方;③ `splitLine` 已删;④ `mapBorder` 注释已更正。超范围 7 处已登记待办清单（`--info` token 存在,建议可行）。`pnpm test` 88 passed 复跑属实、新增 3 条守卫单测;lint/tsc/build 未复跑,以修复方自检为准。唯一遗留:r4 修订行笔误「87 passed」应为 88,请合并收尾时顺手更正 | 深审同 r3 口径:逐项核 diff + 复跑单测 + token/调用方核查 |
+| r4 | 2026-07-28 | 修复 | 据 r3 复审修改 | 4 项全改（含 ② 直接消除，未按"记为残留"处理） | ① `_content-form.tsx` 同族硬编码清零：`placeholder:text-[#C0C4CC]`→`placeholder:text-text-muted`、`text-[#374151]`→`text-foreground`；② 不只记残留——新增 `useMounted()`，后台图表（`Heatmap724` auto 变体 / 行政图）**挂载前只占位、不初始化 echarts**，挂载后按真实主题一次画成，浅色首帧从源头消除（大屏 `variant="dark"` 路径不受影响）；③ 删无消费者的 `splitLine`；④ 更正 `mapBorder` 注释（浅色为白缝，非 `--border`）。另按建议把 `(admin)` 下 7 处超范围同族硬编码登记进 `docs/待办清单.md`。新增 2 条守卫单测（`_content-form` 硬编码清零 / 后台图表挂载前不初始化），`pnpm test` 88 passed、lint / tsc / build 全过 |
 | r3 | 2026-07-28 | 评审 | code review | **issues（需小改后复审）**——修复方 `main-fixer_A` @ `0ecc045`（6 条修复 + 15 条单测）。核心修法全部核实成立：N01 路由为 ƒ Dynamic（`(admin)/layout.tsx:12` 用 `cookies()`）+ `createOnsiteForm()` 渲染时求值正确；N02/N04/N07 正确;N03/N05 `EChart` 带 `notMerge`，option 驱动全量重绘成立；N08「main 上 weather 0 命中」独立复核属实；`pnpm test` 85 passed 复跑属实；文档回填合规（只标 fix 未越权 pass）。**发现 2 中 2 低**：① 🟡 `content/_content-form.tsx:132,142` 残留 `placeholder:text-[#C0C4CC]`、`:165` `text-[#374151]`——本提交已改此文件却漏了同族硬编码，`text-[#374151]` 深色下深字压深底，就落在 N02 同一张编辑页；② 🟡 `use-dark-mode.ts` `getServerSnapshot` 恒 false → 深色用户硬刷新时后台图表首帧按浅色 palette 画一帧再翻深（passive effect 后才纠正），属 N03/N05 同类的一帧残留，需在 issue 文档记为已知残留并由测试真机确认是否可感知；③ 🔵 `admin-chart-palette.ts` `splitLine` 字段无任何消费者（应删或接线）；④ 🔵 `mapBorder` 注释称 `= --border` 但 LIGHT 值实为 `#FFFFFF`（沿旧设计），注释失实。另:`(admin)` 下 `system/page.tsx:82`、`riskcontrol/blacklist/_action-buttons.tsx:32`、`content/activities/*` 等 7 处同族硬编码 hex 超出本轮 issue 范围,建议登记待办不必本轮修 | 深审:code-reviewer 独立过一遍 + 评审逐项核 diff/token/EChart/时区/文档 |
+| r2b | 2026-07-28 | 修复 | 逐条修复 | 6 条 `fix`，N08 阻塞挂起，N06 归人工 | 分支 `main-fixer_A`。N01 模块作用域日期改渲染时求值；N02 编辑器三处硬编码改 token；N03/N05 新建 `admin-chart-palette` 收口后台图表双主题取色；N04 补 `color-scheme`；N07 取数时刻改读上游响应头 `Date`。新增 15 条单测（`form-state.test.ts` / `fetched-at.test.ts` / `theme-tokens.test.ts`），`pnpm test` 85 passed、`lint` / `tsc --noEmit` / `build` 全过 |
 | r2 | 2026-07-28 | 测试 | 派工 | N01–N05 / N07 / N08 共 7 条经人工批准，一次性交**修复方**（N06 除外，单独交人工定分支策略） | mesh note `6dc7e86f` |
 | r1 | 2026-07-28 | 测试 | 线上 CDP 验收 | 8 条 issue + 1 条待人工 | 演示服务器 `156.229.22.155`（`deploy-demo` @ `9befd9c`） |

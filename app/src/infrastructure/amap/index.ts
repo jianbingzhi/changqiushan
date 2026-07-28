@@ -6,7 +6,11 @@ export interface TrafficCondition {
   name:        string;
   congestion:  "畅通" | "缓行" | "拥堵";
   description: string;
-  /** 取数时刻 ISO 字符串(高德 rectangle 接口不返回时间戳) */
+  /**
+   * 取数时刻 ISO 字符串。高德 rectangle 接口的响应体不带时间戳,故取响应头 `Date`
+   * (= 上游生成这份数据的时刻);命中 Next Data Cache 时响应头一并被缓存,
+   * 所以这个值**不随本次渲染时刻走**,能如实反映数据可旧至 60 秒(round-01 N07)。
+   */
   updatedAt:   string;
 }
 
@@ -21,6 +25,23 @@ export type RoadConditionsResult = {
 const SCENIC_RECTANGLE = "103.585,30.205;103.645,30.260";
 
 const AMAP_TRAFFIC_URL = "https://restapi.amap.com/v3/traffic/status/rectangle";
+
+/** 路况数据在 Next Data Cache 里的再验证窗口(秒)。UI 用它说明"最多旧多久"。 */
+export const ROAD_CACHE_SECONDS = 60;
+
+/**
+ * 真实取数时刻 = 上游响应头 `Date`。
+ * round-01 N07:原先直接取 `new Date()`,而 fetch 命中缓存时函数体仍会重跑,
+ * 于是"最后更新"恒等于当前时刻,把最旧 60 秒的数据说成刚取的。
+ * 响应头缺失/不可解析时才回落到当前时刻(不编造,退化为旧口径)。
+ */
+export function resolveFetchedAt(dateHeader: string | null | undefined, now: Date = new Date()): string {
+  if (dateHeader) {
+    const t = new Date(dateHeader);
+    if (!Number.isNaN(t.getTime())) return t.toISOString();
+  }
+  return now.toISOString();
+}
 
 // 高德 status → 三值拥堵等级:1 畅通 / 2 缓行 / 3 拥堵 / 4 严重拥堵(并入"拥堵")。
 // 0(未知)不在表内 → 该路段丢弃,不编造等级。
@@ -58,7 +79,8 @@ function buildDescription(road: AmapRoad): string {
  * - AMAP_KEY 未配置:不发请求,source="unconfigured"
  * - HTTP 失败 / infocode!=="10000" / 网络异常:source="error"
  * - 成功:source="amap"
- * fetch 走 Next.js Data Cache 60 秒再验证(Vercel/docker 双生效),保护高德配额。
+ * fetch 走 Next.js Data Cache 60 秒再验证(Vercel/docker 双生效),保护高德配额;
+ * 因此 `updatedAt` 必须取响应头时刻,不能取当前时刻(见 resolveFetchedAt)。
  */
 export async function fetchRoadConditions(): Promise<RoadConditionsResult> {
   const key = process.env.AMAP_KEY;
@@ -71,14 +93,14 @@ export async function fetchRoadConditions(): Promise<RoadConditionsResult> {
       extensions: "all",
     });
     const res = await fetch(`${AMAP_TRAFFIC_URL}?${params.toString()}`, {
-      next: { revalidate: 60 },
+      next: { revalidate: ROAD_CACHE_SECONDS },
     });
     if (!res.ok) return { source: "error", conditions: [] };
 
     const data = (await res.json()) as AmapTrafficResponse;
     if (data.infocode !== "10000") return { source: "error", conditions: [] };
 
-    const updatedAt = new Date().toISOString();
+    const updatedAt = resolveFetchedAt(res.headers.get("date"));
     const conditions = (data.trafficinfo?.roads ?? []).flatMap<TrafficCondition>((r) => {
       const congestion = STATUS_MAP[r.status ?? ""];
       if (!r.name || !congestion) return [];

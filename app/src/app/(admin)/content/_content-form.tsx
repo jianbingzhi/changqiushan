@@ -129,7 +129,7 @@ export function ContentForm({
             onChange={(e) => setTitle(e.target.value)}
             placeholder="请输入标题"
             maxLength={80}
-            className="w-full border-0 bg-transparent p-0 text-3xl font-bold leading-snug text-foreground placeholder:text-[#C0C4CC] focus:outline-none focus:ring-0"
+            className="w-full border-0 bg-transparent p-0 text-3xl font-bold leading-snug text-foreground placeholder:text-text-muted focus:outline-none focus:ring-0"
           />
 
           {summaryField && (
@@ -139,11 +139,11 @@ export function ContentForm({
               onChange={(e) => setMetaVal(summaryField.key, e.target.value)}
               placeholder="添加摘要(选填)…"
               rows={2}
-              className="mt-3 w-full resize-none border-0 bg-transparent p-0 text-base leading-relaxed text-muted-foreground placeholder:text-[#C0C4CC] focus:outline-none focus:ring-0"
+              className="mt-3 w-full resize-none border-0 bg-transparent p-0 text-base leading-relaxed text-muted-foreground placeholder:text-text-muted focus:outline-none focus:ring-0"
             />
           )}
 
-          <div className="my-5 h-px bg-[#F0F0F0]" />
+          <div className="my-5 h-px bg-border" />
 
           <RichTextEditor
             variant="document"
@@ -162,7 +162,7 @@ export function ContentForm({
 
             {sidebarFields.map((f) => (
               <div key={f.key} className="space-y-1.5">
-                <label htmlFor={`cf-${f.key}`} className="text-[13px] font-medium text-[#374151]">
+                <label htmlFor={`cf-${f.key}`} className="text-[13px] font-medium text-foreground">
                   {f.label}{f.required && <span className="text-danger">*</span>}
                 </label>
                 <Input
@@ -181,7 +181,7 @@ export function ContentForm({
             <p className="text-xs leading-relaxed text-text-muted">保存后为草稿,需在列表中点「发布」上线。</p>
 
             {error && (
-              <p className="rounded-lg border border-[#FECACA] bg-[#FEF2F2] px-3 py-2 text-[13px] text-danger">{error}</p>
+              <p className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-[13px] text-danger">{error}</p>
             )}
 
             <div className="flex items-center gap-2 pt-1">

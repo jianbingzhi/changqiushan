@@ -35,7 +35,7 @@ export default async function AnalyticsHeatmapPage() {
         <p className="mb-1 text-[13px] font-medium text-foreground">时段 × 星期预约热力</p>
         <p className="mb-3 text-[12px] text-text-muted">按星期与小时聚合的预约分布，颜色越深预约越集中</p>
         {hasHeat ? (
-          <Heatmap724 matrix={weekMatrix} variant="light" metricLabel="预约" height={340} />
+          <Heatmap724 matrix={weekMatrix} variant="auto" metricLabel="预约" height={340} />
         ) : (
           <EmptyState message="暂无时段×星期热力数据" />
         )}

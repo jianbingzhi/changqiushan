@@ -84,7 +84,9 @@ export function RoadMap({ source, conditions }: RoadConditionsResult) {
         <Kpi label="畅通" value={free} dotClass="bg-success" />
         <Kpi label="缓行" value={slow} dotClass="bg-warning" />
         <Kpi label="拥堵" value={jam} dotClass="bg-danger" />
-        <div className="flex items-center gap-1.5">
+        {/* round-01 N07:显示的是高德返回的取数时刻(响应头 Date),不是本次渲染时刻;
+            路况有约 1 分钟缓存,同一分钟内连续访问会看到同一个时间,属预期。 */}
+        <div className="flex items-center gap-1.5" title="路况数据缓存约 1 分钟;此处为高德返回的取数时刻">
           <span className="text-[12px] text-muted-foreground">最后更新</span>
           <span className="text-[13px] font-medium text-foreground">{live ? updatedAt : "—"}</span>
         </div>

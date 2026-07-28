@@ -90,7 +90,7 @@ function ToolbarButton({
       title={label}
       className={cn(
         "flex h-8 w-8 items-center justify-center rounded text-muted-foreground hover:bg-muted disabled:opacity-40",
-        active && "bg-[#E8F0E6] text-primary",
+        active && "bg-primary/10 text-primary",
       )}
     >
       {children}
@@ -173,7 +173,8 @@ function Toolbar({
       {onUploadVideo && (
         <input ref={videoFileRef} type="file" accept={VIDEO_ACCEPT} className="hidden" onChange={onPickVideo} />
       )}
-      <div className="flex flex-wrap items-center gap-0.5 border-b border-border bg-[#FAFAFA] px-2 py-1.5" role="toolbar" aria-label="富文本格式工具栏">
+      {/* round-01 N02(=B36):工具栏/激活态/错误条一律走语义 token,写死浅色 hex 在深色主题下是整条白带 */}
+      <div className="flex flex-wrap items-center gap-0.5 border-b border-border bg-muted px-2 py-1.5" role="toolbar" aria-label="富文本格式工具栏">
         <ToolbarButton label="加粗" active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}><Bold className="h-4 w-4" /></ToolbarButton>
         <ToolbarButton label="斜体" active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()}><Italic className="h-4 w-4" /></ToolbarButton>
         <ToolbarButton label="删除线" active={editor.isActive("strike")} onClick={() => editor.chain().focus().toggleStrike().run()}><Strikethrough className="h-4 w-4" /></ToolbarButton>
@@ -211,7 +212,7 @@ function Toolbar({
         {uploadingVideo && <span className="ml-1 text-[12px] text-muted-foreground">视频上传中,大文件请耐心等候…</span>}
       </div>
 
-      {uploadErr && <p className="border-b border-border bg-[#FEF2F2] px-3 py-1.5 text-[12px] text-danger">{uploadErr}</p>}
+      {uploadErr && <p className="border-b border-border bg-danger/10 px-3 py-1.5 text-[12px] text-danger">{uploadErr}</p>}
 
       {field && (
         <div className="flex items-center gap-2 border-b border-border bg-card px-3 py-2">

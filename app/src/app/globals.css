@@ -63,6 +63,10 @@
 
 /* 浅色(默认)实值 */
 :root {
+  /* round-01 N04:向浏览器声明当前配色,原生控件(select / date / checkbox 等)才会跟着渲染。
+     不声明时 computed 恒为 normal,深色下原生 <select> 仍是白底白面板。 */
+  color-scheme: light;
+
   --bg: #F9FAFB;
   --fg: #1F2937;
   --card: #FFFFFF;
@@ -106,6 +110,8 @@
 
 /* 深色实值 */
 .dark {
+  color-scheme: dark;
+
   --bg: #0F1713;
   --fg: #E8EFE3;
   --card: #16201A;
