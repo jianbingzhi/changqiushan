@@ -287,7 +287,7 @@ DIV  class="flex flex-wrap items-center gap-0.5 border-b border-border bg-[#FAFA
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | ✅ **已裁决**（人工，2026 年 7 月 29 日）：**`deploy-demo` 全量合回 `main`**（待本轮测试项收尾后执行）|
+| 状态 | 🛠️ **已执行**（b-105，2026 年 7 月 29 日）：真 merge commit `2779552`，9 个原始 SHA 全部保留在 `main` 祖先链上（`git branch --merged` 判据已过）。⏸ 唯一未做的是 `deploy-demo` 分支退役（b-105 T6.4），待人工确认 worktree `/home/agent/projects/Panda/Changqiushan` 无人在用。<br>原裁决：✅ **已裁决**（人工，2026 年 7 月 29 日）：**`deploy-demo` 全量合回 `main`**|
 | 类型 | 工程/集成（非页面缺陷） |
 
 **现象**：`git log main..origin/deploy-demo` 有 9 个提交，`origin/deploy-demo..main` **为空** —— 即 `main` 完全落后，缺失以下全部内容：
@@ -375,7 +375,7 @@ DIV  class="flex flex-wrap items-center gap-0.5 border-b border-border bg-[#FAFA
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | ⏭️ **随 N06 转为「合并后待修」**（人工已裁决 `deploy-demo` 全量合回 `main`，天气 metric 届时进入 `main`，本条将真实成立）|
+| 状态 | 🛠️ **fix**（b-105 T2，2026 年 7 月 29 日）：展示逻辑收口 `app/src/shared/lib/weather.ts`，`/screen/overview` 与 `/screen/command` 共用 `ScreenWeather`（RSC 直读首屏 + 600 秒低频轮询），两屏逐字同一口径；7 条单测把红线 6「无孤立英文」变成 CI 卡口。**待测试方真机复验后才可标 `pass`**。<br>原状态：⏭️ 随 N06 转为「合并后待修」|
 | 页面 | `/screen/command`（已接） vs `/screen/overview`（仍标待接入） |
 
 **现象**：
@@ -1319,6 +1319,7 @@ token 改动确认：浅色 `--text-muted` `#9CA3AF → #5b6472`、`--text-secon
 
 | 轮次 | 日期 | 角色 | 类型 | 结论 | 说明 |
 |---|---|---|---|---|---|
+| r22 | 2026-07-29 | 执行 | b-105 单主干合并与收口 | **N06 → 已执行（merge `2779552`）· N08 → `fix`**；⚠️ **N13 / N15 的 `pass` 结论需在新版指挥屏上复验**（见下「新版指挥屏对 N13/N15 的影响」） | `main-runner_A`。真 merge 保留 `deploy-demo` 9 个原始 SHA（`git branch --merged` 判据已过，未用 squash）；2 处 add/add 均取 deploy-demo 版，`b-104` 计划以「附二」补回 main 侧 3 条评审结论；`amap/index.ts` 走三方自动合并，N07 修复（`resolveFetchedAt`/`ROAD_CACHE_SECONDS`）与新增 `fetchWeather` 并存，未做任何整文件覆盖。N08 收口：展示逻辑下沉 `shared/lib/weather.ts`，两屏共用 `ScreenWeather`，7 条单测把红线 6 变成 CI 卡口。CI 触发分支 `deploy-demo` → `main` + `paths` 过滤。合并集成附带修 2 处 lint 阻塞（`lint-cn.mjs` 比较符误报、卡片标题「TOP 8」违反红线 6）。验证：`tsc --noEmit` 干净 / `lint` 0 error / `pnpm test` **420 passed**（18 files，含 N07 `fetched-at.test.ts` 与 N13 `heatmap-option.test.ts` 合并后仍绿）/ `pnpm build` 通过。⏸ `deploy-demo` 分支退役（b-105 T6.4）停在人工确认 worktree 占用前，执行方未自行删除 |
 | r20 | 2026-07-29 | 评审 | code review（N12 三修 + N18①②③④ + N19） | **clean（可合并）**——`main-fixer_A` @ `12f8c9a`。**N12 换判据:认可**——「算准了交给高德摆」两轮真机不过,r17 实测 -66px 对算出的 ≥99px 差一个数量级,证明该量的不是几何精度而是「算出的 avoid」与「标点实际落点」间的落差;改为 setFitView 粗摆 + 逐帧实测校正(`lngLatToContainer` + 量真实 label rect,不再估算)方向正确。修复方三问逐一裁定:**①行为变化判断对**——resize/浮层变化重新取景对所有 fitView 调用点生效属良性改进,大屏同尺寸取景逐字不变已核实(`readFitAvoid` undefined 即返回、不进校正、保留动画),文档 732 行如实标注;**②rAF 循环无漏**——`fitRunRef` 轮次隔离防重入、卸载经 `mapRef.current=null`(AmapContainer:288)下一帧退出、12 帧硬上限防无限循环、双 observer cleanup 齐全、校正只动 zoom/center 不触发自身 observer 无反馈回路;**③FIT_SLACK+outward 是解决问题不是掩盖**——判据 `contains` 是闭区间,贴边 0.1px 即判失败,slack 只保证不落在边界线上;每帧重新实测,无误差被吞的通道。缩放经 `log2(scale)` 换算 zoom、平移中心反算方向均核对无误;`overlaySafeArea` 与 avoid 共用 `overlayInsets` 防几何口径分叉,坐标系(容器局部)全程一致。**N18**:批量替换**零误伤**——精确边界 grep 全仓,裸 `text-primary`/裸语义色前景仅剩对比度测试的 token 名列表,`text-primary-foreground`(button/badge/date-grid)完好;`--primary` 实底/`--primary-strong` 前景分家、hover 压深不提亮、徽标复用 `--destructive` 不新立 token,取值决策全部合理;212 条对比度守卫(文字×中性底全组合×双主题+实底+淡底+源码守卫)设计到位。**N19**:`pauseIfBroken` 对派生行与物化行一视同仁、与写侧同口径只改 ACTIVE,且修正了旧版把 CLOSED 派生行误置 PAUSED 的隐患,显示口径与红线 4 写守卫对齐。`pnpm test` 413 passed 复跑属实;r16 收尾更正(r15 行 N14 措辞)已兑现;3 条只标 `fix` 合规 | 核查:几何/循环安全/坐标系/精确 grep/booking 口径 + 复跑 413 单测 |
 | r19 | 2026-07-29 | 修复 | 据 r17/r18 修 N12 复修 + N18(①②③④)+ N19 | **3 条 → `fix`**(待评审 code review + 测试真机复验) | **N12(第三轮)**:先把账算清——1324×804 算出的 `avoid` 要求标点离容器左缘 ≥99px,r17 真机量到的是 **-66px**,差一个数量级,不是几何精度问题。故**换判据**:`setFitView` 照旧调用把地图带到大致位置,之后**逐帧实测校正**(新模块 `lib/ui/map/fit-view-correct.ts`)——标点位置读 `map.lngLatToContainer()`、标签占位直接量 `.amap-marker-label` 的 rect(**不再估算**),越出「浮层让开后的安全区」就算缩放倍率 + 平移收回来;**一帧只做一件事、下一帧重新量**,预测误差不累积,上限 12 帧。另补上两轮都缺的一环:**视口/浮层变化重新取景**(`ResizeObserver` 盯容器 + `MutationObserver` 盯浮层增删)——旧实现只在 markers 变化时取一次景,tester 逐档扫分辨率时那次取景根本没重算,这条单独就能解释「1920 好、1324 不好」。无浮层无标签的调用点(大屏三处 + road)`avoid` 恒 undefined、直接返回不进校正,**取景逐字不变**。守卫 `fit-view-correct.test.ts`(20 条)模拟运行时逐帧节奏跑到稳定态,含自证:① r17 实测那一幕(溢出 66px / 8px)校正前必须判 false;② 四档分辨率 × 展开/收起从最坏情形出发都要收敛;③ 反向守卫:已摆好的取景(含大屏形状)校正必须是空操作。**N18**:①`--text-muted` `#9CA3AF`→`#5B6472`、`--text-secondary`/`--muted-fg` `#6B7280`→`#4B5563`(2.43→5.73 / 4.39→6.87);③**拆两支**——`--primary` 留给实底填充(压深到 `#457F3C`,白字 4.09→4.82)、主色作前景文字新开 `--primary-strong`(深 `#63A95A`,4.09→5.86),全仓 30 处 `text-primary` 改走它;`--primary-hover` 深色**压深**到 `#3A6C33`(提亮会把 hover 白字打到 3.18);④徽标改用 `--destructive` 并把深色值 `#EF4444`→`#DC2626`(3.76→4.83),**不新立 token**。同族一并清:B36 余项 7 处硬编码 hex 换 token、语义色当前景文字的 51 处改走 `-strong`(浅色 `text-success` 3.30 / `text-warning` 3.19、深色 `text-danger` 4.44 都在 AA 线下)、`bg-amber-500`→`bg-warning`、深色 `--text-muted` 压在 `--muted` 上 4.42→5.35。守卫 `design-token.contrast.test.ts`(212 条)从 globals.css 读实值现算「文字 token × 中性底 token」全组合 × 双主题,外加两条**源码**守卫(实底 token 不许当文字色、组件不许写死 hex),并含 N18 四个实测值的自证复算。**N19**:熔断置位抽 `pauseIfBroken()` 给派生行与物化行共用,与写侧 `pauseSlotsForCircuitBreak` 同口径只改 ACTIVE(CLOSED 更严格,不冲淡);守卫判据取「熔断时**每一条**都不得 ACTIVE」。合计 `pnpm test` **413 passed**(+236)/ `lint` 0 error / `tsc --noEmit` / `pnpm build` 全过;**真机 CDP 未跑(归测试方)** |
 | r16 | 2026-07-29 | 评审 | code review（N12 复修 + N14–N17） | **clean（可合并，附 1 条收尾更正要求）**——`main-fixer_A` @ `a06a292`。**N12 复修**:`MarkerExtent` 叠加避让几何正确(标签左右各半宽、上一标签高;DOM 实测优先、估算兜底刻意偏大、量不到绝不返回 0);「按轴算总账、超限按比例同收」优于各自砍上限(保两边比例关系);无标签调用点(大屏三处 + road)返回 undefined 取景逐字不变已核实;守卫自证②把 r13 那一幕(上一轮版本在 1324×804 必红)钉进测试,验证闭环成立。**N14**:`!important` 决定**认可**——高德样式表运行时注入、排在 globals.css 后,同特异性必输;`.amap-container` 抬特异性是赌 SDK 祖先类名不换版;first-party 单一选择器 + 仓库内无第二处触碰,是此处最稳写法(保持只此一处,勿扩散)。**N15**:与 N13 同根因(键显式下发 undefined = 覆盖注册主题)定性准确,`{}` 替代 undefined + 两轴各持对象正确;r11 我逐行审过同一文件也未识出 yAxis 裸 `axisLabelStyle`,守卫扩到「两变体 X/Y 轴标签必须真渲染出现」正是补上这层。**N16**:`--*-strong` 分档**认可**——「实底填充」与「淡底文字」诉求相反,同 token 双用必顾此失彼;21→5 色调映射逐条对旧表核过语义一致;守卫从组件源码读类名回 globals.css 取实值现算 + 变异验证,设计到位。**N17**:3 处文案 + 注释,PRD 需求名刻意不改,边界正确,grep 全仓无残留。`pnpm test` 177 passed 复跑属实;5 条只标 `fix` 合规。**收尾更正要求(仅文档一句)**:fixer 分支 r15 修订行 N14 处写「选择器带 `.amap-container` 抬特异性,免用 `!important`」——与代码及 N14 正文相反(实际为裸 `.amap-marker-label` + `!important`),属旧稿残留,squash 前改正,免得留下一条与代码相反的留痕 | 核查:几何/调用面/token 映射/守卫自证/文案残留 + 复跑 177 单测 |
@@ -1343,6 +1344,27 @@ token 改动确认：浅色 `--text-muted` `#9CA3AF → #5b6472`、`--text-secon
 | r3 | 2026-07-28 | 测试 | 复验（`main` @ `6d27afa`） | **N04 / N07 → `pass`**；N01 服务端部分通过；N02 结构通过；**N01/N02/N03/N05 因 CDP 真机不可达停在 `fix`**；**新立 N09** | 环境见下方「r3 复验环境」 |
 | r2 | 2026-07-28 | 测试 | 派工 | N01–N05 / N07 / N08 共 7 条经人工批准，一次性交**修复方**（N06 除外，单独交人工定分支策略） | mesh note `6dc7e86f` |
 | r1 | 2026-07-28 | 测试 | 线上 CDP 验收 | 8 条 issue + 1 条待人工 | 演示服务器 `156.229.22.155`（`deploy-demo` @ `9befd9c`） |
+
+
+### 新版指挥屏对 N13 / N15 的影响（b-105 合并后，2026 年 7 月 29 日 · 执行方留痕）
+
+`main` 在 round-01 期间**从未改过 `app/src/app/screen/command/page.tsx`**。b-105 合并后，该页由 `main` 侧的
+266 行早期版（`8bc3eb0`）**整体换成 `deploy-demo` 的 425 行定稿 5 列版**（`6c21562` → `9befd9c`）。
+
+- **N13**（热力矩阵空白 + `splitArea` TypeError）与 **N15**（热力缺 Y 轴周次标签）的 `pass` 是在**旧版指挥屏**上验的，
+  **结论不能顺延到新版面**：定稿页用 `<Heatmap724 matrix={heatMatrix} height={230} />`，**props 与旧版不同**，
+  能编译 ≠ 渲染对。→ **须由测试方在新版 `/screen/command` 上复验，通过后才可保留 `pass`。**
+- 两条的**修复本体在共享组件**（`charts/heatmap-option.ts` / `charts/Heatmap724.tsx`），是 `main` 侧独有、
+  合并不触碰，故**不会丢修复**；`heatmap-option.test.ts` 合并后复跑仍全绿。风险**仅在新版面喂了不同 props**。
+- ❎ **N16 与 N12 不在此列**（已核实）：`status-chip` 在 `app/src/app/screen/` 下**零引用**（纯后台问题）；
+  N12 是 `/traffic/parking` 后台路由，且仍是 `fix` 未 `pass`。
+- **N08 的复验判据**：`/screen/overview` 与 `/screen/command` 顶栏天气**逐字同一口径**；
+  overview KPI 卡出真实温度 + `℃`，sub 只剩「空气质量待接入」小标注。
+  三态造法：改 `app/.env` 的 `AMAP_KEY` 为非法值 → `error`；删掉整行 → `unconfigured`（会同时打掉 `/traffic/road`，验完恢复）。
+  ⚠️ **改 env 后必须重启应用容器**——`force-dynamic` 只让页面重渲染，**不绕过 `fetch` 的 600 秒 Data Cache**，
+  光刷页面可能仍显示旧的成功结果。
+- ⚠️ 本机**永远不要**带 `-f docker-compose.demo.yml`：它 bind `80:80` / `443:443`，同机已有别的 Caddy，
+  QA 栈是靠 `docker-compose.qa.yml` 避开端口冲突才跑起来的。
 
 ---
 
