@@ -12,7 +12,7 @@ import { ScreenCard } from "@/lib/ui/screen/ScreenCard";
 import { KpiTile } from "@/lib/ui/screen/KpiTile";
 import { DarkBarList } from "@/lib/ui/screen/DarkBarList";
 import { PlaceholderTag } from "@/lib/ui/screen/PlaceholderTag";
-import { ScreenWeather } from "@/lib/ui/screen/ScreenWeather";
+import { ScreenWeather, ScreenWeatherProvider } from "@/lib/ui/screen/ScreenWeather";
 import { fetchWeather } from "@/infrastructure/amap";
 import { DonutChart } from "@/lib/ui/screen/charts/DonutChart";
 import { RadarChart } from "@/lib/ui/screen/charts/RadarChart";
@@ -98,130 +98,134 @@ export default async function OverviewScreenPage() {
 
   return (
     <ScreenShell>
-      <div className="flex h-full flex-col">
-        <ScreenHeader
-          title="长秋山森林公园 · 数据概览首屏"
-          rightExtra={<ScreenWeather initial={weather} />}
-        />
+      {/* 天气轮询收在 Provider 里只跑一次:顶栏与 KPI 卡是同一份数据的两个展示面,
+          各自轮询会在网络抖动时于同一块屏上显示两个温度(N08 的屏内复现)。 */}
+      <ScreenWeatherProvider initial={weather}>
+        <div className="flex h-full flex-col">
+          <ScreenHeader
+            title="长秋山森林公园 · 数据概览首屏"
+            rightExtra={<ScreenWeather initial={weather} />}
+          />
 
-        <div className="flex flex-1 flex-col gap-4 p-6">
-          {/* 8 KPI 卡片(2×4) */}
-          <section className="grid grid-cols-4 gap-4">
-            <KpiTile
-              title="今日累计预约人数"
-              value={bookings.toLocaleString("zh-CN")}
-              unit="人次"
-              valueSize={44}
-              sub={`共 ${slots.length} 个时段`}
-            />
-            <KpiTile
-              title="今日累计入园核销"
-              value={checkedIn.toLocaleString("zh-CN")}
-              unit="人次"
-              valueSize={44}
-              tone="highlight"
-              sub={`履约率 ${fulfillRate}%`}
-            />
-            <OverviewOccupancy
-              initial={{ occupancy: checkedIn, capacity, pct: capacityPct }}
-            />
-            <KpiTile
-              title="今日剩余可预约名额"
-              value={remaining.toLocaleString("zh-CN")}
-              unit="个"
-              valueSize={44}
-              sub={`${slots.length} 时段中 ${slotsFull} 个已满`}
-            />
-            <KpiTile
-              title="停车场总余量"
-              value={parkRemaining.toLocaleString("zh-CN")}
-              unit="位"
-              valueSize={44}
-              sub={`${lots.length} 个停车场 / 使用率 ${parkUsage}%`}
-            />
-            <ScreenWeather initial={weather} variant="kpi" />
-            <KpiTile
-              title="当日活动开展"
-              value={String(ongoing + registering)}
-              unit="个"
-              valueSize={44}
-              sub={`报名中 ${registering} 个 / 进行中 ${ongoing} 个`}
-            />
-            <KpiTile
-              title="今日告警事件"
-              value={String(alertCount)}
-              unit="起"
-              valueSize={44}
-              tone="warn"
-              danger={alertCount > 0}
-              sub={`告警 ${alertCount} / 离线 ${offlineCount}`}
-            />
-          </section>
+          <div className="flex flex-1 flex-col gap-4 p-6">
+            {/* 8 KPI 卡片(2×4) */}
+            <section className="grid grid-cols-4 gap-4">
+              <KpiTile
+                title="今日累计预约人数"
+                value={bookings.toLocaleString("zh-CN")}
+                unit="人次"
+                valueSize={44}
+                sub={`共 ${slots.length} 个时段`}
+              />
+              <KpiTile
+                title="今日累计入园核销"
+                value={checkedIn.toLocaleString("zh-CN")}
+                unit="人次"
+                valueSize={44}
+                tone="highlight"
+                sub={`履约率 ${fulfillRate}%`}
+              />
+              <OverviewOccupancy
+                initial={{ occupancy: checkedIn, capacity, pct: capacityPct }}
+              />
+              <KpiTile
+                title="今日剩余可预约名额"
+                value={remaining.toLocaleString("zh-CN")}
+                unit="个"
+                valueSize={44}
+                sub={`${slots.length} 时段中 ${slotsFull} 个已满`}
+              />
+              <KpiTile
+                title="停车场总余量"
+                value={parkRemaining.toLocaleString("zh-CN")}
+                unit="位"
+                valueSize={44}
+                sub={`${lots.length} 个停车场 / 使用率 ${parkUsage}%`}
+              />
+              <ScreenWeather initial={weather} variant="kpi" />
+              <KpiTile
+                title="当日活动开展"
+                value={String(ongoing + registering)}
+                unit="个"
+                valueSize={44}
+                sub={`报名中 ${registering} 个 / 进行中 ${ongoing} 个`}
+              />
+              <KpiTile
+                title="今日告警事件"
+                value={String(alertCount)}
+                unit="起"
+                valueSize={44}
+                tone="warn"
+                danger={alertCount > 0}
+                sub={`告警 ${alertCount} / 离线 ${offlineCount}`}
+              />
+            </section>
 
-          {/* 画像快照(大屏固定画布:图表给确定 px 高度,不依赖多层 flex 解析 100% 高) */}
-          <ScreenCard title="当前在园游客画像快照" className="flex-1">
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <p className="mb-1 text-[14px]" style={{ color: "var(--screen-text-dim)" }}>性别比例</p>
-                <DonutChart
-                  height={240}
-                  data={[
-                    { name: "男", value: men },
-                    { name: "女", value: women },
-                  ]}
-                  centerValue={`${men + women}`}
-                  centerLabel="抽样人数"
-                />
-              </div>
-              <div>
-                <p className="mb-2 text-[14px]" style={{ color: "var(--screen-text-dim)" }}>年龄段分布</p>
-                <div style={{ height: 240 }}>
-                  <DarkBarList data={ageBars} emptyText="暂无画像数据" />
+            {/* 画像快照(大屏固定画布:图表给确定 px 高度,不依赖多层 flex 解析 100% 高) */}
+            <ScreenCard title="当前在园游客画像快照" className="flex-1">
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <p className="mb-1 text-[14px]" style={{ color: "var(--screen-text-dim)" }}>性别比例</p>
+                  <DonutChart
+                    height={240}
+                    data={[
+                      { name: "男", value: men },
+                      { name: "女", value: women },
+                    ]}
+                    centerValue={`${men + women}`}
+                    centerLabel="抽样人数"
+                  />
+                </div>
+                <div>
+                  <p className="mb-2 text-[14px]" style={{ color: "var(--screen-text-dim)" }}>年龄段分布</p>
+                  <div style={{ height: 240 }}>
+                    <DarkBarList data={ageBars} emptyText="暂无画像数据" />
+                  </div>
+                </div>
+                <div>
+                  <p className="mb-1 text-[14px]" style={{ color: "var(--screen-text-dim)" }}>在园游客出行偏好</p>
+                  {prefIndicators.length > 0 ? (
+                    <RadarChart height={240} indicators={prefIndicators} series={[{ name: "出行偏好", values: prefValues }]} />
+                  ) : (
+                    <div className="flex items-center justify-center text-[14px]" style={{ height: 240, color: "var(--screen-text-faint)" }}>
+                      暂无偏好数据
+                    </div>
+                  )}
                 </div>
               </div>
-              <div>
-                <p className="mb-1 text-[14px]" style={{ color: "var(--screen-text-dim)" }}>在园游客出行偏好</p>
-                {prefIndicators.length > 0 ? (
-                  <RadarChart height={240} indicators={prefIndicators} series={[{ name: "出行偏好", values: prefValues }]} />
-                ) : (
-                  <div className="flex items-center justify-center text-[14px]" style={{ height: 240, color: "var(--screen-text-faint)" }}>
-                    暂无偏好数据
-                  </div>
-                )}
-              </div>
-            </div>
-            <p className="mt-1 text-[12px]" style={{ color: "var(--screen-text-faint)" }}>
-              注：本/外区县·市·省占比需行政区划码表，<PlaceholderTag text="地域画像待接入" />
-            </p>
-          </ScreenCard>
+              <p className="mt-1 text-[12px]" style={{ color: "var(--screen-text-faint)" }}>
+                注：本/外区县·市·省占比需行政区划码表，<PlaceholderTag text="地域画像待接入" />
+              </p>
+            </ScreenCard>
 
-          {/* 同期对比 */}
-          <section className="grid grid-cols-4 gap-4">
-            {comparisons.map((c) => (
-              <div
-                key={c.label}
-                className="flex items-center justify-between rounded-lg px-5 py-4"
-                style={{ backgroundColor: "var(--screen-card-bg)", border: "1px solid var(--screen-card-border)" }}
-              >
-                <span className="text-[15px]" style={{ color: "var(--screen-text-dim)" }}>{c.label}</span>
-                <span
-                  className="text-[28px] font-bold tabular-nums"
-                  style={{
-                    color:
-                      c.up === undefined
-                        ? "var(--screen-text-faint)"
-                        : c.up
-                          ? "var(--screen-glow)"
-                          : "var(--screen-orange)",
-                  }}
+            {/* 同期对比 */}
+            <section className="grid grid-cols-4 gap-4">
+              {comparisons.map((c) => (
+                <div
+                  key={c.label}
+                  className="flex items-center justify-between rounded-lg px-5 py-4"
+                  style={{ backgroundColor: "var(--screen-card-bg)", border: "1px solid var(--screen-card-border)" }}
                 >
-                  {c.up === undefined ? c.text : `${c.up ? "↑" : "↓"} ${c.text}`}
-                </span>
-              </div>
-            ))}
-          </section>
+                  <span className="text-[15px]" style={{ color: "var(--screen-text-dim)" }}>{c.label}</span>
+                  <span
+                    className="text-[28px] font-bold tabular-nums"
+                    style={{
+                      color:
+                        c.up === undefined
+                          ? "var(--screen-text-faint)"
+                          : c.up
+                            ? "var(--screen-glow)"
+                            : "var(--screen-orange)",
+                    }}
+                  >
+                    {c.up === undefined ? c.text : `${c.up ? "↑" : "↓"} ${c.text}`}
+                  </span>
+                </div>
+              ))}
+            </section>
+          </div>
         </div>
-      </div>
+      </ScreenWeatherProvider>
     </ScreenShell>
   );
 }

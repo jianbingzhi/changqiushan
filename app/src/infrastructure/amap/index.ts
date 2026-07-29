@@ -145,6 +145,15 @@ interface AmapWeatherResponse {
 }
 
 /**
+ * 缺字段 / 空串 / 非数字一律给 NaN,**绝不回落 0**。
+ * `Number("")` 是 0——上游漏传气温时若回落 0,挂墙大屏会在七月理直气壮地显示「0℃」,
+ * 与真实读数不可区分,比诚实地显示「—」更糟。NaN 会被 `displayable()` 挡在渲染之前。
+ */
+function numOrNaN(v: string | undefined): number {
+  return v == null || v.trim() === "" ? Number.NaN : Number(v);
+}
+
+/**
  * 查询景区所在地实时天气(extensions=base)。
  * - AMAP_KEY 未配置:source="unconfigured"
  * - HTTP 失败 / infocode!=="10000" / 无 lives / 网络异常:source="error"
@@ -173,10 +182,10 @@ export async function fetchWeather(): Promise<WeatherResult> {
       live: {
         city:          live.city ?? "",
         weather:       live.weather,
-        temperature:   Number(live.temperature ?? 0),
+        temperature:   numOrNaN(live.temperature),
         windDirection: live.winddirection ?? "",
         windPower:     live.windpower ?? "",
-        humidity:      Number(live.humidity ?? 0),
+        humidity:      numOrNaN(live.humidity),
         reportTime:    live.reporttime ?? "",
       },
     };

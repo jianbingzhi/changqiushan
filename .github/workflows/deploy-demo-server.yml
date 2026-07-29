@@ -8,7 +8,7 @@
 #
 # 需在 GitHub repo(d2xstudio/changqiushan)→ Settings → Secrets and variables → Actions 配置:
 #   必填:DEMO_SSH_HOST(如 8.137.184.228)、DEMO_SSH_USER(如 root)、DEMO_SSH_PASSWORD
-#   可选:DEMO_PUBLIC_HOST(默认=DEMO_SSH_HOST)、AMAP_KEY、NEXT_PUBLIC_AMAP_KEY、
+#   可选:DEMO_PUBLIC_HOST(默认=DEMO_SSH_HOST)、AMAP_KEY、AMAP_WEATHER_CITY、NEXT_PUBLIC_AMAP_KEY、
 #         NEXT_PUBLIC_AMAP_SECURITY、WECHAT_APPID、WECHAT_SECRET、AI_BASE_URL、AI_MODEL、AI_API_KEY
 # ⚠️ 前置:阿里云安全组放行 22(GitHub runner 出口 IP 不固定→需对 0.0.0.0/0 开 22,demo 取舍;
 #         生产应换 SSH key + 限源)。另放行 80(Caddy 统一入口:后台/BFF/大屏/媒体全走它)。
@@ -55,6 +55,8 @@ jobs:
       AMAP_KEY: ${{ secrets.AMAP_KEY }}
       NEXT_PUBLIC_AMAP_KEY: ${{ secrets.NEXT_PUBLIC_AMAP_KEY }}
       NEXT_PUBLIC_AMAP_SECURITY: ${{ secrets.NEXT_PUBLIC_AMAP_SECURITY }}
+      # 大屏实时天气的城市 adcode;不配则 remote-setup 落默认蒲江县 510131
+      AMAP_WEATHER_CITY: ${{ secrets.AMAP_WEATHER_CITY }}
       WECHAT_APPID: ${{ secrets.WECHAT_APPID }}
       WECHAT_SECRET: ${{ secrets.WECHAT_SECRET }}
       AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
@@ -90,6 +92,7 @@ jobs:
             AMAP_KEY='${AMAP_KEY:-}' \
             NEXT_PUBLIC_AMAP_KEY='${NEXT_PUBLIC_AMAP_KEY:-}' \
             NEXT_PUBLIC_AMAP_SECURITY='${NEXT_PUBLIC_AMAP_SECURITY:-}' \
+            AMAP_WEATHER_CITY='${AMAP_WEATHER_CITY:-}' \
             WECHAT_APPID='${WECHAT_APPID:-}' \
             WECHAT_SECRET='${WECHAT_SECRET:-}' \
             AI_BASE_URL='${AI_BASE_URL:-}' \
