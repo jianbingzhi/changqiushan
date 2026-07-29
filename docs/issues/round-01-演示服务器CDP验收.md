@@ -97,7 +97,22 @@ const INITIAL: FormState = { date: chinaToday(), ... };   // ← 模块作用域
 1. **无 `Minified React error #418`** —— 需读浏览器 console。
 2. **该页深色主题跟随**（原为全站唯一丢 `dark` 的页）—— 需真机切主题观察 `<html>` class。
 
-⚠️ 另注：镜像构建于今日，**「日期显示为今天」本身不足以证明冻结解除**（被冻结的值恰好也是今天）。上表第三行「路由不再静态预渲染」才是本轮的实质证据。**真正的终验需跨天复查一次**（部署后隔日再看首屏日期是否跟着走）。
+⚠️ 另注：镜像构建于当日，**「日期显示为今天」本身不足以证明冻结解除**（被冻结的值恰好也是今天）。上表第三行「路由不再静态预渲染」才是当时的实质证据。**真正的终验需跨天复查一次**（隔日再看首屏日期是否跟着走）。
+
+**r4 跨天复验（测试，2026 年 7 月 29 日 11:03 北京）：冻结确已解除 ✔️**
+
+r3 的 docker 栈**原样保留未动**，跨过北京日历日边界后重取同一页面：
+
+| 检查项 | 实测 |
+|---|---|
+| app 容器存活 | `Up 18 hours`，**`RestartCount = 0`**，启动于 `2026-07-28T09:16:15Z` |
+| 即：Node 进程 | **未重启，跨越了 7-28 → 7-29 的日历日边界** |
+| SSR 里的预约日期 | **2026 年 7 月 29 日** = 当日 ✔️ |
+| 时段下拉首帧 | 「加载时段中」；「当日暂无可预约时段」未出现 ✔️ |
+
+**这是本条的决定性证据**：原 bug 是 `const INITIAL = { date: chinaToday() }` 在**模块作用域**求值、一个进程只算一次。若冻结仍在，同一进程此刻必然仍渲染 7 月 28 日。实测跟着日历日走到了 29 日，**说明日期确已改为渲染时求值，与进程存活时长无关**。
+
+至此 N01 的**服务端行为全部通过**。仍差浏览器侧两项（无 React #418、深色主题跟随）才能定 `pass`。
 
 ---
 
@@ -374,6 +389,7 @@ DIV  class="flex flex-wrap items-center gap-0.5 border-b border-border bg-[#FAFA
 | r4 | 2026-07-28 | 修复 | 据 r3 复审修改 | 4 项全改（含 ② 直接消除，未按"记为残留"处理） | ① `_content-form.tsx` 同族硬编码清零：`placeholder:text-[#C0C4CC]`→`placeholder:text-text-muted`、`text-[#374151]`→`text-foreground`；② 不只记残留——新增 `useMounted()`，后台图表（`Heatmap724` auto 变体 / 行政图）**挂载前只占位、不初始化 echarts**，挂载后按真实主题一次画成，浅色首帧从源头消除（大屏 `variant="dark"` 路径不受影响）；③ 删无消费者的 `splitLine`；④ 更正 `mapBorder` 注释（浅色为白缝，非 `--border`）。另按建议把 `(admin)` 下 7 处超范围同族硬编码登记进 `docs/待办清单.md`。新增 2 条守卫单测（`_content-form` 硬编码清零 / 后台图表挂载前不初始化），`pnpm test` 88 passed、lint / tsc / build 全过 |
 | r3 | 2026-07-28 | 评审 | code review | **issues（需小改后复审）**——修复方 `main-fixer_A` @ `0ecc045`（6 条修复 + 15 条单测）。核心修法全部核实成立：N01 路由为 ƒ Dynamic（`(admin)/layout.tsx:12` 用 `cookies()`）+ `createOnsiteForm()` 渲染时求值正确；N02/N04/N07 正确;N03/N05 `EChart` 带 `notMerge`，option 驱动全量重绘成立；N08「main 上 weather 0 命中」独立复核属实；`pnpm test` 85 passed 复跑属实；文档回填合规（只标 fix 未越权 pass）。**发现 2 中 2 低**：① 🟡 `content/_content-form.tsx:132,142` 残留 `placeholder:text-[#C0C4CC]`、`:165` `text-[#374151]`——本提交已改此文件却漏了同族硬编码，`text-[#374151]` 深色下深字压深底，就落在 N02 同一张编辑页；② 🟡 `use-dark-mode.ts` `getServerSnapshot` 恒 false → 深色用户硬刷新时后台图表首帧按浅色 palette 画一帧再翻深（passive effect 后才纠正），属 N03/N05 同类的一帧残留，需在 issue 文档记为已知残留并由测试真机确认是否可感知；③ 🔵 `admin-chart-palette.ts` `splitLine` 字段无任何消费者（应删或接线）；④ 🔵 `mapBorder` 注释称 `= --border` 但 LIGHT 值实为 `#FFFFFF`（沿旧设计），注释失实。另:`(admin)` 下 `system/page.tsx:82`、`riskcontrol/blacklist/_action-buttons.tsx:32`、`content/activities/*` 等 7 处同族硬编码 hex 超出本轮 issue 范围,建议登记待办不必本轮修 | 深审:code-reviewer 独立过一遍 + 评审逐项核 diff/token/EChart/时区/文档 |
 | r2b | 2026-07-28 | 修复 | 逐条修复 | 6 条 `fix`，N08 阻塞挂起，N06 归人工 | 分支 `main-fixer_A`。N01 模块作用域日期改渲染时求值；N02 编辑器三处硬编码改 token；N03/N05 新建 `admin-chart-palette` 收口后台图表双主题取色；N04 补 `color-scheme`；N07 取数时刻改读上游响应头 `Date`。新增 15 条单测（`form-state.test.ts` / `fetched-at.test.ts` / `theme-tokens.test.ts`），`pnpm test` 85 passed、`lint` / `tsc --noEmit` / `build` 全过 |
+| r4 | 2026-07-29 | 测试 | 跨天复验 | **N01 冻结确已解除**（同进程零重启跨日历日，SSR 日期跟到 7 月 29 日）；N01 服务端行为全部通过，仅剩浏览器侧两项 | 复用 r3 未动的 docker 栈 |
 | r3 | 2026-07-28 | 测试 | 复验（`main` @ `6d27afa`） | **N04 / N07 → `pass`**；N01 服务端部分通过；N02 结构通过；**N01/N02/N03/N05 因 CDP 真机不可达停在 `fix`**；**新立 N09** | 环境见下方「r3 复验环境」 |
 | r2 | 2026-07-28 | 测试 | 派工 | N01–N05 / N07 / N08 共 7 条经人工批准，一次性交**修复方**（N06 除外，单独交人工定分支策略） | mesh note `6dc7e86f` |
 | r1 | 2026-07-28 | 测试 | 线上 CDP 验收 | 8 条 issue + 1 条待人工 | 演示服务器 `156.229.22.155`（`deploy-demo` @ `9befd9c`） |
