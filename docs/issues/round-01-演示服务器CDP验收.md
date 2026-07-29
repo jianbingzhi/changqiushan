@@ -287,7 +287,7 @@ DIV  class="flex flex-wrap items-center gap-0.5 border-b border-border bg-[#FAFA
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | 🛠️ **部分解决** —— compose IPv4-only 修复经人工指示已 cherry-pick 进 `main`（`6e67f18`，源自 `434b73f`）；**其余 8 个提交仍只在 `deploy-demo`，分支策略待人工裁决** |
+| 状态 | ✅ **已裁决**（人工，2026 年 7 月 29 日）：**`deploy-demo` 全量合回 `main`**（待本轮测试项收尾后执行）|
 | 类型 | 工程/集成（非页面缺陷） |
 
 **现象**：`git log main..origin/deploy-demo` 有 9 个提交，`origin/deploy-demo..main` **为空** —— 即 `main` 完全落后，缺失以下全部内容：
@@ -315,6 +315,37 @@ DIV  class="flex flex-wrap items-center gap-0.5 border-b border-border bg-[#FAFA
 
 ---
 
+---
+
+**人工裁决（2026 年 7 月 29 日）：「如果测试通过，都合并到 `main`」。**
+
+即选定「**单主干**」路线，不保留长期部署分支。执行时机：本轮剩余修复项（N12 / N18 / N19）收尾后。
+
+### 合并勘察（测试方预先摸底，**未动工作树**，用 `git merge-tree --write-tree` 试合）
+
+**结论：可合，冲突面很小 —— 只有 2 个文件，且都是 `add/add`，解法明确。**
+
+| 冲突文件 | 成因 | 建议解法 |
+|---|---|---|
+| `app/src/app/screen/command/page.tsx` | 两侧各自新增过同名文件：`main` 走 `8bc3eb0`（早期版，**266 行**）；`deploy-demo` 走 `6c21562` → `9befd9c`（**定稿 5 列 + 补齐面板 + 接后端，425 行**） | **取 `deploy-demo` 版**（定稿版是超集） |
+| `docs/plan/b-104-超宽融合指挥总屏实施计划.md` | 同上，两侧各自新增 | **取 `deploy-demo` 版**（`c07afa6` 为完整计划正文） |
+
+其余全部自动合并，含 `app/src/infrastructure/amap/index.ts`（`Auto-merging` 通过）。
+
+`main` 目前领先 `deploy-demo` **26 个提交**（round-01 的全部修复），合并方向为 `deploy-demo → main`，不会丢失这些修复。
+
+⚠️ **compose 网络段不受影响**：`434b73f`（IPv4-only）两侧都有，合并不会把 IPv6 黑洞版带回来（与 N09 裁决一致）。
+
+### 合并后的连带影响
+
+| 项 | 影响 |
+|---|---|
+| **N08** | 天气 metric（`c846702`）随合并进入 `main` ⇒ 我在 r1 报的「`/screen/command` 有真实天气、`/screen/overview` 仍标待接入」**将在 `main` 上真实成立**，届时必须修（此前它只存在于 `deploy-demo` 产物上）。**N08 从「阻塞挂起」转为「合并后待修」。** |
+| **B104 超宽总屏** | `main` 将拿到定稿 5 列版；`PLAN.md` / `docs/待办清单.md` 仍未登记 B104，**需补登记**（§五 仍写「大屏 C1–C7」共 7 块，应改为 8 块） |
+| **部署链路** | Caddy 统一入口（`2047b91`）+ 推分支即上线的 CI（`d7099af`）进入 `main`；**CI 触发分支需从 `deploy-demo` 改为 `main`**，否则合并后没有任何分支能触发部署 |
+| **`deploy-demo` 分支** | 合并后应明确**退役或重置**，避免再次分叉 |
+
+⚠️ **执行归属**：本条是跨模块的集成动作（含 CI 触发分支变更、计划文档补登记），**不属于测试方职责，也超出「逐条修 bug」的范畴**。建议由**主控写一份计划**后执行。测试方在此只提供勘察结论。
 ### N07 🔵 低 · 路况「最后更新」时间戳恒等于当前时刻
 
 | 字段 | 内容 |
@@ -344,7 +375,7 @@ DIV  class="flex flex-wrap items-center gap-0.5 border-b border-border bg-[#FAFA
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | 🆕 **阻塞于 N06，未修**（见下方「修复方结论」）|
+| 状态 | ⏭️ **随 N06 转为「合并后待修」**（人工已裁决 `deploy-demo` 全量合回 `main`，天气 metric 届时进入 `main`，本条将真实成立）|
 | 页面 | `/screen/command`（已接） vs `/screen/overview`（仍标待接入） |
 
 **现象**：
