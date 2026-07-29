@@ -431,6 +431,63 @@ DIV  class="flex flex-wrap items-center gap-0.5 border-b border-border bg-[#FAFA
 
 ---
 
+### N11 🟡 中 · 停车场 4 个全部「未配置坐标，未上图」，`/traffic/parking` 的地图上一个点都没有（人工报，r5 核实）
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | 🆕 |
+| 页面 | `/traffic/parking` 「停车场动静态上图」 |
+| 来源 | 人工在真机上发现并报出（2026 年 7 月 29 日），本验收方核实并定位根因 |
+| 复现 | 稳定，**开箱即复现** |
+
+**现象**：概览卡片上 4 个停车场**每一个**都标着「未配置坐标，未上图」，地图区域没有任何标点。人工最先注意到的是「西门停车场 已满 余位 0 / 200 未配置坐标，未上图」。
+
+**核实结论 —— 拆成两件事，一件不是缺陷、一件是**：
+
+| 观察 | 判定 |
+|---|---|
+| 「西门停车场 已满 余位 0 / 200」 | **不是缺陷**。种子数据里西门就是 `capacity=200 / occupied=200 / status=FULL`，页面如实渲染。 |
+| 「未配置坐标，未上图」 | **是缺陷，且范围是全部 4 个**，不止西门。 |
+
+数据库实测：
+
+```
+       name       | capacity | occupied | 余位 | status | 坐标
+------------------+----------+----------+------+--------+------
+ 东门生态停车场   |      300 |      180 |  120 | OPEN   | NULL
+ 主峰临时停车场   |      120 |       45 |   75 | OPEN   | NULL
+ 游客中心地下车库 |      150 |        0 |  150 | CLOSED | NULL
+ 西门停车场       |      200 |      200 |    0 | FULL   | NULL
+```
+
+页面服务端输出中「未配置坐标」出现 **4 次**。
+
+**功能本身没坏** —— `_parking-form.tsx` 有经纬度输入项，`_parking-map.tsx` 只画有合法坐标的、其余老实标注降级文案，这套「无坐标不上图 + 明示」的设计是对的。**坏在数据**。
+
+**根因**：`prisma/seed.ts:334` 的停车场 INSERT **列清单里根本没有 `coordinates`**：
+
+```sql
+INSERT INTO traffic_parking_lot (id,name,capacity,occupied,status,location,updated_at,created_at)
+```
+
+lot 对象也只有 `{name, capacity, occupied, status}`，从未提供 lng/lat。
+
+**为什么评到 🟡 中而不是低**：这个页面的立身之本就是「上图」，而 **0/4 上图 = 该功能从来没有被任何人看见过，也无法验收**。对着空地图的观感等同于「功能坏了」，且属于测试盲区（我至今无法验证标点、聚合、状态配色等上图行为是否正确）。修起来很轻（补坐标），但不补就一直是黑箱。
+
+**顺带发现的不一致（需要有人定夺，非本条修复范围）**：同一个 `prisma/seed.ts` 里，**POI 表却有两个带真实坐标的停车场**：
+
+| 表 | 名称 | 坐标 |
+|---|---|---|
+| `content_poi` | 1号停车场 | 103.607693, 30.240227 |
+| `content_poi` | 2号停车场 | 103.612197, 30.237231 |
+| `traffic_parking_lot` | 东门生态 / 西门 / 主峰临时 / 游客中心地下 | 全部 NULL |
+
+两套停车场数据**连名字都对不上**（1号/2号 vs 东门/西门/主峰/游客中心）。到底景区有几个停车场、叫什么、哪套是正本，**这是产品事实，不该由修复方拍脑袋统一**。建议人工定夺；若属长期约束，宜进 PRD 一行。
+
+**期望**：① 给 4 个停车场补上真实坐标（或明确改用 POI 那套命名）；② 顺带确认上图后的标点、状态配色、`余位/总数` 标签是否正确 —— 这部分我在有坐标之后才能验。
+
+---
+
 ## 二、需人工验证（本验收方不下结论）
 
 | 项 | 原因 |
@@ -469,7 +526,7 @@ DIV  class="flex flex-wrap items-center gap-0.5 border-b border-border bg-[#FAFA
 | r4 | 2026-07-28 | 修复 | 据 r3 复审修改 | 4 项全改（含 ② 直接消除，未按"记为残留"处理） | ① `_content-form.tsx` 同族硬编码清零：`placeholder:text-[#C0C4CC]`→`placeholder:text-text-muted`、`text-[#374151]`→`text-foreground`；② 不只记残留——新增 `useMounted()`，后台图表（`Heatmap724` auto 变体 / 行政图）**挂载前只占位、不初始化 echarts**，挂载后按真实主题一次画成，浅色首帧从源头消除（大屏 `variant="dark"` 路径不受影响）；③ 删无消费者的 `splitLine`；④ 更正 `mapBorder` 注释（浅色为白缝，非 `--border`）。另按建议把 `(admin)` 下 7 处超范围同族硬编码登记进 `docs/待办清单.md`。新增 2 条守卫单测（`_content-form` 硬编码清零 / 后台图表挂载前不初始化），`pnpm test` 88 passed、lint / tsc / build 全过 |
 | r3 | 2026-07-28 | 评审 | code review | **issues（需小改后复审）**——修复方 `main-fixer_A` @ `0ecc045`（6 条修复 + 15 条单测）。核心修法全部核实成立：N01 路由为 ƒ Dynamic（`(admin)/layout.tsx:12` 用 `cookies()`）+ `createOnsiteForm()` 渲染时求值正确；N02/N04/N07 正确;N03/N05 `EChart` 带 `notMerge`，option 驱动全量重绘成立；N08「main 上 weather 0 命中」独立复核属实；`pnpm test` 85 passed 复跑属实；文档回填合规（只标 fix 未越权 pass）。**发现 2 中 2 低**：① 🟡 `content/_content-form.tsx:132,142` 残留 `placeholder:text-[#C0C4CC]`、`:165` `text-[#374151]`——本提交已改此文件却漏了同族硬编码，`text-[#374151]` 深色下深字压深底，就落在 N02 同一张编辑页；② 🟡 `use-dark-mode.ts` `getServerSnapshot` 恒 false → 深色用户硬刷新时后台图表首帧按浅色 palette 画一帧再翻深（passive effect 后才纠正），属 N03/N05 同类的一帧残留，需在 issue 文档记为已知残留并由测试真机确认是否可感知；③ 🔵 `admin-chart-palette.ts` `splitLine` 字段无任何消费者（应删或接线）；④ 🔵 `mapBorder` 注释称 `= --border` 但 LIGHT 值实为 `#FFFFFF`（沿旧设计），注释失实。另:`(admin)` 下 `system/page.tsx:82`、`riskcontrol/blacklist/_action-buttons.tsx:32`、`content/activities/*` 等 7 处同族硬编码 hex 超出本轮 issue 范围,建议登记待办不必本轮修 | 深审:code-reviewer 独立过一遍 + 评审逐项核 diff/token/EChart/时区/文档 |
 | r2b | 2026-07-28 | 修复 | 逐条修复 | 6 条 `fix`，N08 阻塞挂起，N06 归人工 | 分支 `main-fixer_A`。N01 模块作用域日期改渲染时求值；N02 编辑器三处硬编码改 token；N03/N05 新建 `admin-chart-palette` 收口后台图表双主题取色；N04 补 `color-scheme`；N07 取数时刻改读上游响应头 `Date`。新增 15 条单测（`form-state.test.ts` / `fetched-at.test.ts` / `theme-tokens.test.ts`），`pnpm test` 85 passed、`lint` / `tsc --noEmit` / `build` 全过 |
-| r5 | 2026-07-29 | 测试 | 真机 CDP 复验 | **N01/N02/N03/N05 全部 → `pass`**；tooltip 待人工项一并解决；**新立 N10**；回归扫描 4/10 路由后 CDP 掉线未竟 | Windows Chrome 150 经 WireGuard，走 UI 真登录 |
+| r5 | 2026-07-29 | 测试 | 真机 CDP 复验 | **N01/N02/N03/N05 全部 → `pass`**；tooltip 待人工项一并解决；**新立 N10 / N11**（N11 为人工报出后本方核实定位）；回归扫描 4/10 路由后 CDP 掉线未竟 | Windows Chrome 150 经 WireGuard，走 UI 真登录 |
 | r4 | 2026-07-29 | 测试 | 跨天复验 | **N01 冻结确已解除**（同进程零重启跨日历日，SSR 日期跟到 7 月 29 日）；N01 服务端行为全部通过，仅剩浏览器侧两项 | 复用 r3 未动的 docker 栈 |
 | r3 | 2026-07-28 | 测试 | 复验（`main` @ `6d27afa`） | **N04 / N07 → `pass`**；N01 服务端部分通过；N02 结构通过；**N01/N02/N03/N05 因 CDP 真机不可达停在 `fix`**；**新立 N09** | 环境见下方「r3 复验环境」 |
 | r2 | 2026-07-28 | 测试 | 派工 | N01–N05 / N07 / N08 共 7 条经人工批准，一次性交**修复方**（N06 除外，单独交人工定分支策略） | mesh note `6dc7e86f` |
