@@ -417,7 +417,7 @@ DIV  class="flex flex-wrap items-center gap-0.5 border-b border-border bg-[#FAFA
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | 🆕 |
+| 状态 | 🛠️ `fix`（r6 修复方，待测试真机复验） |
 | 页面 | `/analytics/heatmap` 「时段 × 星期预约热力」 |
 | 复现 | 稳定，**浅色 / 深色两种主题下均复现** |
 
@@ -429,13 +429,32 @@ DIV  class="flex flex-wrap items-center gap-0.5 border-b border-border bg-[#FAFA
 
 **证据**：`docs/issues/assets/round-01-N10-色阶条压住X轴刻度.png`（浅色态，问题同样存在于深色）
 
+**r6 修复（修复方，2026 年 7 月 29 日）**：色阶条**改为竖排在绘图区右侧的留白里**，与 X 轴刻度彻底分处不同区域。
+
+- 改动只有布局两处（`app/src/lib/ui/screen/charts/Heatmap724.tsx`，位置常量抽到 `charts/heatmap-layout.ts`）：
+  `grid` 由 `{right:16, bottom:64}` 改为 `{right:64, bottom:32}`；`visualMap` 由 `horizontal / left:center / bottom:8` 改为 `vertical / right:12 / top:middle`。配色、tooltip、数据、`useMounted` 占位逻辑均未动。
+- **同一处布局也在大屏三块热力图上**（`/screen/heatmap`、`/screen/poster`、`/screen/command` 复用同一组件），几何缺陷同样存在（见下表实测），故一次改在组件里，大屏一并修好。
+- **验证方式**：缺陷是纯几何、读源码看不出来，故用 **echarts 的 SSR 模式在 node 里把图真渲染成 SVG，解析 `<text>` 坐标做碰撞检测**（各调用点真实画布尺寸 + 两个极端容器共 6 组），新增守卫单测 `app/src/lib/ui/screen/charts/heatmap-layout.test.ts`（7 条）。判据取「**留白** ≥ 6px」而非「不相交」——r1 那张截图里端点数值与「10时」严格算并未相交、只差几像素，肉眼已经糊成一团。
+- **回归自证**：把布局常量临时退回旧值，该守卫在后台画布上报出的正是本条现象 —— `10时 × 0`、`12时 × 62`；大屏三块与窄容器另报 3 组重叠。改回新值后 6 组画布全部 0 重叠、0 越界。
+
+| 画布 | 尺寸 | 旧布局 | 新布局 |
+|---|---|---|---|
+| 后台 `/analytics/heatmap` | 1150×340 | `10时 × 0`、`12时 × 62` 重叠 | 0 重叠 |
+| 大屏 `/screen/heatmap` | 1600×620 | `10时 × 0`、`12时 × 62` 重叠 | 0 重叠 |
+| 大屏 `/screen/poster` | 760×280 | `8时 × 0`、`14时 × 62` 重叠 | 0 重叠 |
+| 大屏 `/screen/command` | 900×270 | 无重叠（该宽度下恰好错开） | 0 重叠 |
+| 窄容器 | 520×300 | `6时 × 0`、`14时 × 62` 重叠 | 0 重叠 |
+| 矮容器 | 900×200 | 无重叠 | 0 重叠 |
+
+自检：`pnpm test` **95 passed**（原 88 + 新增 7）、`pnpm lint` 0 error（3 条既有 warning）、`pnpm exec tsc --noEmit` 通过、`pnpm build` 通过。**未跑真机 CDP**（真机验收归测试方），像素级观感请测试方在浅/深两主题下各截一张复核。
+
 ---
 
 ### N11 🟡 中 · 停车场 4 个全部「未配置坐标，未上图」，`/traffic/parking` 的地图上一个点都没有（人工报，r5 核实）
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | 🆕 |
+| 状态 | 🛠️ `fix`（r6 修复方，待测试真机复验）|
 | 页面 | `/traffic/parking` 「停车场动静态上图」 |
 | 来源 | 人工在真机上发现并报出（2026 年 7 月 29 日），本验收方核实并定位根因 |
 | 复现 | 稳定，**开箱即复现** |
@@ -486,6 +505,45 @@ lot 对象也只有 `{name, capacity, occupied, status}`，从未提供 lng/lat�
 
 **期望**：① 给 4 个停车场补上真实坐标（或明确改用 POI 那套命名）；② 顺带确认上图后的标点、状态配色、`余位/总数` 标签是否正确 —— 这部分我在有坐标之后才能验。
 
+**r6 修复（修复方，2026 年 7 月 29 日）**：按测试方指示**沿用现有 4 个名字补坐标**（不与 POI 那套合并，命名正本待人工定夺），改动只在 `app/prisma/seed.ts` 的停车场段：
+
+| 停车场 | 坐标（GCJ-02，同 POI 一套坐标系） | 摆位依据 |
+|---|---|---|
+| 西门停车场 | 103.606091, 30.241226 | 西北山脚主入口（景区大门 103.608694,30.239728）西侧，与 POI「1号停车场」错开 |
+| 游客中心地下车库 | 103.610700, 30.238230 | 与 POI「游客中心」（103.610495,30.238529）同址 |
+| 主峰临时停车场 | 103.616100, 30.230100 | 主峰观景台（103.614699,30.228734）东北侧半山服务道 |
+| 东门生态停车场 | 103.623500, 30.233200 | 园区东侧山脚，半山休憩亭（103.620705,30.230741）以东 |
+
+⚠️ 这四个是**按既有 POI 园区骨架推的演示级坐标，不是实测点位**——种子数据本就是演示数据，真实点位需景区提供；若人工定下 POI 那套命名为正本，这批要一并重来。
+
+- 同时把 `location` 由「= 停车场名字」改为真实位置描述（原先 `location` 传的是 `lot.name`，页面「位置」一栏等于重复了一遍名称）。**这是本条之外的顺手改动，请评审/测试注意这一处观感变化。**
+- **`ON CONFLICT` 一并覆盖 `coordinates`/`location`**：否则已建库里那 4 行坐标仍是 NULL，改了 seed 也补不上。
+
+**真实数据库验证**（另起一次性 `postgres:18` 容器，**未碰测试方在跑的栈**，验完即删）：
+
+| 路径 | 做法 | 结果 |
+|---|---|---|
+| 全新库 | `prisma migrate deploy` → `pnpm db:seed` | 4 行 `coordinates` 全部写入，如 `{"lat": 30.241226, "lng": 103.606091}` ✔️ |
+| 已有库（模拟本轮现场：坐标置 NULL） | 重跑 seed 的停车场段 | 4 行**全部被 `ON CONFLICT DO UPDATE` 回填** ✔️ |
+
+⚠️ **给复验的一条提醒（与本修复无关的既有性质）**：`prisma/seed.ts` **整体不可重复执行** —— 在已 seed 过的库上重跑，会先在 `booking_slot` 撞唯一键 `(date,start_time)` 失败（`seed.ts:80` 的 INSERT 无 `ON CONFLICT`），**根本走不到停车场那段**。所以现有 QA 栈**不能靠重跑 `pnpm db:seed` 拿到坐标**，二选一：
+
+1. 用全新库（或 `TRUNCATE booking_slot CASCADE` 后再 seed —— 实测这样可跑通，坐标即回填）；
+2. 或直接执行一条 SQL：
+
+```sql
+UPDATE traffic_parking_lot SET coordinates = c.coord::jsonb, location = c.loc FROM (VALUES
+  ('西门停车场',       '{"lng":103.606091,"lat":30.241226}', '西北山脚主入口西侧,进山公路旁'),
+  ('游客中心地下车库', '{"lng":103.6107,"lat":30.23823}',    '游客中心地下一层'),
+  ('主峰临时停车场',   '{"lng":103.6161,"lat":30.2301}',     '主峰观景台东北侧半山服务道'),
+  ('东门生态停车场',   '{"lng":103.6235,"lat":30.2332}',     '园区东侧山脚东门外')
+) AS c(name, coord, loc) WHERE traffic_parking_lot.name = c.name;
+```
+
+**守卫单测**：`app/src/modules/traffic/domain/parking-seed.test.ts`（7 条）——读 `seed.ts` 里的停车场清单，用**页面/表单实际走的那个 `createParkingLotSchema`** 校验坐标，并核对经纬度落在园区范围内（中心 103.6147,30.2317 ±0.05°，经纬写反或少写一位都会掉出去）、四点不重合、SQL 列清单含 `coordinates` 且 `ON CONFLICT` 覆盖它。
+
+自检：`pnpm test` **102 passed**、`pnpm lint` 0 error、`tsc --noEmit`、`pnpm build` 全过。**未跑真机 CDP**——上图后的标点位置、状态配色、「余位/总数」标签仍需测试方在真机上验（这正是本条一直没法验的那部分）。
+
 ---
 
 ## 二、需人工验证（本验收方不下结论）
@@ -524,6 +582,7 @@ lot 对象也只有 `{name, capacity, occupied, status}`，从未提供 lng/lat�
 |---|---|---|---|---|---|
 | r8 | 2026-07-29 | 评审 | code review（N11 修复） | **clean（可合并，附 1 条收尾要求）**——`main-fixer_A` @ `96d31b4`。核实:`createParkingLotSchema` 坐标形状与页面 `toCoord`/表单/actions 三处 `{lng,lat}` 一致;`traffic.prisma` `name @unique` 支撑 `ON CONFLICT (name)`;四个坐标与 seed 内 POI 骨架数值逐一对得上、均落园区中心 ±0.01° 内、两两不重合;`booking_slot` 段(seed.ts:80 附近)确无 `ON CONFLICT`,「seed 不可重复执行、走不到停车场段」说法属实;`pnpm test` 102 passed 复跑属实;N10/N11 只标 `fix` 合规。**两处请示的裁定**:① `location` 由「=名字」改位置描述**该带**——同一批种子行、修的正是被复验页面的显示冗余、给老库的 UPDATE SQL 同步覆盖了它、issue/commit 均已透明留痕,不构成夹带;② seed 不可重复执行**本轮不修正确**(动 slot 播种会牵动已验收数据),但该性质只活在 N11 条目里会随本轮关单而失踪——**收尾要求:在 `docs/待办清单.md` 登记独立一行**(如「seed.ts 不可重复执行,booking_slot 无 ON CONFLICT」,指回 N11),与 squash 合并同批带出。演示级坐标非实测点位、命名正本待人工,均已如实声明 | 核查:schema/唯一约束/POI 数值/复跑单测/文档纪律 |
 | r7 | 2026-07-29 | 评审 | code review（N10 修复） | **clean（可合并）**——`main-fixer_A` @ `66ad7d2`。核实:布局改动仅两处常量（`heatmap-layout.ts`,组件内配色/tooltip/`useMounted` 确未动）;`pnpm test` 95 passed 复跑属实;**守卫有效性独立自证**——评审在 node 里用**旧布局常量**重跑同口径 SSR 碰撞检测,报出结果与修复方 r6 表逐格一致（后台 `10时×0`/`12时×62`、poster `8时×0`/`14时×62`、command/矮容器无重叠、窄容器 `6时×0`/`14时×62`）,证明该守卫捉得住原缺陷而非恒绿;`HEATMAP_GRID.right(64) ≥ visualMap.right(12)+24` 余量断言合理。**范围扩到大屏三块判断成立**:同一组件同一几何,poster/heatmap 画布实测同样重叠,组件内一次修好优于给后台开特例;大屏竖排色阶条的观感变化按 r6 所注留待测试真机复看。状态回填合规（N10 标 `fix` 未越权 `pass`）。可按流程收尾:squash 合并 + push 后通知测试复验 | 抽验脚本存 scratchpad(session 级,结论以本行与守卫单测为准) |
+| r6 | 2026-07-29 | 修复 | 据 r5 新立 N10 + 人工报 N11 修改 | **N10 / N11 → `fix`**（待测试真机复验） | 色阶条改竖排右侧：`Heatmap724.tsx` 的 `grid` `{right:16,bottom:64}`→`{right:64,bottom:32}`、`visualMap` `horizontal/bottom:8`→`vertical/right:12/top:middle`，位置常量抽到 `charts/heatmap-layout.ts`；同组件驱动的大屏三块热力图（heatmap/poster/command）几何缺陷同源，一并修好。新增守卫单测 `heatmap-layout.test.ts`(7 条)：用 echarts SSR 真渲染 SVG + 解析 `<text>` 坐标做碰撞检测，判据取「留白 ≥ 6px」；退回旧布局可复现出本条现象本身(`10时 × 0`/`12时 × 62`)。**N11**：`prisma/seed.ts` 停车场段补 4 个 GCJ-02 坐标（按既有 POI 园区骨架推的演示级坐标，命名沿用现有 4 个、未与 POI 合并，正本待人工定）+ `location` 由「=名字」改为位置描述；`ON CONFLICT` 一并覆盖 `coordinates`/`location`，否则老库补不上。**另起一次性 postgres:18 容器真跑了迁移+seed 验证**（未碰测试方在跑的栈）：全新库 4 行坐标全写入、坐标置 NULL 后重跑全部回填；并发现既有性质 —— seed 整体不可重复执行（`booking_slot` 唯一键，走不到停车场段），已在 N11 条给出两条复验路径。守卫单测 `parking-seed.test.ts`(7 条) 用生产 zod schema 校验种子坐标。合计 `pnpm test` 102 passed / lint 0 error / tsc / build 全过；真机 CDP 未跑（归测试方） |
 | r5 | 2026-07-28 | 评审 | code review 复审 | **clean（可合并）**——`main-fixer_A` @ `7fd54f9`,r3 四项全部核实已改:① `_content-form.tsx` 硬编码清零（`placeholder:text-text-muted` / `text-foreground`,token 均存在）;② 图表浅色首帧未按「记残留」而是直接消除:`useMounted()`（`useSyncExternalStore(subscribeNever,()=>true,()=>false)`）挂载前只渲染等高占位、不初始化 echarts——语义核实:水合首帧服务端/客户端快照同为 false 无 mismatch,水合后补一次渲染按真实主题一次画成;客户端路由跳转时 `getSnapshot()=true` 即刻出图无占位闪动;大屏 `variant="dark"` 早退分支不受影响,`variant="light"` 已无调用方;③ `splitLine` 已删;④ `mapBorder` 注释已更正。超范围 7 处已登记待办清单（`--info` token 存在,建议可行）。`pnpm test` 88 passed 复跑属实、新增 3 条守卫单测;lint/tsc/build 未复跑,以修复方自检为准。唯一遗留:r4 修订行笔误「87 passed」应为 88,请合并收尾时顺手更正 | 深审同 r3 口径:逐项核 diff + 复跑单测 + token/调用方核查 |
 | r4 | 2026-07-28 | 修复 | 据 r3 复审修改 | 4 项全改（含 ② 直接消除，未按"记为残留"处理） | ① `_content-form.tsx` 同族硬编码清零：`placeholder:text-[#C0C4CC]`→`placeholder:text-text-muted`、`text-[#374151]`→`text-foreground`；② 不只记残留——新增 `useMounted()`，后台图表（`Heatmap724` auto 变体 / 行政图）**挂载前只占位、不初始化 echarts**，挂载后按真实主题一次画成，浅色首帧从源头消除（大屏 `variant="dark"` 路径不受影响）；③ 删无消费者的 `splitLine`；④ 更正 `mapBorder` 注释（浅色为白缝，非 `--border`）。另按建议把 `(admin)` 下 7 处超范围同族硬编码登记进 `docs/待办清单.md`。新增 2 条守卫单测（`_content-form` 硬编码清零 / 后台图表挂载前不初始化），`pnpm test` 88 passed、lint / tsc / build 全过 |
 | r3 | 2026-07-28 | 评审 | code review | **issues（需小改后复审）**——修复方 `main-fixer_A` @ `0ecc045`（6 条修复 + 15 条单测）。核心修法全部核实成立：N01 路由为 ƒ Dynamic（`(admin)/layout.tsx:12` 用 `cookies()`）+ `createOnsiteForm()` 渲染时求值正确；N02/N04/N07 正确;N03/N05 `EChart` 带 `notMerge`，option 驱动全量重绘成立；N08「main 上 weather 0 命中」独立复核属实；`pnpm test` 85 passed 复跑属实；文档回填合规（只标 fix 未越权 pass）。**发现 2 中 2 低**：① 🟡 `content/_content-form.tsx:132,142` 残留 `placeholder:text-[#C0C4CC]`、`:165` `text-[#374151]`——本提交已改此文件却漏了同族硬编码，`text-[#374151]` 深色下深字压深底，就落在 N02 同一张编辑页；② 🟡 `use-dark-mode.ts` `getServerSnapshot` 恒 false → 深色用户硬刷新时后台图表首帧按浅色 palette 画一帧再翻深（passive effect 后才纠正），属 N03/N05 同类的一帧残留，需在 issue 文档记为已知残留并由测试真机确认是否可感知；③ 🔵 `admin-chart-palette.ts` `splitLine` 字段无任何消费者（应删或接线）；④ 🔵 `mapBorder` 注释称 `= --border` 但 LIGHT 值实为 `#FFFFFF`（沿旧设计），注释失实。另:`(admin)` 下 `system/page.tsx:82`、`riskcontrol/blacklist/_action-buttons.tsx:32`、`content/activities/*` 等 7 处同族硬编码 hex 超出本轮 issue 范围,建议登记待办不必本轮修 | 深审:code-reviewer 独立过一遍 + 评审逐项核 diff/token/EChart/时区/文档 |

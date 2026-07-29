@@ -4,6 +4,7 @@ import type { EChartsOption } from "echarts";
 import { EChart } from "./EChart";
 import { useDarkMode, useMounted } from "@/lib/ui/use-dark-mode";
 import { adminChartPalette } from "@/lib/ui/charts/admin-chart-palette";
+import { HEATMAP_GRID, HEATMAP_VISUAL_MAP_POS } from "./heatmap-layout";
 
 interface Props {
   /** matrix[dow][hour],dow 0..6,hour 0..23 */
@@ -75,7 +76,7 @@ export function Heatmap724({
   const splitArea = { show: true, areaStyle: pal.splitArea ? { color: pal.splitArea } : undefined };
 
   const option: EChartsOption = {
-    grid: { top: 16, right: 16, bottom: 64, left: 56 },
+    grid: { ...HEATMAP_GRID },
     tooltip: {
       position: "top",
       backgroundColor: pal.tooltipBg,
@@ -104,9 +105,8 @@ export function Heatmap724({
       min: 0,
       max: max ?? Math.max(1, computedMax),
       calculable: true,
-      orient: "horizontal",
-      left: "center",
-      bottom: 8,
+      // 竖排右侧,避开 X 轴刻度(round-01 N10);位置常量见 heatmap-layout
+      ...HEATMAP_VISUAL_MAP_POS,
       textStyle: { color: pal.vmText },
       inRange: { color: pal.range },
     },

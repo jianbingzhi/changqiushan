@@ -325,18 +325,29 @@ async function main() {
     }
 
     // 停车场(B13 验证用)
+    // 坐标同 POI 一套坐标系(GCJ-02),按上面 pois 的园区骨架就近摆位——原先四个全无坐标,
+    // `/traffic/parking` 整页地图 0/4 上图,「上图」这个立身功能从没被看见过(round-01 N11)。
+    // ⚠️ 名称沿用现有四个,未与 POI 里的「1号/2号停车场」合并:景区到底有几个停车场、
+    //    叫什么、哪套是正本,是产品事实,待人工定夺(见 issue N11「顺带发现的不一致」)。
     const lots = [
-      { name: "东门生态停车场", capacity: 300, occupied: 180, status: "OPEN" },
-      { name: "西门停车场", capacity: 200, occupied: 200, status: "FULL" },
-      { name: "主峰临时停车场", capacity: 120, occupied: 45, status: "OPEN" },
-      { name: "游客中心地下车库", capacity: 150, occupied: 0, status: "CLOSED" },
+      // 西北山脚主入口一带(景区大门 103.608694,30.239728 西侧,与 POI 1号停车场错开摆位)
+      { name: "西门停车场", capacity: 200, occupied: 200, status: "FULL", lng: 103.606091, lat: 30.241226, location: "西北山脚主入口西侧,进山公路旁" },
+      // 游客中心(103.610495,30.238529)地下,与其同址
+      { name: "游客中心地下车库", capacity: 150, occupied: 0, status: "CLOSED", lng: 103.610700, lat: 30.238230, location: "游客中心地下一层" },
+      // 主峰观景台(103.614699,30.228734)东北侧半山服务道旁
+      { name: "主峰临时停车场", capacity: 120, occupied: 45, status: "OPEN", lng: 103.616100, lat: 30.230100, location: "主峰观景台东北侧半山服务道" },
+      // 园区东侧山脚,半山休憩亭(103.620705,30.230741)以东
+      { name: "东门生态停车场", capacity: 300, occupied: 180, status: "OPEN", lng: 103.623500, lat: 30.233200, location: "园区东侧山脚东门外" },
     ];
     for (const lot of lots) {
       await pool.query(
-        `INSERT INTO traffic_parking_lot (id,name,capacity,occupied,status,location,updated_at,created_at)
-         VALUES (gen_random_uuid(),$1,$2,$3,$4::"ParkingStatus",$5,NOW(),NOW())
-         ON CONFLICT (name) DO UPDATE SET occupied=EXCLUDED.occupied, status=EXCLUDED.status`,
-        [lot.name, lot.capacity, lot.occupied, lot.status, lot.name],
+        // coordinates 是 jsonb {lng,lat},与表单/页面 toCoord 同形。
+        // ON CONFLICT 一并覆盖 coordinates/location:已建库(坐标为 NULL)重跑 seed 才补得上。
+        `INSERT INTO traffic_parking_lot (id,name,capacity,occupied,status,location,coordinates,updated_at,created_at)
+         VALUES (gen_random_uuid(),$1,$2,$3,$4::"ParkingStatus",$5,$6::jsonb,NOW(),NOW())
+         ON CONFLICT (name) DO UPDATE SET occupied=EXCLUDED.occupied, status=EXCLUDED.status,
+           location=EXCLUDED.location, coordinates=EXCLUDED.coordinates, updated_at=NOW()`,
+        [lot.name, lot.capacity, lot.occupied, lot.status, lot.location, JSON.stringify({ lng: lot.lng, lat: lot.lat })],
       );
     }
 
