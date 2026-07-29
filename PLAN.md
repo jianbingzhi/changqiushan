@@ -14,7 +14,7 @@
 |---|---|---|---|
 | [b-104](docs/plan/b-104-超宽融合指挥总屏实施计划.md) | 超宽融合指挥总屏（3840×1080 · `/screen/command`） | 🛠️ fix | 定稿 5 列版已随 b-105 合入 `main`；换版后 N13/N15 待真机复验 |
 | [b-104b](docs/plan/b-104b-融合大屏-剩余执行清单.md) | 融合大屏 · 剩余执行清单（b-104 未做部分） | 📝 起草 | 随 b-105 合并进入 `main`，本轮补登记；执行另开任务 |
-| [b-105](docs/plan/b-105-单主干合并与收口.md) | `deploy-demo` 全量合回 `main` 与单主干收口 | 🛠️ fix | 承接 ISSUES 的 N06 人工裁决（单主干）；含 N08、CI 触发分支、分支退役。T6.4 删 `deploy-demo` 分支⏸ 待人工确认 worktree 占用 |
+| [b-105](docs/plan/b-105-单主干合并与收口.md) | `deploy-demo` 全量合回 `main` 与单主干收口 | 🛠️ fix | T1–T6.3 已完成并合回 `main`（`aeb8ac3`，双推，CI 全绿；code review r7 clean）。待测试方真机验收（T5.4：新版指挥屏复验 N13/N15 + N08 两屏口径 + 三态）。T6.4 删 `deploy-demo` 分支⏸ 待人工确认 worktree 占用 |
 
 ## 历史计划（暂存 `.claude/plan/`，⏳ 待迁移 `docs/plan/`）
 
