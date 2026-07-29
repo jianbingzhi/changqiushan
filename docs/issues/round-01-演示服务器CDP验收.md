@@ -568,7 +568,7 @@ UPDATE traffic_parking_lot SET coordinates = c.coord::jsonb, location = c.loc FR
 | 「未配置坐标，未上图」出现次数 | **0**（原为 4）✔️ |
 | 地图标点 | **4 个全部上图**，标签「名称 余位/总数」正确 ✔️ |
 | 状态配色 | 主峰临时 = **绿**（OPEN）、游客中心地下 = **橙**（CLOSED）、西门 = **红**（FULL），与图例「开放 / 已满 / 关闭」一致 ✔️ |
-| 标签深色适配 | 文字 `rgb(232,239,227)`、背景透明，深色地图上可读 ✔️ |
+| ~~标签深色适配~~ | ⚠️ **此项当时判错，见 N14** —— 我量的是标签内层 `<span>`（透明底），**没量 AMap 的外层容器 `.amap-marker-label`**（白底 + 蓝边）。外层才是肉眼看到的那个白盒子。本条其余各项不受影响。 |
 | 「位置」栏 | 已由「= 停车场名字」改为真实位置描述（如「西北山脚主入口西侧,进山公路旁」），不再重复名称 ✔️ |
 | 右侧列表 / 汇总 | 总车位 770、当前占用 425、剩余 345、满场 1，与 DB 一致 ✔️ |
 
@@ -694,6 +694,35 @@ TypeError: Cannot read properties of null (reading 'length')
 
 ---
 
+### N14 🟡 中 · 停车场地图标点标签是**白底白字**，几乎读不出来（r10 撞见，含本验收方 r9 的一处错判更正）
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | 🆕 |
+| 页面 | `/traffic/parking` 「停车场动静态上图」深色主题 |
+| 复现 | 稳定，4 个标点全中 |
+
+**现象**：地图上 4 个停车场标点的文字标签，是**白色方块 + 蓝色边框**，里面的文字是近白色 —— 白底白字，实际几乎不可读；且在深色地图上是 4 块刺眼亮斑。
+
+**实测**（`.amap-marker-label` 外层容器的 computed style，4 个标点完全一致）：
+
+```
+background-color : rgb(255, 255, 255)          ← 纯白底
+color            : rgb(232, 239, 227)          ← 近白色字 → 白底白字
+border           : 0.666667px solid rgb(0,0,255)  ← AMap 默认蓝边，未被样式接管
+size             : 101×27 ~ 150×27
+```
+
+内层 `<span>` 则是 `background: rgba(0,0,0,0)` / `color: rgb(232,239,227)` —— **内层已按深色适配过，外层容器漏了**。
+
+**⚠️ 本验收方的错判更正**：r9 复验 N11 时，我在「标签深色适配」一项写的是「文字 `rgb(232,239,227)`、背景透明，深色地图上可读 ✔️」—— **那是量错了元素**：我的选择器命中的是内层 `<span>`，而肉眼看到的白盒子是外层 `.amap-marker-label`。r9 的第一张截图里其实已经能看出白盒子，我当时以测得的数值为准、没有以图为准，判成了通过。**这是我的判断失误，不是修复方的问题。** N11 本身（补坐标 → 上图 → 状态配色）仍然成立，`pass` 不撤；标签样式作为独立缺陷另立本条。
+
+**期望**：`.amap-marker-label` 走深色语义 token（深底 + 浅字 + 深色描边或无边），或直接改用自定义 marker content 接管样式，去掉 AMap 默认的白底蓝边。
+
+**证据**：`docs/issues/assets/round-01-N14-停车场标签白底白字.png`
+
+---
+
 ## 二、需人工验证（本验收方不下结论）
 
 | 项 | 原因 |
@@ -738,6 +767,7 @@ TypeError: Cannot read properties of null (reading 'length')
 | r4 | 2026-07-28 | 修复 | 据 r3 复审修改 | 4 项全改（含 ② 直接消除，未按"记为残留"处理） | ① `_content-form.tsx` 同族硬编码清零：`placeholder:text-[#C0C4CC]`→`placeholder:text-text-muted`、`text-[#374151]`→`text-foreground`；② 不只记残留——新增 `useMounted()`，后台图表（`Heatmap724` auto 变体 / 行政图）**挂载前只占位、不初始化 echarts**，挂载后按真实主题一次画成，浅色首帧从源头消除（大屏 `variant="dark"` 路径不受影响）；③ 删无消费者的 `splitLine`；④ 更正 `mapBorder` 注释（浅色为白缝，非 `--border`）。另按建议把 `(admin)` 下 7 处超范围同族硬编码登记进 `docs/待办清单.md`。新增 2 条守卫单测（`_content-form` 硬编码清零 / 后台图表挂载前不初始化），`pnpm test` 88 passed、lint / tsc / build 全过 |
 | r3 | 2026-07-28 | 评审 | code review | **issues（需小改后复审）**——修复方 `main-fixer_A` @ `0ecc045`（6 条修复 + 15 条单测）。核心修法全部核实成立：N01 路由为 ƒ Dynamic（`(admin)/layout.tsx:12` 用 `cookies()`）+ `createOnsiteForm()` 渲染时求值正确；N02/N04/N07 正确;N03/N05 `EChart` 带 `notMerge`，option 驱动全量重绘成立；N08「main 上 weather 0 命中」独立复核属实；`pnpm test` 85 passed 复跑属实；文档回填合规（只标 fix 未越权 pass）。**发现 2 中 2 低**：① 🟡 `content/_content-form.tsx:132,142` 残留 `placeholder:text-[#C0C4CC]`、`:165` `text-[#374151]`——本提交已改此文件却漏了同族硬编码，`text-[#374151]` 深色下深字压深底，就落在 N02 同一张编辑页；② 🟡 `use-dark-mode.ts` `getServerSnapshot` 恒 false → 深色用户硬刷新时后台图表首帧按浅色 palette 画一帧再翻深（passive effect 后才纠正），属 N03/N05 同类的一帧残留，需在 issue 文档记为已知残留并由测试真机确认是否可感知；③ 🔵 `admin-chart-palette.ts` `splitLine` 字段无任何消费者（应删或接线）；④ 🔵 `mapBorder` 注释称 `= --border` 但 LIGHT 值实为 `#FFFFFF`（沿旧设计），注释失实。另:`(admin)` 下 `system/page.tsx:82`、`riskcontrol/blacklist/_action-buttons.tsx:32`、`content/activities/*` 等 7 处同族硬编码 hex 超出本轮 issue 范围,建议登记待办不必本轮修 | 深审:code-reviewer 独立过一遍 + 评审逐项核 diff/token/EChart/时区/文档 |
 | r2b | 2026-07-28 | 修复 | 逐条修复 | 6 条 `fix`，N08 阻塞挂起，N06 归人工 | 分支 `main-fixer_A`。N01 模块作用域日期改渲染时求值；N02 编辑器三处硬编码改 token；N03/N05 新建 `admin-chart-palette` 收口后台图表双主题取色；N04 补 `color-scheme`；N07 取数时刻改读上游响应头 `Date`。新增 15 条单测（`form-state.test.ts` / `fetched-at.test.ts` / `theme-tokens.test.ts`），`pnpm test` 85 passed、`lint` / `tsc --noEmit` / `build` 全过 |
+| r10 | 2026-07-29 | 测试 | 完整回归扫描 | **补跑 r5 未竟部分:24 后台路由 + 9 大屏全量**。核心结论「**没有第二个 N13**」;N13 影响面确定为 3 块屏、其余 6 块 clean;**新立 N14**(含本方 r9 一处错判更正);6 条误报 + 1 条已登记项已甄别 | 见「六、r10 完整回归扫描」 |
 | r9 | 2026-07-29 | 测试 | 真机复验（`main` @ `2d68067`） | **N10 / N11 → `pass`**；**新立 N12 🔵 / N13 🔴**；N13 经 git -S + 父提交 A/B 双向印证为 `6d27afa` 引入的回归，并附本方 r5 漏检自述 | 镜像重建 + 老库走 UPDATE 补坐标 |
 | r5 | 2026-07-29 | 测试 | 真机 CDP 复验 | **N01/N02/N03/N05 全部 → `pass`**；tooltip 待人工项一并解决；**新立 N10 / N11**（N11 为人工报出后本方核实定位）；回归扫描 4/10 路由后 CDP 掉线未竟 | Windows Chrome 150 经 WireGuard，走 UI 真登录 |
 | r4 | 2026-07-29 | 测试 | 跨天复验 | **N01 冻结确已解除**（同进程零重启跨日历日，SSR 日期跟到 7 月 29 日）；N01 服务端行为全部通过，仅剩浏览器侧两项 | 复用 r3 未动的 docker 栈 |
@@ -764,3 +794,46 @@ TypeError: Cannot read properties of null (reading 'length')
 **测试环境配置文件**：`app/docker-compose.qa.yml`（测试专用 override，随本轮提交）。内含三件事：① 端口重映射；② 一次性 `seeder` 服务（复用 Dockerfile 的 `build` 阶段跑迁移/seed —— 运行镜像里没有 `scripts/` 也没有 prisma CLI 与 tsx，初始化做不了）；③ 为本机重新开启容器 IPv6（见 N09）。
 
 **未能完成的部分**：CDP 真机浏览器不可达（10.7.0.2 无响应），N01 的水合/深色副作用与 N02/N03/N05 的深色目视全部挂起，等真机恢复后继续。
+
+---
+
+## 六、r10 完整回归扫描（2026 年 7 月 29 日）—— 补跑 r5 未竟部分
+
+r5 的深色回归扫描只跑到 4/10 路由就因 CDP 掉线中断，**N13 正是那次漏扫漏掉的**。本轮把范围扩到**全量**：从代码枚举出的 **24 个后台静态路由 + 9 块大屏**，逐个检查「未捕获异常 / console error / 空白 canvas / 深色下浅色块 / 滞留加载中 / 错误文案 / 内容异常」。
+
+### 核心结论：**没有第二个 N13**
+
+24 个后台路由 **0 条未捕获异常、0 条 console error**；唯一成规模的 canvas 空白问题就是已立的 N13，且**边界清晰**。
+
+### 大屏 9 块（免登录，结果直接有效）
+
+| 屏 | 结果 |
+|---|---|
+| `/screen/command` | ❌ 空白 canvas ×1 + 异常 ×1（= **N13**）；同页另 7 个 canvas 绘制率 60%/7%/4%/10%/10%/22% 正常 |
+| `/screen/heatmap` | ❌ 空白 canvas ×1 + 异常 ×1（= **N13**，整屏主面板） |
+| `/screen/poster` | ❌ 空白 canvas ×1 + 异常 ×1（= **N13**）；同页另一 canvas 8% 正常 |
+| `/screen` · `/screen/operation` · `/screen/overview` · `/screen/situation` · `/screen/trend` · `/screen/twin` | ✅ **6 块全 clean**，无异常、无空白 canvas |
+
+→ **N13 的影响面就是这 3 块，其余 6 块干净。**
+
+### 后台 24 个路由
+
+**16 个完全 clean**：`/` · `/analytics/heatmap`（canvas 57%/78%/1%）· `/analytics/profile` · `/analytics/source`（10%）· `/analytics/traffic` · `/booking/bookings` · `/booking/channels` · `/booking/onsite` · `/booking/quota-rules` · `/booking/slots` · `/content/knowledge` · `/content/news` · `/iot/devices` · `/riskcontrol/blacklist` · `/system` · `/traffic/road`
+
+**8 个被标记，逐条甄别后：1 真、1 已登记、6 误报**
+
+| 路由 | 标记 | 甄别结论 |
+|---|---|---|
+| `/traffic/parking` | 浅色块 ×4 | ✅ **真缺陷 → 已立 N14**（`.amap-marker-label` 白底白字） |
+| `/content/activities` | 浅色块 ×1（`rgb(239,246,255)` = `#EFF6FF`） | 🟡 **已登记**，属 `docs/待办清单.md` 里那 7 处「B36 同族硬编码余项」之一（`content/activities/page.tsx:37`），非新增 |
+| `/content/assets` | 内容过少(360) | ❌ **误报** —— 正常空态：「暂无素材，点击「上传图片素材」添加」，只是种子未造素材数据 |
+| `/content/intro` | 内容过少(388) | ❌ **误报** —— 实有 3 行数据（公园概况 / 主要景点 / 游览路线建议），只是文本短 |
+| `/content/news/new` · `/content/intro/new` · `/content/knowledge/new` · `/content/activities/new` | 内容过少(344–388) | ❌ **误报** —— 都是空表单页（`/content/news/new` 有 36 个表单控件），文本本来就少 |
+
+> 误报根因：我把「文本 < 400 字符」当异常阈值，对**表单页与空态列表页**过于激进。阈值问题，不是缺陷。
+
+### 一次测量事故（如实记录）
+
+首次跑全量扫描时，24 个后台路由**全部**报「内容过少(70) + 浅色块 ×5」。核查发现是**浏览器会话丢失**——CDP 中途掉线过一次（Chrome 重启），会话 cookie 随之失效，所有后台路由被 307 到 `/login`，扫描实际测的是登录页（`rgb(249,250,251)` 正是登录页浅色底，70 字符正是其文本量）。
+
+**这批结果已整体作废、未计入任何缺陷**。重新走 UI 真登录 + 恢复深色后重跑，才得到上表。脚本已加入「URL 落在 `/login` 即判会话丢失、该条作废」的自检，避免同类事故再次被误读成缺陷。
