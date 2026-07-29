@@ -417,7 +417,7 @@ DIV  class="flex flex-wrap items-center gap-0.5 border-b border-border bg-[#FAFA
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | 🛠️ `fix`（r6 修复方，待测试真机复验） |
+| 状态 | ✔️ **pass**（r9 真机复验，浅 / 深两主题，2026 年 7 月 29 日）|
 | 页面 | `/analytics/heatmap` 「时段 × 星期预约热力」 |
 | 复现 | 稳定，**浅色 / 深色两种主题下均复现** |
 
@@ -450,11 +450,24 @@ DIV  class="flex flex-wrap items-center gap-0.5 border-b border-border bg-[#FAFA
 
 ---
 
+**r9 真机复验（测试，2026 年 7 月 29 日）：通过 ✔️ → `pass`**
+
+后台 `/analytics/heatmap`，浅 / 深两主题各截一张：色阶条已改为**绘图区右侧竖排**（「62」在上、「0」在下），与 X 轴时间刻度**彻底分离**；`0时`–`22时` 全部清晰可读，原先被压住的「10时」「12时」恢复正常。两主题表现一致。
+
+同页 console **0 异常**（本次专门抓了，见 N13 的对照）。
+
+**证据**：`docs/issues/assets/round-01-N10-r9-色阶条右侧竖排深色.png`、`round-01-N10-r9-色阶条右侧竖排浅色.png`
+
+> ⚠️ 修复方提示「同组件也驱动大屏三块热力图，请顺带复看」—— 已复看，**大屏侧另有一个独立且更严重的问题（整块空白 + 抛异常），但与本条无关、也不是 N10 引入的**，已单独立 **N13**。本条的几何缺陷在大屏侧同样已修好（就大屏而言无从对比，因为图根本没画出来）。
+
+
+---
+
 ### N11 🟡 中 · 停车场 4 个全部「未配置坐标，未上图」，`/traffic/parking` 的地图上一个点都没有（人工报，r5 核实）
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | 🛠️ `fix`（r6 修复方，待测试真机复验）|
+| 状态 | ✔️ **pass**（r9 真机复验，2026 年 7 月 29 日）|
 | 页面 | `/traffic/parking` 「停车场动静态上图」 |
 | 来源 | 人工在真机上发现并报出（2026 年 7 月 29 日），本验收方核实并定位根因 |
 | 复现 | 稳定，**开箱即复现** |
@@ -546,6 +559,109 @@ UPDATE traffic_parking_lot SET coordinates = c.coord::jsonb, location = c.loc FR
 
 ---
 
+**r9 真机复验（测试，2026 年 7 月 29 日）：通过 ✔️ → `pass`**
+
+复验路径：镜像按 `main` @ `2d68067` 重建 + 重启栈；因本栈已 seed 过（`seed.ts` 整体不可重复执行，见修复方提醒），走修复方给的那条 `UPDATE` SQL，4 行全部命中。
+
+| 检查 | 实测 |
+|---|---|
+| 「未配置坐标，未上图」出现次数 | **0**（原为 4）✔️ |
+| 地图标点 | **4 个全部上图**，标签「名称 余位/总数」正确 ✔️ |
+| 状态配色 | 主峰临时 = **绿**（OPEN）、游客中心地下 = **橙**（CLOSED）、西门 = **红**（FULL），与图例「开放 / 已满 / 关闭」一致 ✔️ |
+| 标签深色适配 | 文字 `rgb(232,239,227)`、背景透明，深色地图上可读 ✔️ |
+| 「位置」栏 | 已由「= 停车场名字」改为真实位置描述（如「西北山脚主入口西侧,进山公路旁」），不再重复名称 ✔️ |
+| 右侧列表 / 汇总 | 总车位 770、当前占用 425、剩余 345、满场 1，与 DB 一致 ✔️ |
+
+**「上图」这个立身功能至此第一次被真正验证过。** 顺带发现两个标点在窄视口下被浮层遮挡，**另立 N12**，不影响本条判定。
+
+**证据**：`docs/issues/assets/round-01-N11-r9-停车场上图通过.png`
+
+---
+
+### N12 🔵 低 · 停车场地图有两个标点被页面自己的浮层卡片压住（≤1440 宽复现，r9 撞见）
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | 🆕 |
+| 页面 | `/traffic/parking` |
+| 复现 | **与视口宽度相关**：≤1440 宽必现，≥1920 宽不现 |
+
+**现象**：N11 补上坐标后 4 个标点都已上图，但默认视野下 **2 个标点被页面自身的浮层卡片遮住**，肉眼只看得见 2 个。
+
+**客观判定**（对每个标点中心点调 `document.elementFromPoint`，看最上层是谁，不靠目视）：
+
+| 标点 | 位置 | 最上层元素 |
+|---|---|---|
+| 西门停车场 0/200 | (309, 89) | **左上「停车场动静态上图」信息卡**（256,80 起，360×101，z-index 20） |
+| 东门生态停车场 120/300 | (1128, 536) | **右侧「停车场数据」面板**（933,80 起，360×708，z-index 20） |
+| 主峰临时停车场 75/120 | — | 未被遮挡 |
+| 游客中心地下车库 150/150 | — | 未被遮挡 |
+
+**分辨率扫描**：
+
+| 视口 | 结果 |
+|---|---|
+| 1324×804 | ❌ 2/4 被遮挡 |
+| **1440×900** | ❌ 2/4 被遮挡 |
+| 1920×1080 | ✅ 4 个全露出 |
+| 2560×1440 | ✅ 4 个全露出 |
+
+**为什么只评 🔵 低**：信息没有丢失 —— 右侧列表完整列出 4 个停车场的全部数据；用户也可以拖动地图把标点拖出来。只是默认视野下地图少露一半，且**用户未必意识到还有标点藏在卡片下面**。
+
+**期望**：地图自适应视野（fitView）时按浮层区域做 padding 内缩，让标点落在未被遮挡的可视区内。
+
+---
+
+### N13 🔴 高 · 三块大屏的热力矩阵**完全空白**并抛未捕获异常 —— 由 `6d27afa` 引入的回归
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | 🆕 |
+| 页面 | `/screen/heatmap`（整屏主面板）、`/screen/poster`、`/screen/command`（「预约分时热力」面板） |
+| 复现 | 稳定，100% |
+| 引入 | **`6d27afa`**（round-01 N01–N07 修复批次里的 N03 echarts 色板重构），**非 N10 的 `2d68067`** |
+
+**现象**：三块大屏上由 `Heatmap724` 驱动的热力矩阵**一格都没画出来**，是整片空白；控制台稳定抛：
+
+```
+TypeError: Cannot read properties of null (reading 'length')
+    at Object.splitArea (…/chunks/12eleds~l~hgd.js)
+    at e.render …
+```
+
+canvas 像素采样：**非透明像素占比 0%**（同页其它图表正常）。`/screen/command` 上除「预约分时热力」面板空白外，趋势线、环形、地图、仪表、条形图均正常渲染。
+
+**为什么是高**：大屏是挂墙指挥屏，整块面板空白且无任何降级提示（不是「待接入」占位，就是纯空），观感等同于系统故障；且波及 3 块屏。
+
+**根因定位**：`Heatmap724.tsx:76`
+
+```ts
+const splitArea = { show: true, areaStyle: pal.splitArea ? { color: pal.splitArea } : undefined };
+```
+
+- **大屏变体** `SCREEN_PALETTE.splitArea = undefined`（`Heatmap724.tsx:31`）→ 传出 `areaStyle: undefined`，把注册主题（`screen/echarts-theme.ts:49`）里本来配好的 `splitArea.areaStyle.color` 显式覆盖成空 → echarts 读 `color.length` 崩。
+- **后台变体** `backstagePalette` 给的是真数组 → 不崩。这正好解释了「同一组件，后台好好的、大屏全崩」。
+
+**归属证据（两路独立印证，排除 N10）**：
+
+1. **git 溯源**：`git log -S` 显示 `areaStyle: pal.splitArea ? … : undefined` 与 `SCREEN_PALETTE.splitArea = undefined` **两处都由 `6d27afa` 引入**；`2d68067`（N10）对该文件的 diff 里这两行是**未改动的上下文行**，只动了 `grid` 与 `visualMap`。
+2. **A/B 实证**：用 `git archive` 取 **N10 的父提交 `8352dcb`** 源码另建镜像，接同一个数据库并排跑（3300 vs 3200）——
+
+   | 实例 | canvas 绘制 | 异常 |
+   |---|---|---|
+   | 父提交 `8352dcb`（N10 **之前**） | 非透明像素 **0%** | **2 条**，同一个 `splitArea` TypeError |
+   | 当前 `main` `2d68067`（N10 **之后**） | 非透明像素 **0%** | **2 条**，同上 |
+
+   → **N10 之前就已经坏了，N10 不是元凶。**（A/B 用的临时容器与镜像验完即删，未碰测试栈。）
+
+**本验收方的漏检自述**：`6d27afa` 是我在 r5 判 `pass` 的那一批。当时我复验了后台 `/analytics/heatmap`（同一组件、后台变体，**确实不崩**），**但没有回头复验 `/screen/*`** —— r5 的深色回归扫描跑到 4/10 个路由时 CDP 掉线，大屏一块都没扫到。**这条是我放过去的，不是修复方隐瞒。** r5 给 N01–N05 的 `pass` 判定本身仍然成立（那些结论都在后台页上独立复核过），但**「共享组件改动要连大屏一起复验」这一条，我漏了**。
+
+**期望**：让大屏变体不要用 `undefined` 去覆盖注册主题的 `splitArea.areaStyle`（例如 `pal.splitArea` 为空时整个不传 `areaStyle` 键，而不是传 `undefined`），并补一条守卫：`Heatmap724` 的**两个变体**都要能在真实渲染下画出非空 canvas。
+
+**证据**：`docs/issues/assets/round-01-N13-大屏热力矩阵空白.png`、`docs/issues/assets/round-01-N13-指挥总屏热力面板空白.png`
+
+---
+
 ## 二、需人工验证（本验收方不下结论）
 
 | 项 | 原因 |
@@ -587,6 +703,7 @@ UPDATE traffic_parking_lot SET coordinates = c.coord::jsonb, location = c.loc FR
 | r4 | 2026-07-28 | 修复 | 据 r3 复审修改 | 4 项全改（含 ② 直接消除，未按"记为残留"处理） | ① `_content-form.tsx` 同族硬编码清零：`placeholder:text-[#C0C4CC]`→`placeholder:text-text-muted`、`text-[#374151]`→`text-foreground`；② 不只记残留——新增 `useMounted()`，后台图表（`Heatmap724` auto 变体 / 行政图）**挂载前只占位、不初始化 echarts**，挂载后按真实主题一次画成，浅色首帧从源头消除（大屏 `variant="dark"` 路径不受影响）；③ 删无消费者的 `splitLine`；④ 更正 `mapBorder` 注释（浅色为白缝，非 `--border`）。另按建议把 `(admin)` 下 7 处超范围同族硬编码登记进 `docs/待办清单.md`。新增 2 条守卫单测（`_content-form` 硬编码清零 / 后台图表挂载前不初始化），`pnpm test` 88 passed、lint / tsc / build 全过 |
 | r3 | 2026-07-28 | 评审 | code review | **issues（需小改后复审）**——修复方 `main-fixer_A` @ `0ecc045`（6 条修复 + 15 条单测）。核心修法全部核实成立：N01 路由为 ƒ Dynamic（`(admin)/layout.tsx:12` 用 `cookies()`）+ `createOnsiteForm()` 渲染时求值正确；N02/N04/N07 正确;N03/N05 `EChart` 带 `notMerge`，option 驱动全量重绘成立；N08「main 上 weather 0 命中」独立复核属实；`pnpm test` 85 passed 复跑属实；文档回填合规（只标 fix 未越权 pass）。**发现 2 中 2 低**：① 🟡 `content/_content-form.tsx:132,142` 残留 `placeholder:text-[#C0C4CC]`、`:165` `text-[#374151]`——本提交已改此文件却漏了同族硬编码，`text-[#374151]` 深色下深字压深底，就落在 N02 同一张编辑页；② 🟡 `use-dark-mode.ts` `getServerSnapshot` 恒 false → 深色用户硬刷新时后台图表首帧按浅色 palette 画一帧再翻深（passive effect 后才纠正），属 N03/N05 同类的一帧残留，需在 issue 文档记为已知残留并由测试真机确认是否可感知；③ 🔵 `admin-chart-palette.ts` `splitLine` 字段无任何消费者（应删或接线）；④ 🔵 `mapBorder` 注释称 `= --border` 但 LIGHT 值实为 `#FFFFFF`（沿旧设计），注释失实。另:`(admin)` 下 `system/page.tsx:82`、`riskcontrol/blacklist/_action-buttons.tsx:32`、`content/activities/*` 等 7 处同族硬编码 hex 超出本轮 issue 范围,建议登记待办不必本轮修 | 深审:code-reviewer 独立过一遍 + 评审逐项核 diff/token/EChart/时区/文档 |
 | r2b | 2026-07-28 | 修复 | 逐条修复 | 6 条 `fix`，N08 阻塞挂起，N06 归人工 | 分支 `main-fixer_A`。N01 模块作用域日期改渲染时求值；N02 编辑器三处硬编码改 token；N03/N05 新建 `admin-chart-palette` 收口后台图表双主题取色；N04 补 `color-scheme`；N07 取数时刻改读上游响应头 `Date`。新增 15 条单测（`form-state.test.ts` / `fetched-at.test.ts` / `theme-tokens.test.ts`），`pnpm test` 85 passed、`lint` / `tsc --noEmit` / `build` 全过 |
+| r9 | 2026-07-29 | 测试 | 真机复验（`main` @ `2d68067`） | **N10 / N11 → `pass`**；**新立 N12 🔵 / N13 🔴**；N13 经 git -S + 父提交 A/B 双向印证为 `6d27afa` 引入的回归，并附本方 r5 漏检自述 | 镜像重建 + 老库走 UPDATE 补坐标 |
 | r5 | 2026-07-29 | 测试 | 真机 CDP 复验 | **N01/N02/N03/N05 全部 → `pass`**；tooltip 待人工项一并解决；**新立 N10 / N11**（N11 为人工报出后本方核实定位）；回归扫描 4/10 路由后 CDP 掉线未竟 | Windows Chrome 150 经 WireGuard，走 UI 真登录 |
 | r4 | 2026-07-29 | 测试 | 跨天复验 | **N01 冻结确已解除**（同进程零重启跨日历日，SSR 日期跟到 7 月 29 日）；N01 服务端行为全部通过，仅剩浏览器侧两项 | 复用 r3 未动的 docker 栈 |
 | r3 | 2026-07-28 | 测试 | 复验（`main` @ `6d27afa`） | **N04 / N07 → `pass`**；N01 服务端部分通过；N02 结构通过；**N01/N02/N03/N05 因 CDP 真机不可达停在 `fix`**；**新立 N09** | 环境见下方「r3 复验环境」 |
