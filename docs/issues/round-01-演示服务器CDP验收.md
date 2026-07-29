@@ -807,6 +807,69 @@ yAxis: { …, axisLabel: axisLabelStyle },                        // 大屏下 =
 
 ---
 
+### N16 🟡 中 · 全站状态徽章写死浅色：深色下是亮片，且对比度低于 WCAG AA（人工报，r14 核实并定范围）
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | 🆕 |
+| 组件 | `app/src/lib/ui/status-chip.tsx`（共享组件，**被 13 个后台页面使用**）|
+| 来源 | 人工在 `/traffic/parking` 上发现「tips 白底绿色的字看不清楚」，本验收方核实后定位到共享组件、并测出实际范围 |
+| 复现 | 稳定，**深浅两种主题下数值完全一致**（= 根本不跟随主题） |
+
+**人工看到的现象**：`/traffic/parking` 右侧面板的「开放 / 已满 / 关闭」状态徽章，白底配绿字/红字，看不清。
+
+**实测对比度**（对每个文字节点向上取到第一个不透明背景，按 WCAG 相对亮度公式算）：
+
+| 徽章 | 文字色 | 背景色 | 对比度 | AA 要求 4.5:1 |
+|---|---|---|---|---|
+| **开放** | `rgb(22,163,74)` | `rgb(240,253,244)` = `#F0FDF4` | **3.15 : 1** | ❌ 不达标 |
+| **已满** | `rgb(220,38,38)` | `rgb(254,242,242)` = `#FEF2F2` | **4.41 : 1** | ❌ 差一点 |
+
+字号 12px，属正文级小字，更依赖对比度。
+
+**关键：不是这一页的问题，是全站的。** 徽章来自共享组件 `status-chip.tsx`，其中：
+
+- **21 个状态条目**，每条写死 `bg` / `text` / `border` 三个 hex；
+- 共 **15 种硬编码色**：`#16A34A` `#2563EB` `#6B7280` `#BBF7D0` `#BFDBFE` `#D97706` `#DC2626` `#E5E7EB` `#EFF6FF` `#F0FDF4` `#F9FAFB` `#FDE68A` `#FECACA` `#FEF2F2` `#FFFBEB`；
+- **零个语义 token** → 深色主题下这些徽章仍是浅底，在深色卡片上是一颗颗亮片；
+- 被 **13 个文件**使用：首页 · `traffic/road` · `traffic/parking` · `iot/devices` · `iot/[deviceId]` · `system` · `booking/bookings` · `booking/slots` · `riskcontrol/blacklist` · `content/_sortable-rows` · `content/news` · `content/activities`。
+
+覆盖的状态文案包括：启用 / 已预约 / 已拉黑 / 熔断中 / 在线 / 离线 / 告警 / 畅通 / 缓行 / 拥堵 等。
+
+**⚠️ 本验收方的探测口径缺陷（自述）**：r10 全量扫描里我的「深色下浅色块」探测器要求 **宽 ≥ 60px 且高 ≥ 20px**，而这些徽章约 40×20px、12px 字，**整批从筛子里漏过去了** —— 24 个后台路由里只报出 2 处，实际有 13 个页面中招。是我的阈值设窄了，不是修复方隐瞒。已在扫描脚本中记下该口径缺陷。
+
+**人工已定修法（2026 年 7 月 29 日）：整表换语义 token**
+
+> 21 个条目全部改走 `bg-success/10` · `text-success` · `border-success/30` 这类语义 token，一次同时解决「深色下是亮片」与「对比度不达标」两个问题，13 个页面同时受益；改动集中在一个文件，风险可控。
+> 明确**不采纳**「只修停车场这一页」——那样另外 12 个页面的徽章仍是亮片，下次换个页面还会再报一次。
+
+**证据**：`docs/issues/assets/round-01-N16-状态徽章深色亮片低对比.png`
+
+---
+
+### N17 🔵 低 · 页面标题「停车场动静态上图」文案生硬（人工提出，文案已定）
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | 🆕 |
+| 类型 | 文案 |
+
+**问题**：「动静态上图」是内部术语（动态/静态数据上图），对使用者不直观。
+
+**人工已定新文案（2026 年 7 月 29 日）：「停车场监控」**
+
+需同步修改 **3 处**（副标题「景区停车场状态监控」保持不变）：
+
+| 位置 | 文件 |
+|---|---|
+| 侧边栏导航项 | `app/src/lib/ui/nav/menu.ts:42` |
+| 页面 metadata 标题 | `app/src/app/(admin)/traffic/parking/page.tsx:6`（`停车场监控 · 长秋山管理后台`）|
+| 地图 KPI 卡标题 | `app/src/app/(admin)/traffic/parking/_parking-map.tsx:89` |
+
+> 另：`app/src/lib/ui/map/fit-view-avoid.ts:4` 的注释里也引用了旧标题，宜一并更新，避免日后检索不到。
+
+---
+
 ## 二、需人工验证（本验收方不下结论）
 
 | 项 | 原因 |
@@ -851,6 +914,7 @@ yAxis: { …, axisLabel: axisLabelStyle },                        // 大屏下 =
 | r4 | 2026-07-28 | 修复 | 据 r3 复审修改 | 4 项全改（含 ② 直接消除，未按"记为残留"处理） | ① `_content-form.tsx` 同族硬编码清零：`placeholder:text-[#C0C4CC]`→`placeholder:text-text-muted`、`text-[#374151]`→`text-foreground`；② 不只记残留——新增 `useMounted()`，后台图表（`Heatmap724` auto 变体 / 行政图）**挂载前只占位、不初始化 echarts**，挂载后按真实主题一次画成，浅色首帧从源头消除（大屏 `variant="dark"` 路径不受影响）；③ 删无消费者的 `splitLine`；④ 更正 `mapBorder` 注释（浅色为白缝，非 `--border`）。另按建议把 `(admin)` 下 7 处超范围同族硬编码登记进 `docs/待办清单.md`。新增 2 条守卫单测（`_content-form` 硬编码清零 / 后台图表挂载前不初始化），`pnpm test` 88 passed、lint / tsc / build 全过 |
 | r3 | 2026-07-28 | 评审 | code review | **issues（需小改后复审）**——修复方 `main-fixer_A` @ `0ecc045`（6 条修复 + 15 条单测）。核心修法全部核实成立：N01 路由为 ƒ Dynamic（`(admin)/layout.tsx:12` 用 `cookies()`）+ `createOnsiteForm()` 渲染时求值正确；N02/N04/N07 正确;N03/N05 `EChart` 带 `notMerge`，option 驱动全量重绘成立；N08「main 上 weather 0 命中」独立复核属实；`pnpm test` 85 passed 复跑属实；文档回填合规（只标 fix 未越权 pass）。**发现 2 中 2 低**：① 🟡 `content/_content-form.tsx:132,142` 残留 `placeholder:text-[#C0C4CC]`、`:165` `text-[#374151]`——本提交已改此文件却漏了同族硬编码，`text-[#374151]` 深色下深字压深底，就落在 N02 同一张编辑页；② 🟡 `use-dark-mode.ts` `getServerSnapshot` 恒 false → 深色用户硬刷新时后台图表首帧按浅色 palette 画一帧再翻深（passive effect 后才纠正），属 N03/N05 同类的一帧残留，需在 issue 文档记为已知残留并由测试真机确认是否可感知；③ 🔵 `admin-chart-palette.ts` `splitLine` 字段无任何消费者（应删或接线）；④ 🔵 `mapBorder` 注释称 `= --border` 但 LIGHT 值实为 `#FFFFFF`（沿旧设计），注释失实。另:`(admin)` 下 `system/page.tsx:82`、`riskcontrol/blacklist/_action-buttons.tsx:32`、`content/activities/*` 等 7 处同族硬编码 hex 超出本轮 issue 范围,建议登记待办不必本轮修 | 深审:code-reviewer 独立过一遍 + 评审逐项核 diff/token/EChart/时区/文档 |
 | r2b | 2026-07-28 | 修复 | 逐条修复 | 6 条 `fix`，N08 阻塞挂起，N06 归人工 | 分支 `main-fixer_A`。N01 模块作用域日期改渲染时求值；N02 编辑器三处硬编码改 token；N03/N05 新建 `admin-chart-palette` 收口后台图表双主题取色；N04 补 `color-scheme`；N07 取数时刻改读上游响应头 `Date`。新增 15 条单测（`form-state.test.ts` / `fetched-at.test.ts` / `theme-tokens.test.ts`），`pnpm test` 85 passed、`lint` / `tsc --noEmit` / `build` 全过 |
+| r14 | 2026-07-29 | 测试 | 人工报缺陷核实 | 人工报「停车场页 tips 白底绿字看不清」+「标题生硬」→ 核实定位:**新立 N16**(状态徽章共享组件写死 15 种浅色 hex、21 条目、13 页面在用,开放 3.15:1 / 已满 4.41:1 均低于 AA)、**N17**(标题文案)。两条修法均已由人工当场拍板 | 含本方探测口径缺陷自述 |
 | r13 | 2026-07-29 | 测试 | 复验（`main` @ `47f3293`） | **N13 → `pass`**（三块大屏 0%→74~85%、异常归零，交替带配色判可用）；**N12 不予 pass**（≥1440 已修，1324×804 仍 2/4 遮挡）；**新立 N15**（大屏缺 Y 轴周次标签，长期缺陷，被 N13 遮住至今） | 镜像重建 + 四档分辨率 + 收起态 |
 | r10 | 2026-07-29 | 测试 | 完整回归扫描 | **补跑 r5 未竟部分:24 后台路由 + 9 大屏全量**。核心结论「**没有第二个 N13**」;N13 影响面确定为 3 块屏、其余 6 块 clean;**新立 N14**(含本方 r9 一处错判更正);6 条误报 + 1 条已登记项已甄别 | 见「六、r10 完整回归扫描」 |
 | r9 | 2026-07-29 | 测试 | 真机复验（`main` @ `2d68067`） | **N10 / N11 → `pass`**；**新立 N12 🔵 / N13 🔴**；N13 经 git -S + 父提交 A/B 双向印证为 `6d27afa` 引入的回归，并附本方 r5 漏检自述 | 镜像重建 + 老库走 UPDATE 补坐标 |
