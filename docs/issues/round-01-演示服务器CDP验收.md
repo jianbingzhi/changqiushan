@@ -1343,6 +1343,41 @@ token 改动确认：浅色 `--text-muted` `#9CA3AF → #5b6472`、`--text-secon
 
 ---
 
+### N21 🟠 中偏高 · compose 的 env 白名单漏了 **25 个键**，其中 2 个 fail-closed 让功能在 docker 路径下从未可用（执行方提出，r23 本方全量清点）
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | 🆕（人工已指示「compose 白名单加」） |
+| 文件 | `app/docker-compose.yml` 的 `app.environment` 块 |
+| 复现 | 稳定，容器内 `printenv` 直接可证 |
+
+**成因**：compose 的 `environment:` 是**显式白名单** —— `.env` 只用于插值 YAML 里出现的 `${VAR}`，**不会**把 `.env` 的每个 key 自动注进容器。执行方在 b-105 里已就 `AMAP_WEATHER_CITY` 踩过一次并写了注释，但只补了那一个。
+
+**全量清点**（代码 `process.env.*` 读取集 ∩ 补集 compose 白名单，已排除 `NEXT_PUBLIC_*` 构建期内联与 `NODE_ENV`/`TZ`）：
+
+> 代码读取 **41** 个 env，compose 白名单 **18** 个，**缺失 25 个**。
+
+**按后果分档**：
+
+| 档 | 键 | 空值时的实际行为 |
+|---|---|---|
+| **🔴 fail-closed，功能直接不可用** | `GATE_API_KEY` | `api/gate/checkin` 判 `if (!GATE_API_KEY \|\| provided !== GATE_API_KEY) → 401`。**实测容器内该接口恒返回 401** —— 即 PRD §0.6 / §1.2 的**闸机核销联动，在 docker 部署路径下从来没有可用过** |
+| | `CRON_SECRET` | `api/cron/refresh-mv` 未配置即 **fail-closed 返回 500**（`.env.example` 标【必填】），物化视图刷新恒失败 |
+| **🟡 静默降级，不报错** | `SCREEN_TOKEN` | 空 = 大屏软门**完全开放**。写进 `.env` 也到不了容器 ⇒ **配了等于没配**，`/screen/*` 永远无门 |
+| | `PARK_INSTANT_CAPACITY` | 红线 4 承载量取值链是「`system_config` → env → 默认 5000」，**env 这一层在 docker 下恒失效**（`system_config` 层可用，r18 已验通熔断，故红线 4 本身不受影响） |
+| | `AI_BASE_URL` `AI_MODEL` `AI_API_KEY` | AI 智能问答（PRD §2.4，**属一期范围**）在 docker 下拿不到 key |
+| | `S3_REGION` `S3_PUBLIC_BASE_URL` `LOG_LEVEL` `VERIFY_APP_URL` `GOTRUE_REFRESH_TOKEN_EXP` | 各自回落缺省，影响面较小 |
+| **⏸ 已由人工暂缓** | `WECHAT_APPID` `WECHAT_SECRET` + `WXPAY_*` ×7 | 微信登录与支付。**人工 2026-07-29 明确「支付先等他死，目前无须推进」** —— 但白名单补齐属**管路修复**，不等于推进支付功能 |
+| **无需补** | `NEXT_RUNTIME`（Next 自设）、`SUPABASE_ANON_KEY` `GOTRUE_JWKS_URL` `DB_POOL_MAX`（Vercel 专用路径） | — |
+
+**为什么评 🟠 中偏高**：单看每个键都是「没配」，但 `GATE_API_KEY` 与 `CRON_SECRET` 是 **fail-closed** —— 意味着这两条链路**不是「等配置」，而是「配了也不通」**，且症状（401 / 500）会把排查引向鉴权或代码，而非 compose 白名单。这与 N09 的「报错文案把人带偏」是同一类陷阱。
+
+**人工裁决（2026 年 7 月 29 日）：「compose 白名单加」** —— 已交修复方。
+
+**期望**：把上表除「无需补」外的键补进 `app.environment`，一律用 `${KEY:-}` 形式（缺省为空，不改变现有行为）；并把执行方那段「本 environment 块是显式白名单」的注释提到块首，避免下一个人再漏。
+
+---
+
 ## 二、需人工验证（本验收方不下结论）
 
 | 项 | 原因 |
