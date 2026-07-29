@@ -1,5 +1,8 @@
-# 推送 deploy-demo 分支(或手动触发)→ 自动部署到演示服务器(自托管 Docker 全栈)。
-# 与 ci-deploy.yml(Vercel)互不干扰:那个看 main,这个看 deploy-demo。
+# 推送 main 分支(或手动触发)→ 自动部署到演示服务器(自托管 Docker 全栈)。
+# 单主干后(b-105:deploy-demo 已全量合回 main 并退役)本工作流改看 main,
+# 并用 paths 过滤把触发面收窄到部署输入集——本工作流第一步就是 tar 打包 app/,
+# 故 docs/、prompts/、UI/、miniprogram/ 的变更对演示机是纯噪声(演示机上跑
+# next build,重建期间站点会抖)。与 ci-deploy.yml(Vercel)互不干扰。
 # 机制:runner checkout 代码 → tar 经 SSH 推到服务器 → 调 remote-setup.sh 幂等部署。
 # 私有库也能部署,服务器无需配 deploy key。
 #
@@ -16,7 +19,10 @@ name: 部署到演示服务器
 
 on:
   push:
-    branches: [deploy-demo]
+    branches: [main]
+    paths:
+      - 'app/**'
+      - '.github/workflows/deploy-demo-server.yml'
   workflow_dispatch:
 
 concurrency:

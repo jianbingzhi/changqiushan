@@ -1,10 +1,14 @@
 # 演示服务器全自动部署
 
-**推送 `deploy-demo` 分支 → GitHub Actions 自动部署到演示服务器**(自托管 Docker 全栈,IP 直连,demo 级)。
+**推送 `main` 分支(且改动落在 `app/**` 下)→ GitHub Actions 自动部署到演示服务器**(自托管 Docker 全栈,IP 直连,demo 级)。
 
 ```
-git push origin deploy-demo        # 触发部署(双推则同时 push jianbingzhi,但只在配了 secrets 的库真部署)
+git push origin main && git push jianbingzhi main   # 触发部署(只在配了 secrets 的库真部署)
 ```
+
+> 单主干后(b-105:`deploy-demo` 已全量合回 `main` 并退役)本工作流改看 `main`,
+> 并用 `paths` 过滤只在 `app/**` 或本工作流文件变更时触发——纯文档提交不再惊动演示机。
+> 想在没碰 `app/` 时手动部署:仓库 → Actions → 「部署到演示服务器」→ Run workflow。
 
 完成后访问(默认经 **Caddy 统一入口 :80**,只需放行 80):
 - 后台 `http://<服务器IP>/login` — 超管 `13900000000` / `Admin@12345`(登录后改密)
@@ -48,7 +52,7 @@ repo → Settings → Secrets and variables → Actions:
 
 ## 幂等与升级
 
-- 反复推 `deploy-demo` 可安全重跑:`.env` 保留(不轮换密钥)、示例数据只灌一次(`/opt/changqiushan/.seeded` 守卫)、`migrate deploy` 每次只应用新增迁移、超管账号每次确保存在。
+- 反复推 `main` 可安全重跑:`.env` 保留(不轮换密钥)、示例数据只灌一次(`/opt/changqiushan/.seeded` 守卫)、`migrate deploy` 每次只应用新增迁移、超管账号每次确保存在。
 - 想重置示例数据:删 `/opt/changqiushan/.seeded` 再部署。
 - 想整库重置:`cd /opt/changqiushan/app && docker compose -p changqiushan down -v`(⚠️ 删数据卷)再部署。
 
@@ -67,4 +71,4 @@ ssh root@<IP> "sudo PUBLIC_HOST=<IP> bash /opt/changqiushan/app/deploy/remote-se
 
 ## 与 Vercel 工作流的关系
 
-`ci-deploy.yml` 看 `main`(Vercel+Supabase 海外演示);本工作流看 `deploy-demo`(自托管)。两者独立,互不触发。最终生产仍应走「阿里云 ECS + 备案域名 + RDS/OSS」,见 `docs/部署-阿里云ECS自托管.md`。
+两者都看 `main`:`ci-deploy.yml` 走 Vercel+Supabase 海外演示,本工作流走自托管演示机(仅 `app/**` 变更触发)。互不干扰。最终生产仍应走「阿里云 ECS + 备案域名 + RDS/OSS」,见 `docs/部署-阿里云ECS自托管.md`。
