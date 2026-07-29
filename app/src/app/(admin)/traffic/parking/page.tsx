@@ -3,7 +3,9 @@ import { formatCnDateTime } from "@/shared/format";
 import { ParkingMap, type ParkingLotView } from "./_parking-map";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "停车场动静态上图 · 长秋山管理后台" };
+// 标题文案 round-01 N17(人工定):「动静态上图」是内部术语,对使用者不直观 → 「停车场监控」。
+// PRD 里那条需求仍叫「停车场动静态上图」(docs/PRD.md),那是需求名,不是给用户看的界面文案。
+export const metadata = { title: "停车场监控 · 长秋山管理后台" };
 
 // lot.coordinates 是 Json 字段({lng,lat}|null),宽松解析,非法值一律置 null(无坐标不上图)。
 function toCoord(value: unknown): { lng: number | null; lat: number | null } {

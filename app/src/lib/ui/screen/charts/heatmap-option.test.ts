@@ -3,6 +3,7 @@ import { describe, it, expect } from "vitest";
 
 import { SCREEN_THEME, ensureScreenTheme } from "../echarts-theme";
 import {
+  DEFAULT_DOW,
   SCREEN_HEATMAP_PALETTE,
   backstageHeatmapPalette,
   buildHeatmapOption,
@@ -97,5 +98,63 @@ describe("N13 根因守卫:splitArea 色值不得为空", () => {
       xAxis: { splitArea?: { areaStyle?: { color?: unknown } } };
     };
     expect(option.xAxis.splitArea?.areaStyle?.color).not.toBe(SCREEN_HEATMAP_PALETTE.splitArea);
+  });
+});
+
+// round-01 N15 防回归:大屏三块热力矩阵的 X 轴刻度正常,Y 轴「周一…周日」七行标签一个都没有,
+// 7 行分不清是哪天。根因与 N13 同源——`yAxis.axisLabel` 被显式赋成 undefined(大屏 axisText 留空),
+// 把注册主题里的 axisLabel 覆盖成空;xAxis 因为写成 `{ interval: 1, ...style }` 展开后仍是对象而幸免。
+//
+// 判据取「标签文字真的出现在渲染产物里」,而不是「option 里那个键长什么样」:
+// N15 的教训正是 option 看着"有配色就传、没配色就不传",结果渲染出来少了一整条轴的字。
+describe("N15 两条轴的刻度标签都必须真渲染出来", () => {
+  it.each(
+    VARIANTS.flatMap(([vName, pal, theme]) =>
+      CANVASES.map(([cName, w, h]) => [`${vName} @ ${cName}`, pal, theme, w, h] as const),
+    ),
+  )("%s:Y 轴七天标签齐全,X 轴刻度也在", (_name, pal, theme, width, height) => {
+    const svg = renderToSVG(pal, theme, width, height);
+    for (const dow of DEFAULT_DOW) {
+      expect(svg, `Y 轴缺「${dow}」`).toContain(dow);
+    }
+    // X 轴:interval:1 隔一个画一个,首刻度必在
+    expect(svg, "X 轴缺「0时」").toContain("0时");
+  });
+
+  it.each(VARIANTS)("%s:axisLabel 键要么带色值、要么是空对象,绝不是 undefined", (_name, pal) => {
+    const option = buildHeatmapOption({ matrix: MATRIX, pal }) as {
+      xAxis: { axisLabel?: unknown };
+      yAxis: { axisLabel?: unknown };
+    };
+    for (const axisLabel of [option.xAxis.axisLabel, option.yAxis.axisLabel]) {
+      expect(axisLabel).toBeDefined();
+      expect(typeof axisLabel).toBe("object");
+    }
+    // 同 splitArea:两条轴不共用同一个对象,免得 echarts 就地 merge 时互相污染
+    expect(option.xAxis.axisLabel).not.toBe(option.yAxis.axisLabel);
+  });
+
+  // 守卫自证:退回缺陷写法(大屏 axisText 为空 → yAxis.axisLabel = undefined)必须让上面那条转红,
+  // 否则这条测试写了也拦不住 N15 再次发生。
+  it("自证:缺陷写法下大屏 Y 轴标签确实消失", () => {
+    ensureScreenTheme();
+    const buggy = {
+      ...buildHeatmapOption({ matrix: MATRIX, pal: SCREEN_HEATMAP_PALETTE }),
+      yAxis: {
+        type: "category" as const,
+        data: DEFAULT_DOW,
+        splitArea: { show: true, areaStyle: { color: [...SCREEN_HEATMAP_PALETTE.splitArea] } },
+        axisLabel: undefined,
+      },
+      animation: false,
+    };
+    const chart = echarts.init(null, SCREEN_THEME, { renderer: "svg", ssr: true, width: 1600, height: 620 });
+    try {
+      chart.setOption(buggy);
+      const svg = chart.renderToSVGString();
+      expect(DEFAULT_DOW.some((d) => svg.includes(d))).toBe(false);
+    } finally {
+      chart.dispose();
+    }
   });
 });

@@ -10,7 +10,7 @@ import { Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { ensureAMap, type AMapNamespace } from "@/lib/amap/loader";
-import { fitViewAvoid } from "./fit-view-avoid";
+import { estimateLabelExtent, fitViewAvoid, type MarkerExtent } from "./fit-view-avoid";
 import { cn } from "@/lib/ui/utils";
 
 export interface AmapMarkerInput {
@@ -67,6 +67,9 @@ const TONE_COLOR: Record<NonNullable<AmapMarkerInput["tone"]>, string> = {
   danger: "var(--danger)",
 };
 
+/** 标签相对标点上移的像素(setLabel offset,也是 fitView 算标签占位时要加回去的那一截) */
+const LABEL_OFFSET_Y = 6;
+
 const MSG_KEY_MISSING = "高德地图 Key 未配置";
 const MSG_LOAD_FAILED = "地图加载失败(请检查网络或高德域名白名单配置)";
 
@@ -83,21 +86,51 @@ function isDarkTheme(): boolean {
 }
 
 /**
- * 量出同层浮层的实际占位,换算成 setFitView 的 avoid 内缩(round-01 N12)。
+ * 量出标点标签的实际占位(round-01 N12 r13):标签 direction=top,以标点为中心向上展开、
+ * 向左右各溢出半个标签宽。取景只按"点"避让的话,边缘那个标点的标签就会溢出地图可视区
+ * (1324×804 下西门那张标签直接跑到左侧导航栏底下去了)。
+ *
+ * 就地量 DOM 为准;首帧标签还没排版出来时按文字估一版兜底(估算刻意偏大,宁可少一点视野)。
+ * 没有标签的调用点(大屏各图、路况页)返回 undefined,取景与本次改动前完全一致。
+ */
+function readMarkerExtent(container: HTMLElement | null, markers: AmapMarkerInput[]): MarkerExtent | undefined {
+  const labels = markers.map((m) => m.label).filter((l): l is string => !!l);
+  if (labels.length === 0) return undefined;
+
+  let side = 0;
+  let above = 0;
+  for (const el of container?.querySelectorAll<HTMLElement>(".amap-marker-label") ?? []) {
+    const r = el.getBoundingClientRect();
+    if (r.width <= 0 || r.height <= 0) continue;
+    side = Math.max(side, r.width / 2);
+    above = Math.max(above, r.height + LABEL_OFFSET_Y);
+  }
+  // side===0 = 一个标签都没量到(首帧还没排版 / jsdom),整份回落到估算,绝不返回 0——那等于回到 N12 缺陷态
+  if (side === 0) return estimateLabelExtent(labels);
+  // below(圆点自身向下那截)不在标签 rect 里,任何时候都取估算值
+  return { ...estimateLabelExtent(labels), side, above };
+}
+
+/**
+ * 量出同层浮层的实际占位,连同标点占位一起换算成 setFitView 的 avoid 内缩(round-01 N12)。
  *
  * 约定:整页地图的浮层(KPI 卡 / 图例 / 右侧数据面板)挂 `data-map-overlay`,且与地图容器同为
  * MapPageShell 的直接子元素;这里就地量 getBoundingClientRect,不写死任何一张卡的尺寸——
  * 卡片高度随内容(KPI 换行、图例条数、面板收起成小浮钮)变,写死必漂。
- * 没有这类浮层时返回 undefined,高德按默认避让取景,其它调用点(大屏各图)行为不变。
+ * 既无浮层也无标签时返回 undefined,高德按默认避让取景,其它调用点(大屏各图)行为不变。
  */
-function readOverlayAvoid(root: HTMLElement | null): [number, number, number, number] | undefined {
+function readFitAvoid(
+  root: HTMLElement | null,
+  container: HTMLElement | null,
+  markers: AmapMarkerInput[],
+): [number, number, number, number] | undefined {
   const shell = root?.parentElement;
   if (!root || !shell) return undefined;
   const overlays = Array.from(shell.querySelectorAll<HTMLElement>("[data-map-overlay]"));
-  if (overlays.length === 0) return undefined;
   return fitViewAvoid(
     root.getBoundingClientRect(),
     overlays.map((el) => el.getBoundingClientRect()),
+    readMarkerExtent(container, markers),
   );
 }
 
@@ -249,7 +282,7 @@ export function AmapContainer({
         marker.setLabel({
           content: `<span style="font-size:12px;line-height:1.6;">${escapeHtml(m.label)}</span>`,
           direction: "top",
-          offset: new ns.Pixel(0, -6),
+          offset: new ns.Pixel(0, -LABEL_OFFSET_Y),
         });
       }
       return marker;
@@ -257,8 +290,9 @@ export function AmapContainer({
     markerObjsRef.current = objs;
     if (objs.length > 0) {
       map.add(objs);
-      // avoid=[上,下,左,右] 内缩,按浮层实测占位算(N12);无浮层时传 undefined,走高德默认避让
-      if (fitView) map.setFitView(objs, false, readOverlayAvoid(rootRef.current));
+      // avoid=[上,下,左,右] 内缩,按浮层 + 标点标签的实测占位算(N12);
+      // 两者都没有时传 undefined,走高德默认避让
+      if (fitView) map.setFitView(objs, false, readFitAvoid(rootRef.current, containerRef.current, list));
     }
   }, [status, markersKey, fitView]);
 

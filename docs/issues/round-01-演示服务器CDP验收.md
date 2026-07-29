@@ -582,7 +582,7 @@ UPDATE traffic_parking_lot SET coordinates = c.coord::jsonb, location = c.loc FR
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | 🛠️ `fix` —— **r13 复验:≥1440 已修好，但 1324×804 仍复现，不予 `pass`** |
+| 状态 | 🛠️ `fix`（r15 复修，待复验） —— r13 复验:≥1440 已修好，但 1324×804 仍复现，不予 `pass` |
 | 页面 | `/traffic/parking` |
 | 复现 | **与视口宽度相关**：≤1440 宽必现，≥1920 宽不现 |
 
@@ -642,6 +642,20 @@ UPDATE traffic_parking_lot SET coordinates = c.coord::jsonb, location = c.loc FR
 **为什么坚持不 pass**：`1324×804` 正是**真实 1440×900 笔记本减去浏览器边框后的可视区**，是很常见的实际使用宽度（我这台真机就是这个尺寸）。fitView 的内缩现在只考虑了地图内部的浮层，**没有考虑标签向容器左侧溢出**。
 
 **给修复方的补充信息**：收起态确实会重算（1324 从 2/4 降到 1/4），说明「仅在标记变化时重算」这点在收起场景下**已经生效**，你原先担心的「收起当下不会自动重新取景」实测不成立，这块不用改。要处理的是**窄视口下标签溢出容器左边缘**。
+
+---
+
+**修复方复修（r15，2026 年 7 月 29 日）**
+
+tester 给的那条线索是决定性的：**西门那张标签是被地图容器之外的侧边栏挡住的**。这说明一轮的修法方向对、但少了一层——上一轮只把标点当成一个**点**去避让浮层，可标点旁边挂着一张 100~150px 宽的标签（`setLabel` direction=`top`，以标点为中心向上展开、向左右各溢出半个标签宽）。标点自己落在安全区边缘时，它的**标签**已经出界了。1920 以上之所以看着好了，只是余量恰好够，不是修好了。
+
+- **几何**：`fitViewAvoid` 增加第三参 `MarkerExtent`（标签相对标点向左右/向上/向下的溢出量），四边在浮层内缩之上**再叠一层标签占位**——标点先躲开浮层，标签还要再往外多占半个标签宽。1324×804 实算 `avoid=[162, 71, 99, 475]`，安全区 510×507。
+- **占位从哪来（不写死）**：`AmapContainer` 就地量渲染出来的 `.amap-marker-label` 的 `getBoundingClientRect`；量不到（首帧还没排版 / jsdom）才回落到按文字估算的 `estimateLabelExtent`，估算刻意取偏大值（中文按 1 个字宽、西文数字按 0.6，实测 4 条标签估出 174px，覆盖 tester 实测的 101~150px 区间）——**估大了只是少一点视野，估小了就是本条原样复发**。
+- **上限改法**：原来是每边各自砍到 `0.4 × 该方向长度`，改成**按轴算总账**：一条轴的两边内缩之和不得超过 `70%`，超了按比例同收（各自砍到上限会把两边的比例关系改掉，反而把标点推回浮层那侧）。
+- **无标签的调用点行为不变**：`readMarkerExtent` 在没有任何 `label` 时返回 `undefined`，`fitViewAvoid` 既无浮层又无标签时仍返回 `undefined`，交回高德默认避让。全仓只有 `/traffic/parking` 传 `label`，大屏三处（command/situation/twin）与 `/traffic/road` 都不传，**取景与本次改动前逐字相同**。
+- **守卫升级**（`fit-view-avoid.test.ts`，26 条）：判据从「安全区不与浮层相交」升级为「**把标点连同它的标签整个框起来，这个框既不许碰浮层、也不许越出地图容器**」，四档分辨率 × 展开/收起两态各验安全区四角。含两条**自证**：① 高德默认避让必须红；② **上一轮那版（只避浮层、不算标签占位）在 1324×804 下必须红** —— 这条直接把 r13 复现的那一幕钉进了测试。
+
+⚠️ **仍需真机复验**：几何算得对不等于观感对。1324×804 下安全区只剩 510×507，地图会比之前更"退得开"一些（缩放级别更小）；请测试方仍按 `document.elementFromPoint` 那套口径逐点扫，并顺带看一眼取景是否过于拉远。
 
 
 ---
@@ -723,7 +737,7 @@ TypeError: Cannot read properties of null (reading 'length')
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | 🆕 |
+| 状态 | 🛠️ `fix`（r15，待复验） |
 | 页面 | `/traffic/parking` 「停车场动静态上图」深色主题 |
 | 复现 | 稳定，4 个标点全中 |
 
@@ -745,6 +759,30 @@ size             : 101×27 ~ 150×27
 **期望**：`.amap-marker-label` 走深色语义 token（深底 + 浅字 + 深色描边或无边），或直接改用自定义 marker content 接管样式，去掉 AMap 默认的白底蓝边。
 
 **证据**：`docs/issues/assets/round-01-N14-停车场标签白底白字.png`
+
+---
+
+**修复方结论（r15，2026 年 7 月 29 日）**
+
+按「让 `.amap-marker-label` 走深色语义 token」这条改。**没有**改用自定义 marker content——那样等于把标签定位/避让也自己实现一遍，为了一层皮换掉高德一整套排版不划算。
+
+在 `globals.css` 里接管外层容器（内层 `<span>` 保持原样，它本来就是对的）：
+
+```css
+.amap-marker-label {
+  background-color: var(--color-popover) !important;      /* 浅 #FFFFFF / 深 #16201A */
+  color: var(--color-popover-foreground) !important;      /* 浅 #1F2937 / 深 #E8EFE3 */
+  border: 1px solid var(--color-border) !important;       /* 高德默认那圈蓝边就此消失 */
+  border-radius: 6px !important; padding: 2px 8px !important;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.35) !important; white-space: nowrap !important;
+}
+```
+
+- **为什么用 `!important`**：高德的样式表是**运行时注入**的，排在 `globals.css` 后面，同特异性下它赢；而这只 `div` 由高德自己创建，我们既设不了内联样式、也不能保证它的祖先类名在 SDK 换版后不变（靠 `.amap-container` 抬特异性就是在赌这一点）。覆盖第三方运行时样式表，`!important` 是这里最稳的写法；仓库内没有第二处样式碰 `.amap-marker-label`，不存在被它压住的风险。
+- **对比度**：深色 `#E8EFE3` on `#16201A` ≈ 13.8:1、浅色 `#1F2937` on `#FFFFFF` ≈ 14.7:1，都远超 AA（原状态 1.17:1）。底色随 `html.dark` 自动切换，深浅两套都不再是亮斑。
+- **与 N12 的耦合**：这条改动会改变标签的实际尺寸（padding 变了），而 N12 的 fitView 内缩要按标签尺寸算——所以 N12 那边取的是**运行时实测的 rect**，不是常数；两条一起改也不会互相拖后腿。
+
+⚠️ 已验构建产物里 `.amap-marker-label` 规则确实生成、`!important` 也在（`pnpm build` 后在输出的 CSS 里核过）；**但真机上高德样式表的实际注入顺序/特异性只能由测试方在浏览器里确认**，请复验时直接读外层容器的 computed `background-color` / `color` / `border`。
 
 ---
 
@@ -774,7 +812,7 @@ size             : 101×27 ~ 150×27
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | 🆕 |
+| 状态 | 🛠️ `fix`（r15，待复验） |
 | 页面 | `/screen/heatmap`（整屏主面板）、`/screen/poster`、`/screen/command` |
 | 复现 | 稳定 |
 | 引入 | **`04b5b6b`（B33 主题参数化）—— 长期存在，比本轮所有修复都早**；此前一直被 N13 的崩溃遮住（图根本不画），N13 修好后才显形 |
@@ -807,11 +845,29 @@ yAxis: { …, axisLabel: axisLabelStyle },                        // 大屏下 =
 
 ---
 
+**修复方结论（r15，2026 年 7 月 29 日）**
+
+tester 的根因定位**逐字采信，且已独立复现**：把 `yAxis.axisLabel` 显式赋成 `undefined`，SSR 渲染出来的 SVG 里七个「周一…周日」一个字都不出现（见下面自证用例）。归属也核过——是 `04b5b6b` 的旧写法被原样搬进新文件的，不是本轮引入。
+
+改法与 `splitArea` 同款，**色值为空时下发 `{}` 而不是 `undefined`**：
+
+```ts
+const axisLabelColor = pal.axisText ? { color: pal.axisText } : {};
+xAxis: { …, axisLabel: { interval: 1, ...axisLabelColor } },
+yAxis: { …, axisLabel: { ...axisLabelColor } },   // 各持一份新对象,不共用引用
+```
+
+- 两条轴各展开成一个**新对象**，理由与 `splitArea` 相同：echarts 就地 merge，共用同一个引用等于两轴互相污染。
+- 文件头那段注释改写成一条通则:**把某个键显式下发成 `undefined`，等于把注册主题配好的值覆盖成空，而不是「什么都没做」**——N13 与 N15 是同一条根因的两次发作，写在这里让下一个人先读到。
+- **守卫按 tester 的期望扩到「两个变体的 X / Y 轴标签都必须真实渲染出来」**（`heatmap-option.test.ts` 新增 3 组、共 33 条）：判据取「标签文字真的出现在渲染产物里」，而不是「option 里那个键长什么样」——N15 的教训正是 option 看着挺合理、渲染出来少了一整条轴的字。覆盖 3 变体 × 4 真实画布，逐个断言七天标签齐全 + X 轴首刻度在。含**自证**：退回 `axisLabel: undefined` 的写法，大屏 Y 轴标签确实全部消失（`DEFAULT_DOW.some(d => svg.includes(d))` 为 `false`）。
+
+---
+
 ### N16 🟡 中 · 全站状态徽章写死浅色：深色下是亮片，且对比度低于 WCAG AA（人工报，r14 核实并定范围）
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | 🆕 |
+| 状态 | 🛠️ `fix`（r15，待复验） |
 | 组件 | `app/src/lib/ui/status-chip.tsx`（共享组件，**被 13 个后台页面使用**）|
 | 来源 | 人工在 `/traffic/parking` 上发现「tips 白底绿色的字看不清楚」，本验收方核实后定位到共享组件、并测出实际范围 |
 | 复现 | 稳定，**深浅两种主题下数值完全一致**（= 根本不跟随主题） |
@@ -847,11 +903,47 @@ yAxis: { …, axisLabel: axisLabelStyle },                        // 大屏下 =
 
 ---
 
+**修复方结论（r15，2026 年 7 月 29 日）**
+
+按人工拍板的「整表换语义 token」改，**21 个条目一个不落**，不做「只修停车场那一页」。
+
+- **21 个状态收敛到 5 个语义色调**（success / warning / danger / info / neutral），配色只在一处定义：
+  `bg-<tone>/10 · text-<tone>-strong · border-<tone>/30`（neutral 走 `bg-muted · text-muted-strong · border-border`）。
+  这套 `bg-*/10 + border-*/30` 的写法与仓库里既有面板（`booking/channels`、`booking/onsite`、`_occupancy-card`）同款，不是新发明的一套。
+  **状态 → 色调的映射逐条对齐旧表的观感**（如 `LOT_CLOSED` 原本是灰、保持灰），本条只改配色来源，不改语义。
+- **为什么另开了 `--*-strong` 这一档 token，而不是直接用 `text-success`**：光换 token 解决不了对比度。实测 `--success`（浅色 `#16A34A`）压在 10% 淡底上只有 **3.30:1**，仍不达 AA——因为同一个 token 要同时当「实底填充」（如顶栏红点徽标 `bg-danger` + 白字，要够亮）和「淡底上的文字」（要够暗），两个诉求相反。
+  直接把 `--success` / `--danger` 改暗会连带打坏那些实底填充处（实算：`--danger` 若按深色需要改亮成 `#F87171`，顶栏白字徽标会掉到 **2.77:1**）。所以新增一档专用于「淡底上的文字」：
+  | | 浅色 | 深色 |
+  |---|---|---|
+  | `--success-strong` | `#166534` | `#4ADE80` |
+  | `--warning-strong` | `#92400E` | `#FBBF24` |
+  | `--danger-strong` | `#B91C1C` | `#F87171` |
+  | `--info-strong` | `#1D4ED8` | `#93C5FD` |
+  | `--muted-strong` | `#4B5563` | `#A8B5AC` |
+- **实测对比度（在各自 10% 淡底上，卡片背景为基准）**：
+
+  | 色调 | 浅色 | 深色 |
+  |---|---|---|
+  | success（开放/在线/畅通/启用/已预约/已发布） | **6.38:1** | **8.09:1** |
+  | warning（待审核/缓行） | **6.38:1** | **8.44:1** |
+  | danger（已满/告警/拥堵/已拉黑/熔断中） | **5.54:1** | **5.53:1** |
+  | info（已核销） | **5.83:1** | **8.23:1** |
+  | neutral（已暂停/已关闭/已取消/离线/草稿/已下线） | **6.87:1** | **7.51:1** |
+
+  最低 5.53:1，全部越过 AA 4.5:1（原状态：开放 3.15、已满 4.41）。
+- **守卫**（新增 `status-chip.contrast.test.ts`，16 条）：**类名从组件源码里读回来、色值回 `globals.css` 取实值现算**，测试里不另抄一份色表（抄一份就会漂，改了组件而测试还绿正是这类缺陷能活下来的原因）。断言四件事：① 组件里不得再出现任何 hex / `bg-[#…]` 任意值 / 内联 `style`；② 5 个色调 × 深浅两主题逐条 ≥ 4.5:1；③ 同一色调在深浅两主题下取到的实际配色必须**不同**（旧版两主题 computed 完全一致 = 根本没跟随主题）；④ **自证**——缺陷版取值（`#16A34A`/`#F0FDF4`、`#DC2626`/`#FEF2F2`）必须算出 < 4.5。
+  另做过一次**变异验证**：把 `--success-strong` 改回 `#16A34A` 跑测试，「浅色 · success」当场转红，确认这条守卫真的连着实值、不是摆设。
+- **影响面**：改动集中在 `status-chip.tsx` + `globals.css` 两个文件，13 个使用页面自动受益，各页面代码一行未动。
+
+⚠️ 复验时建议连 13 个用到 `StatusChip` 的页面一起扫（tester 已说明会把浅色块探测器阈值放到 12×12）。另附一条**本次未动、但同族**的观察：`riskcontrol/blacklist/_action-buttons.tsx`、`content/activities/[id]/{signups,awards}` 里的「驳回 / 撤销公示」按钮仍写死 `border-[#FECACA]`（**按钮不是徽章，不在本条范围内**），深色下同样是浅色描边，建议单独立一条。
+
+---
+
 ### N17 🔵 低 · 页面标题「停车场动静态上图」文案生硬（人工提出，文案已定）
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | 🆕 |
+| 状态 | 🛠️ `fix`（r15，待复验） |
 | 类型 | 文案 |
 
 **问题**：「动静态上图」是内部术语（动态/静态数据上图），对使用者不直观。
@@ -867,6 +959,21 @@ yAxis: { …, axisLabel: axisLabelStyle },                        // 大屏下 =
 | 地图 KPI 卡标题 | `app/src/app/(admin)/traffic/parking/_parking-map.tsx:89` |
 
 > 另：`app/src/lib/ui/map/fit-view-avoid.ts:4` 的注释里也引用了旧标题，宜一并更新，避免日后检索不到。
+
+---
+
+**修复方结论（r15，2026 年 7 月 29 日）**
+
+按人工已定的文案改，3 处 + 1 处注释全部同步（副标题「景区停车场状态监控」按要求保持不变）：
+
+| 位置 | 文件 | 改后 |
+|---|---|---|
+| 侧边栏导航项 | `lib/ui/nav/menu.ts:42` | 「停车场监控」 |
+| 页面 metadata | `app/(admin)/traffic/parking/page.tsx` | 「停车场监控 · 长秋山管理后台」 |
+| 地图 KPI 卡标题 | `app/(admin)/traffic/parking/_parking-map.tsx` | 「停车场监控」 |
+| 注释引用 | `lib/ui/map/fit-view-avoid.ts` | 该文件本轮因 N12 整体重写，已不再引用旧标题 |
+
+**明确没改的地方**：`docs/PRD.md` 与 `docs/B端PRD需求覆盖对照.md` 里的「停车场动静态上图」保留原样——那是**需求名**（PRD 第 51/82 行的建设内容条目），不是给使用者看的界面文案，改掉会让需求追溯对不上号。已在 `page.tsx` 就地写了一行注释说明这层区分，免得下一个人看到两边不一致又"顺手统一"。
 
 ---
 
@@ -905,6 +1012,7 @@ yAxis: { …, axisLabel: axisLabelStyle },                        // 大屏下 =
 | 轮次 | 日期 | 角色 | 类型 | 结论 | 说明 |
 |---|---|---|---|---|---|
 | r16 | 2026-07-29 | 评审 | code review（N12 复修 + N14–N17） | **clean（可合并，附 1 条收尾更正要求）**——`main-fixer_A` @ `a06a292`。**N12 复修**:`MarkerExtent` 叠加避让几何正确(标签左右各半宽、上一标签高;DOM 实测优先、估算兜底刻意偏大、量不到绝不返回 0);「按轴算总账、超限按比例同收」优于各自砍上限(保两边比例关系);无标签调用点(大屏三处 + road)返回 undefined 取景逐字不变已核实;守卫自证②把 r13 那一幕(上一轮版本在 1324×804 必红)钉进测试,验证闭环成立。**N14**:`!important` 决定**认可**——高德样式表运行时注入、排在 globals.css 后,同特异性必输;`.amap-container` 抬特异性是赌 SDK 祖先类名不换版;first-party 单一选择器 + 仓库内无第二处触碰,是此处最稳写法(保持只此一处,勿扩散)。**N15**:与 N13 同根因(键显式下发 undefined = 覆盖注册主题)定性准确,`{}` 替代 undefined + 两轴各持对象正确;r11 我逐行审过同一文件也未识出 yAxis 裸 `axisLabelStyle`,守卫扩到「两变体 X/Y 轴标签必须真渲染出现」正是补上这层。**N16**:`--*-strong` 分档**认可**——「实底填充」与「淡底文字」诉求相反,同 token 双用必顾此失彼;21→5 色调映射逐条对旧表核过语义一致;守卫从组件源码读类名回 globals.css 取实值现算 + 变异验证,设计到位。**N17**:3 处文案 + 注释,PRD 需求名刻意不改,边界正确,grep 全仓无残留。`pnpm test` 177 passed 复跑属实;5 条只标 `fix` 合规。**收尾更正要求(仅文档一句)**:fixer 分支 r15 修订行 N14 处写「选择器带 `.amap-container` 抬特异性,免用 `!important`」——与代码及 N14 正文相反(实际为裸 `.amap-marker-label` + `!important`),属旧稿残留,squash 前改正,免得留下一条与代码相反的留痕 | 核查:几何/调用面/token 映射/守卫自证/文案残留 + 复跑 177 单测 |
+| r15 | 2026-07-29 | 修复 | 据 r13/r14 修 N12 复修 + N14/N15/N16/N17 | **5 条全部 → `fix`**（待评审 code review + 测试真机复验） | **N12 复修**:tester 那条「西门是被地图容器**之外**的侧边栏挡住的」是决定性线索——一轮只把标点当"点"避浮层,没算它旁边 100~150px 宽的标签;`fitViewAvoid` 加第三参 `MarkerExtent`,四边在浮层内缩上**再叠一层标签占位**,占位由 `AmapContainer` 就地量 `.amap-marker-label` 的 rect(量不到才回落到刻意偏大的文字估算),单边 0.4 上限改为**按轴算总账**(两边之和 ≤70%,超了按比例同收);无标签的调用点(大屏三处 + road)`readMarkerExtent` 返回 undefined,**取景逐字不变**。守卫判据升级为「标点连同标签的整个框既不碰浮层、也不越出容器」,含自证②「**上一轮那版在 1324×804 下必须红**」。**N14**:`.amap-marker-label` 外层容器走 `--color-popover/-foreground/--color-border`,用 `!important` 覆盖——高德样式表是**运行时注入**的、排在 `globals.css` 后面,同特异性必输;而那只 div 由 SDK 创建、设不了内联样式,靠 `.amap-container` 抬特异性等于赌 SDK 不换祖先类名(评审 r16 认可此判断,并要求「只此一处、勿扩散」)。对比度 1.17:1 → 深 13.8 / 浅 14.7。**N15**:根因逐字采信并独立复现;`axisLabel` 色值为空时下发 `{}` 而非 `undefined`,两轴各持新对象;守卫按 tester 期望扩到「两个变体的 X/Y 轴标签都必须真渲染出来」,判据取"文字出现在渲染产物里",含自证(退回缺陷写法则七天标签全无)。**N16**:按人工拍板整表换语义 token,21 条目收敛到 5 色调;**光换 token 不解决对比度**(`--success` 在 10% 淡底上仅 3.30:1),故另开 `--*-strong` 一档专供"淡底上的文字"(直接改暗 `--success`/`--danger` 会打坏顶栏白字实底徽标,实算会掉到 2.77:1);实测最低 5.53:1,全部越 AA;守卫**从组件源码读类名、回 globals.css 取实值现算**,不另抄色表,并做过变异验证(把 token 改回 `#16A34A` 当场转红)。**N17**:3 处文案 + 注释同步;`docs/PRD.md` 里的同名条目**刻意不改**(那是需求名不是界面文案)。合计 `pnpm test` **177 passed**(+45)/ `lint` 0 error / `tsc --noEmit` / `pnpm build` 全过;**真机 CDP 未跑(归测试方)** |
 | r12 | 2026-07-29 | 修复 | 采纳 r11 的两条非阻塞建议 | 两条**全部采纳**（评审已说明不用再过审） | ① 大屏交替带色值改为与注册主题的雷达 `splitArea` **共用同一常量** `SCREEN_SPLIT_AREA`（`screen/echarts-theme.ts` 导出，雷达与热力矩阵各写一份必漂，收成单一来源）—— 实际观感仍留真机复看；② 旧守卫 `heatmap-layout.test.ts` 改为**消费 `buildHeatmapOption` 的产物**，不再手搓一份平行 option（手搓版盖不住组件内改动，正是 N13 溜过去的第二重原因）。⚠️ 换源后**复核了 N10 守卫仍然有效**：退回旧布局常量照样复现出原现象 `10时 × 0` / `12时 × 62`，不是换完就恒绿。`pnpm test` 132 passed / lint 0 error / tsc / build 全过 |
 | r11 | 2026-07-29 | 评审 | code review（N13+N12 修复） | **clean（可合并，附 2 条非阻塞建议）**——`main-fixer_A` @ `c79c45c`。**N13 核实**:评审独立三向对照复现(node SSR,大屏注册主题下)与修复方结论逐字吻合——`areaStyle:undefined` 抛同一条 `Cannot read properties of null (reading 'length')`,修复版/原始版均正常出图 192 图元;`splitArea` 类型必填 + 运行期整键不下发 + 两轴各持引用,三层防线成立;「option 抽纯模块让守卫测线上那份」定位准确(旧守卫手搓 option 正是 N13 溜过的第二重原因)。**N12 核实**:`data-map-overlay` 同层约定在 `_parking-map.tsx` 成立(浮层与 AmapContainer 同为 MapPageShell 直接子元素);大屏三处 fitView 调用点(command/situation/twin)无该属性→返回 undefined 走默认避让,「大屏取景不变」属实;`/traffic/road` 不用 fitView 不受波及;最近边内缩 + 0.4 封顶几何正确。`pnpm test` 132 passed 复跑属实;r8 收尾要求(seed 不可重跑登记待办清单)已兑现(待办清单:97);N13/N12 只标 fix 合规。**非阻塞建议**:① 大屏交替带新色值 `rgba(232,245,233,0.02/0.05)` 与回归前注册主题的 `rgba(74,142,63,0.04/0.08)` 不同——非精确还原,已如实留真机复看;若测试觉得偏,最小改动是两处共用同一常量(单一来源,顺带防再漂移);② 旧守卫 `heatmap-layout.test.ts` 仍手搓 option(几何经共享常量锚定,风险低),建议日后改为消费 `buildHeatmapOption` 产物,与 N13 守卫同源 | 独立复现脚本存 scratchpad;结论以本行+守卫单测为准 |
 | r10 | 2026-07-29 | 修复 | 据 r9 新立 N13 + N12 修改 | **N13 / N12 → `fix`**（待测试真机复验） | **N13**：tester 的根因与归属逐条复核后完全采信，未往 N10 方向找；本方在 node 里用 echarts SSR 独立复现同一条崩溃（`rectCoordAxisBuildSplitArea` 读 `color.length`），并做三向对照证实 `areaStyle: undefined` 是**覆盖**默认值而非"什么都不做"。改法：① option 与配色抽出成纯模块 `screen/charts/heatmap-option.ts`——**这是为了让守卫测得到线上那份 option**（旧守卫 `heatmap-layout.test.ts` 手搓了另一份，组件写错它照样绿，是 N13 溜过去的第二重原因）；② 大屏变体给出真实 `splitArea` 色值，并把 `HeatmapPalette.splitArea` 类型改为**必填**，"忘了配色"在 tsc 阶段就过不去；③ 运行期再兜一道：色值为空则整个 `areaStyle` 键不下发；④ 顺手修 x/y 两轴共用同一 `splitArea` 对象引用（echarts 就地 merge）。守卫 `heatmap-option.test.ts`（17 条）：**3 变体 × 4 真实画布**全部 SSR 真渲染，断言不抛异常 + 图元数 ≥ 7×24 + 两轴 `areaStyle.color` 非空；**自证**：退回缺陷版 6 条转红。**N12**：fitView 内缩量**不写死**——`map-overlay` 三张卡（含收起态浮钮）挂 `data-map-overlay`，`AmapContainer` 就地量 `getBoundingClientRect` 算成高德 `setFitView` 的 `avoid`；几何抽纯函数 `lib/ui/map/fit-view-avoid.ts`，每张卡只往**最近的那条边**让（左上 360×101 的卡从上让 117px 即可，从左让要丢 376px）；无浮层时返回 `undefined`，**大屏各图取景不变**。守卫 `fit-view-avoid.test.ts`（11 条）判据取「安全区与任何浮层都不相交」，覆盖 tester 实测四档分辨率 × 面板展开/收起，含缺陷版（高德默认 `[60,60,60,60]`）必红的自证。另补 `lib/amap/loader.ts` 的 `setFitView` 类型声明（原只有一参）。合计 `pnpm test` **132 passed** / `lint` 0 error / `tsc --noEmit` / `pnpm build` 全过；**真机 CDP 未跑（归测试方）** |

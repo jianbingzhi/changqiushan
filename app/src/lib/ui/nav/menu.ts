@@ -39,7 +39,7 @@ export const MENU_GROUPS: MenuGroup[] = [
     title: "出行服务",
     items: [
       { label: "实时路况查询",     href: "/traffic/road",    icon: "Route" },
-      { label: "停车场动静态上图", href: "/traffic/parking", icon: "ParkingSquare" },
+      { label: "停车场监控",       href: "/traffic/parking", icon: "ParkingSquare" },
     ],
   },
   {

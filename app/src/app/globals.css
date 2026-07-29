@@ -54,6 +54,17 @@
   --color-danger: var(--danger);
   --color-info: var(--info);
 
+  /* 淡底上的状态文字(bg-success 加 10% 透明度这类淡底 + 小字场景)。
+     为什么另立一档而不直接用上面那四个:同一个 token 要同时当「实底填充」和「淡底上的文字」用,
+     两个诉求相反——填充色要够亮(白字压得住),文字色要够暗(淡底上读得清)。
+     round-01 N16:徽章直接用实底色当文字,浅色下开放 3.15:1 / 已满 4.41:1,都没到 WCAG AA 4.5:1。
+     取值口径:在对应的 10% 淡底上实测 ≥ 4.5:1,由 status-chip.contrast.test.ts 逐条守着。 */
+  --color-success-strong: var(--success-strong);
+  --color-warning-strong: var(--warning-strong);
+  --color-danger-strong: var(--danger-strong);
+  --color-info-strong: var(--info-strong);
+  --color-muted-strong: var(--muted-strong);
+
   /* 字体:西文优先(数字/英文用更清爽的西文字形)+ 中文(苹方/鸿蒙/雅黑/思源)兜底 */
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial,
     "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei UI", "Microsoft YaHei",
@@ -106,6 +117,13 @@
   --warning: #D97706;
   --danger: #DC2626;
   --info: #2563EB;
+
+  /* 浅色下淡底是近白,文字必须压得比实底色更深才够 4.5:1(round-01 N16) */
+  --success-strong: #166534;
+  --warning-strong: #92400E;
+  --danger-strong: #B91C1C;
+  --info-strong: #1D4ED8;
+  --muted-strong: #4B5563;
 }
 
 /* 深色实值 */
@@ -151,6 +169,13 @@
   --warning: #F59E0B;
   --danger: #EF4444;
   --info: #3B82F6;
+
+  /* 深色下淡底是近黑,方向反过来:文字要比实底色更亮(round-01 N16) */
+  --success-strong: #4ADE80;
+  --warning-strong: #FBBF24;
+  --danger-strong: #F87171;
+  --info-strong: #93C5FD;
+  --muted-strong: #A8B5AC;
 }
 
 body {
@@ -163,6 +188,24 @@ body {
   text-rendering: optimizeLegibility;
   line-height: 1.6;
   font-feature-settings: "tnum" 1;
+}
+
+/* 高德地图标点标签(round-01 N14)。
+   高德给 .amap-marker-label 的默认样式是**纯白底 + 蓝边**,而里面的字继承页面前景色——
+   深色主题下就是白底白字,实测对比度 1.17:1(近乎读不出来),在深色底图上还是几块刺眼亮斑。
+   之前只给内层 <span> 设了字号,外层这只白盒子一直没人接管。
+   ⚠️ 为什么用 !important:高德的样式表是**运行时注入**的,排在 globals.css 后面,同特异性下它赢;
+   而这只 div 由高德自己创建,我们既设不了内联样式、也不能保证它的祖先类名在 SDK 换版后不变
+   (靠 .amap-container 抬特异性就赌了这一点)。覆盖第三方运行时样式表,!important 是这里最稳的写法。
+   仓库内没有第二处样式碰 .amap-marker-label,不存在被它压住的风险。 */
+.amap-marker-label {
+  background-color: var(--color-popover) !important;
+  color: var(--color-popover-foreground) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 6px !important;
+  padding: 2px 8px !important;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.35) !important;
+  white-space: nowrap !important;
 }
 
 /* 富文本编辑器 + 渲染内容(.richtext-content 编辑态 / .richtext-view 展示态)

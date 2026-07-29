@@ -5,7 +5,9 @@
 // 是自己手搓一份 option 去渲染的,和组件真正下发的 option 是两份东西,组件里写错了它照样绿。
 // 现在 option 只有这一处产地,守卫(heatmap-option.test.ts)渲染的就是线上那一份。
 //
-// ⚠️ round-01 N13 的根因写在 splitArea 上,改这个文件前先读那段注释。
+// ⚠️ 改这个文件前先读 buildHeatmapOption 里 splitArea / axisLabel 那两段注释:round-01 的 N13
+//    (整块空白 + 抛异常)与 N15(大屏丢了周一…周日七行标签)是同一条根因的两次发作——
+//    **把某个键显式下发成 undefined,等于把注册主题配好的值覆盖成空**,而不是"什么都没做"。
 
 import type { EChartsOption } from "echarts";
 import { adminChartPalette } from "@/lib/ui/charts/admin-chart-palette";
@@ -92,7 +94,12 @@ export function buildHeatmapOption({
     }),
   );
 
-  const axisLabelStyle = pal.axisText ? { color: pal.axisText } : undefined;
+  // 轴刻度文字:大屏留空(交给注册主题),此时只下发 `{}` —— 与 splitArea 同一条铁律,
+  // 绝不能下发 `axisLabel: undefined`,那是把主题配好的 axisLabel 整个覆盖成空。
+  // round-01 N15 就是这么丢的:xAxis 写的是 `{ interval: 1, ...axisLabelStyle }`(展开后仍是对象,
+  // 所以 X 轴刻度好好的),yAxis 写的是裸 `axisLabelStyle`,大屏下 = undefined → 周一…周日七行标签全没了。
+  // 每条轴各要一份新对象(理由同 splitArea:echarts 就地 merge,共用引用等于两轴互相污染)。
+  const axisLabelColor = pal.axisText ? { color: pal.axisText } : {};
   // 交替带:两套变体都显式给色(缺省走 echarts 默认浅灰,深底上是一层白雾)。
   // 兜底 —— 万一色值为空,整个 areaStyle 键都不下发,让主题/默认值生效;
   // 绝不能下发 `areaStyle: undefined`,那会把默认值覆盖成空并让 echarts 崩(N13)。
@@ -118,13 +125,13 @@ export function buildHeatmapOption({
       type: "category",
       data: HOURS,
       splitArea: splitArea(),
-      axisLabel: { interval: 1, ...axisLabelStyle },
+      axisLabel: { interval: 1, ...axisLabelColor },
     },
     yAxis: {
       type: "category",
       data: dowLabels,
       splitArea: splitArea(),
-      axisLabel: axisLabelStyle,
+      axisLabel: { ...axisLabelColor },
     },
     visualMap: {
       min: 0,

@@ -86,7 +86,7 @@ export function ParkingMap({ lots }: { lots: ParkingLotView[] }) {
         }
       />
 
-      <MapKpiCard title="停车场动静态上图" subtitle="景区停车场状态监控">
+      <MapKpiCard title="停车场监控" subtitle="景区停车场状态监控">
         <Kpi label="总车位" value={totalSpaces} />
         <Kpi label="当前占用" value={totalOccupied} />
         <Kpi label="剩余车位" value={totalSpaces - totalOccupied} />
