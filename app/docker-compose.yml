@@ -21,6 +21,14 @@ services:
         condition: service_healthy
       gotrue:
         condition: service_started
+    # ⚠️⚠️ 本 environment 块是**显式白名单**,不是「.env 会自动进容器」。
+    # compose 的 .env 只用于插值本文件里写出来的 ${VAR};**没在这里列出的 key,写进服务器 .env 也永远到不了 app 进程**,
+    # 代码只会拿到 undefined、静默走缺省。round-01 N21 实测:代码读 46 个 env,这里当时只列了 18 个 ——
+    # 其中 GATE_API_KEY / CRON_SECRET 是 fail-closed,闸机核销恒 401、物化视图刷新恒 500,
+    # 症状(401/500)把排查引向鉴权和代码,没人会想到是 compose 漏了一行。
+    # 【规矩】代码里新写一个 process.env.X,同一轮就要在这里补一行 —— 由 src/infrastructure/config/compose-env.test.ts 卡住。
+    # 【写法】一律 `${X:-}`(缺省为空,不改变任何现有行为);注意空串≠未设置,读取方必须把空串当未配置
+    #        (用 `||` 或真值判断,别用 `??`,否则空串会顶掉代码里的缺省值)。
     environment:
       NODE_ENV: production
       TZ: Asia/Shanghai
@@ -38,9 +46,7 @@ services:
       VISITOR_JWT_SECRET: ${VISITOR_JWT_SECRET:-changqiushan_visitor_dev_secret_2026}
       # 高德服务端 Web key(REST 路况/staticmap 代理),运行期注入;不设=诚实 unconfigured 态
       AMAP_KEY: ${AMAP_KEY:-}
-      # 大屏实时天气的城市 adcode。⚠️ 本 environment 块是**显式白名单**——compose 的 .env 只用于
-      # 插值 YAML 里出现的 ${VAR},不会把 .env 的每个 key 自动注进容器。漏这一行,
-      # remote-setup.sh 写进服务器 .env 的值就永远到不了 app 进程,代码恒取缺省 510131。
+      # 大屏实时天气的城市 adcode(漏了这行,remote-setup.sh 写进服务器 .env 的值到不了进程,恒取缺省 510131)
       AMAP_WEATHER_CITY: ${AMAP_WEATHER_CITY:-510131}
       # B21:内网 http(VPN)QA 必须 false,否则浏览器不回传 secure cookie → 登录"没反应";
       # 生产经 https 反代时置 true(D4)。
@@ -55,6 +61,52 @@ services:
       S3_FORCE_PATH_STYLE: "true"
       # T2c 视频上传上限(字节):不透传则容器内永远走代码缺省 100MB(b-103 评审 #6)
       MAX_VIDEO_UPLOAD_BYTES: ${MAX_VIDEO_UPLOAD_BYTES:-}
+      # S3 其余两项:region 缺省 us-east-1(MinIO 不校验)、publicBaseUrl 空=用预签名端点拼
+      S3_REGION: ${S3_REGION:-}
+      S3_PUBLIC_BASE_URL: ${S3_PUBLIC_BASE_URL:-}
+
+      # ── round-01 N21 补齐:以下各行此前全缺,写进服务器 .env 也到不了容器 ──────────────
+      # 🔴 fail-closed(不是「等配置」,是「配了也不通」)
+      # 闸机核销联动(PRD §0.6 / §1.2):/api/gate/checkin 判 `!GATE_API_KEY || 不匹配` → 401,
+      # 即未配置时该接口恒 401,闸机在 docker 部署路径下从来没有可用过。
+      GATE_API_KEY: ${GATE_API_KEY:-}
+      # 物化视图刷新 /api/cron/refresh-mv:未配置即 fail-closed 返回 500(.env.example 标【必填】)
+      CRON_SECRET: ${CRON_SECRET:-}
+
+      # 🟡 静默降级(不报错,但行为与预期不符)
+      # 大屏软门:空 = /screen/* 完全开放。漏这行 ⇒ 写进 .env 也「配了等于没配」,永远无门
+      SCREEN_TOKEN: ${SCREEN_TOKEN:-}
+      # 红线 4 承载量取值链「system_config → env → 默认 5000」的 env 这一层
+      # (system_config 层不受影响,熔断本身 r18 已端到端验通)
+      PARK_INSTANT_CAPACITY: ${PARK_INSTANT_CAPACITY:-}
+      # AI 智能问答(PRD §2.4,一期范围):三项缺一即不可用
+      AI_BASE_URL: ${AI_BASE_URL:-}
+      AI_MODEL: ${AI_MODEL:-}
+      AI_API_KEY: ${AI_API_KEY:-}
+      # 日志级别(空=按 NODE_ENV 取 info/debug)
+      LOG_LEVEL: ${LOG_LEVEL:-}
+      # GoTrue refresh token 寿命(秒,空=30 天)
+      GOTRUE_REFRESH_TOKEN_EXP: ${GOTRUE_REFRESH_TOKEN_EXP:-}
+      # scripts/verify-t2e.ts 的被测地址(空=http://localhost:3000)
+      VERIFY_APP_URL: ${VERIFY_APP_URL:-}
+      # PG 连接池上限(空=常驻进程 10;代码注释即写明这是 docker 路径的旋钮)
+      DB_POOL_MAX: ${DB_POOL_MAX:-}
+      # 接 Supabase 云鉴权时才用(自托管 GoTrue 路径为空,行为不变)
+      GOTRUE_JWKS_URL: ${GOTRUE_JWKS_URL:-}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
+
+      # ⏸ 微信登录 / 支付:人工 2026 年 7 月 29 日明确「支付先等他死,目前无须推进」。
+      #    这里补的是**管路**(白名单),不是推进功能 —— 缺省为空、行为与现在完全一致;
+      #    日后真要接时不必再踩一次「写了 .env 却不生效」的坑。红线 3(入园主流程不调起支付)不受影响。
+      WECHAT_APPID: ${WECHAT_APPID:-}
+      WECHAT_SECRET: ${WECHAT_SECRET:-}
+      WXPAY_MCH_ID: ${WXPAY_MCH_ID:-}
+      WXPAY_SERIAL_NO: ${WXPAY_SERIAL_NO:-}
+      WXPAY_PRIVATE_KEY: ${WXPAY_PRIVATE_KEY:-}
+      WXPAY_API_V3_KEY: ${WXPAY_API_V3_KEY:-}
+      WXPAY_PLATFORM_PUBLIC_KEY: ${WXPAY_PLATFORM_PUBLIC_KEY:-}
+      WXPAY_NOTIFY_URL: ${WXPAY_NOTIFY_URL:-}
+      WXPAY_CALLBACK_IPS: ${WXPAY_CALLBACK_IPS:-}
     # 绑 0.0.0.0 以便经 VPN(10.7.0.1)访问;pg/gotrue 仅 127.0.0.1 不外露
     ports:
       - "3000:3000"

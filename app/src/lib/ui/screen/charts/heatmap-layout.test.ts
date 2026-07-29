@@ -12,12 +12,14 @@ import { SCREEN_HEATMAP_PALETTE, buildHeatmapOption } from "./heatmap-option";
 // 手搓版盖不住组件里的改动,round-01 N13 就是这么溜过去的(评审建议 ②)。
 const MATRIX = Array.from({ length: 7 }, (_, dow) => Array.from({ length: 24 }, (_, hour) => (hour * 7 + dow) % 63));
 
-// 各调用点的真实画布尺寸(后台卡片 / 大屏三块 / 两个极端容器)
+// 各调用点的真实画布尺寸(后台卡片 / 大屏三块 / 两个极端容器)。
+// /screen/command 那行原写 900×270 是估的,实测 424×230(热力块在 60fr/40fr 分栏里)——
+// 见 heatmap-option.test.ts 同名表的注释(round-01 N20)。
 const CANVASES: [name: string, width: number, height: number][] = [
   ["后台 /analytics/heatmap", 1150, 340],
   ["大屏 /screen/heatmap", 1600, 620],
   ["大屏 /screen/poster", 760, 280],
-  ["大屏 /screen/command", 900, 270],
+  ["大屏 /screen/command", 424, 230],
   ["窄容器", 520, 300],
   ["矮容器", 900, 200],
 ];
@@ -58,7 +60,8 @@ function textBoxes(svg: string): Box[] {
 function renderHeatmap(width: number, height: number) {
   const chart = echarts.init(null, null, { renderer: "svg", ssr: true, width, height });
   chart.setOption({
-    ...buildHeatmapOption({ matrix: MATRIX, pal: SCREEN_HEATMAP_PALETTE }),
+    // width 传画布宽,与组件在浏览器里量到后下发的那份一致(round-01 N20)
+    ...buildHeatmapOption({ matrix: MATRIX, pal: SCREEN_HEATMAP_PALETTE, width }),
     animation: false,
   });
   const svg = chart.renderToSVGString();

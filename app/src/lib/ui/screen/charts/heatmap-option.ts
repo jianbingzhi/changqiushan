@@ -12,7 +12,7 @@
 import type { EChartsOption } from "echarts";
 import { adminChartPalette } from "@/lib/ui/charts/admin-chart-palette";
 import { SCREEN_SPLIT_AREA } from "../echarts-theme";
-import { HEATMAP_GRID, HEATMAP_VISUAL_MAP_POS } from "./heatmap-layout";
+import { HEATMAP_GRID, HEATMAP_VISUAL_MAP_POS, resolveHourStep } from "./heatmap-layout";
 
 export interface HeatmapPalette {
   /** 色阶(低→高) */
@@ -76,6 +76,11 @@ export interface HeatmapOptionInput {
   max?: number;
   metricLabel?: string;
   pal: HeatmapPalette;
+  /**
+   * 图表容器的实测宽度(px),决定 X 轴刻度疏密(round-01 N20)。
+   * 省略 = 宽度未知(SSR / 尚未测量),按最密的每 2 小时一个,即四处调用点的原有疏密。
+   */
+  width?: number;
 }
 
 export function buildHeatmapOption({
@@ -84,6 +89,7 @@ export function buildHeatmapOption({
   max,
   metricLabel = "预约",
   pal,
+  width,
 }: HeatmapOptionInput): EChartsOption {
   const points: [number, number, number][] = [];
   let computedMax = 0;
@@ -125,7 +131,9 @@ export function buildHeatmapOption({
       type: "category",
       data: HOURS,
       splitArea: splitArea(),
-      axisLabel: { interval: 1, ...axisLabelColor },
+      // interval 是「隔几个画一个」,故 = 步长 - 1(步长 2 小时 ⇒ interval 1,与原状一致)。
+      // 步长按容器宽自适应,见 heatmap-layout.resolveHourStep(round-01 N20)。
+      axisLabel: { interval: resolveHourStep(width) - 1, ...axisLabelColor },
     },
     yAxis: {
       type: "category",

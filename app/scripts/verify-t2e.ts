@@ -18,7 +18,8 @@ const req = createRequire(import.meta.url);
 const soPath = req.resolve("server-only");
 req.cache[soPath] = { id: soPath, filename: soPath, loaded: true, exports: {} } as NodeJS.Module;
 
-const APP = process.env.VERIFY_APP_URL ?? "http://localhost:3000";
+// `||` 而非 `??`:compose 白名单用 `${VERIFY_APP_URL:-}` 透传,容器内未配置时是空串(round-01 N21)
+const APP = process.env.VERIFY_APP_URL || "http://localhost:3000";
 
 async function main() {
   const { contentService, contentRepository } = await import("../src/modules/content");

@@ -67,7 +67,9 @@ export function getStorageCredentials(): StorageCredentials {
     endpoint,
     // docker 内网与浏览器端点不同时(minio:9000 vs localhost:9000),预签名须用主机可达端点。
     publicEndpoint: process.env.S3_PUBLIC_ENDPOINT ?? endpoint,
-    region: process.env.S3_REGION ?? "us-east-1",
+    // `||` 而非 `??`:compose 白名单用 `${S3_REGION:-}` 透传,未配置时容器里是**空串不是 undefined**,
+    // 用 `??` 会让空串顶掉这个缺省、把空 region 交给 S3 client(round-01 N21)
+    region: process.env.S3_REGION || "us-east-1",
     accessKey: process.env.S3_ACCESS_KEY ?? "",
     secretKey: process.env.S3_SECRET_KEY ?? "",
     bucket: process.env.S3_BUCKET ?? "changqiushan-media",

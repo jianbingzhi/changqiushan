@@ -2,6 +2,7 @@ import * as echarts from "echarts";
 import { describe, it, expect } from "vitest";
 
 import { SCREEN_THEME, ensureScreenTheme } from "../echarts-theme";
+import { resolveHourStep } from "./heatmap-layout";
 import {
   DEFAULT_DOW,
   SCREEN_HEATMAP_PALETTE,
@@ -32,11 +33,14 @@ const VARIANTS: [name: string, pal: HeatmapPalette, theme: string | undefined][]
   ["后台 dark", backstageHeatmapPalette(true), undefined],
 ];
 
-// 各调用点的真实画布尺寸(大屏三块 + 后台卡片)
+// 各调用点的真实画布尺寸(大屏三块 + 后台卡片)。
+// ⚠️ /screen/command 这一行原本写的是 900×270 —— 那是估的,实测只有 424×230
+// (热力块在 60fr/40fr 分栏里),差了一倍多。round-01 N20(X 轴刻度粘连)只在 424 宽下发作,
+// 守卫按 900 渲染自然一次都没红过。**调用点尺寸变了就要回来改这张表**,否则下面所有几何守卫都在量一块不存在的画布。
 const CANVASES: [name: string, width: number, height: number][] = [
   ["大屏 /screen/heatmap", 1600, 620],
   ["大屏 /screen/poster", 760, 280],
-  ["大屏 /screen/command", 900, 270],
+  ["大屏 /screen/command", 424, 230],
   ["后台 /analytics/heatmap", 1150, 340],
 ];
 
@@ -44,7 +48,8 @@ function renderToSVG(pal: HeatmapPalette, theme: string | undefined, width: numb
   ensureScreenTheme();
   const chart = echarts.init(null, theme ?? null, { renderer: "svg", ssr: true, width, height });
   try {
-    chart.setOption({ ...buildHeatmapOption({ matrix: MATRIX, pal }), animation: false });
+    // width 传的就是画布宽 —— 组件在浏览器里量到什么就传什么(Heatmap724 的 ResizeObserver)
+    chart.setOption({ ...buildHeatmapOption({ matrix: MATRIX, pal, width }), animation: false });
     return chart.renderToSVGString();
   } finally {
     chart.dispose();
@@ -134,6 +139,8 @@ describe("N15 两条轴的刻度标签都必须真渲染出来", () => {
     expect(option.xAxis.axisLabel).not.toBe(option.yAxis.axisLabel);
   });
 
+  // X 轴刻度的疏密由 N20 那组守卫单独看(下面),这里只管「标签必须真渲染出来」。
+
   // 守卫自证:退回缺陷写法(大屏 axisText 为空 → yAxis.axisLabel = undefined)必须让上面那条转红,
   // 否则这条测试写了也拦不住 N15 再次发生。
   it("自证:缺陷写法下大屏 Y 轴标签确实消失", () => {
@@ -156,5 +163,89 @@ describe("N15 两条轴的刻度标签都必须真渲染出来", () => {
     } finally {
       chart.dispose();
     }
+  });
+});
+
+// round-01 N20 防回归:/screen/command 的热力块被分栏压到 424×230,X 轴仍写死每 2 小时一个刻度,
+// 大屏 14px 字号下「22时」占 ~30px、而每格只有 12.7px ⇒ 8时 往后「10时12时14时…」连成一片。
+//
+// 判据同样取渲染产物的真实坐标(N10 那套做法),不看 option 里 interval 写了几:
+// 刻度疏密最终由「字号 × 容器宽 × grid 留白」三者共同决定,只断言 interval 的值等于什么都没验。
+//
+// ⚠️ 另一半判据同等重要:宽画布(整屏版 1266、后台 1150、海报 760)必须**仍是每 2 小时一个**。
+// 验收方明确要求别把那三处一起改稀 —— 只放宽「不重叠」会让「全都改成 6 小时一个」也蒙混过关。
+describe("N20 X 轴时间刻度随容器宽自适应,窄画布不再粘连", () => {
+  // 与 heatmap-layout.test.ts 同款保守估宽:CJK 按整个字号、数字按 0.55 字号,宁可估宽不估窄
+  const labelHalfWidth = (t: string, fontSize: number) =>
+    t.split("").reduce((w, c) => w + (/[一-龥]/.test(c) ? fontSize : fontSize * 0.55), 0) / 2;
+
+  function hourLabels(width: number, height: number, optWidth?: number) {
+    ensureScreenTheme();
+    const chart = echarts.init(null, SCREEN_THEME, { renderer: "svg", ssr: true, width, height });
+    try {
+      chart.setOption({
+        ...buildHeatmapOption({ matrix: MATRIX, pal: SCREEN_HEATMAP_PALETTE, width: optWidth }),
+        animation: false,
+      });
+      const svg = chart.renderToSVGString();
+      const out: { text: string; x0: number; x1: number }[] = [];
+      const re = /<text([^>]*)>([^<]*)<\/text>/g;
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(svg))) {
+        const [, attrs, text] = m;
+        if (!/^\d+时$/.test(text)) continue; // X 轴时间刻度(Y 轴是「周一」…,色阶条是裸数字)
+        const tr = /transform="translate\(([-\d.e]+)[ ,]+([-\d.e]+)\)"/.exec(attrs);
+        const dx = parseFloat(/\sx="([-\d.e]+)"/.exec(attrs)?.[1] ?? "0") || 0;
+        const fontSize = parseFloat(/font-size="([\d.]+)"/.exec(attrs)?.[1] ?? "12");
+        const cx = (tr ? Number(tr[1]) : 0) + dx;
+        const hw = labelHalfWidth(text, fontSize);
+        out.push({ text, x0: cx - hw, x1: cx + hw });
+      }
+      return out.sort((a, b) => a.x0 - b.x0);
+    } finally {
+      chart.dispose();
+    }
+  }
+
+  // 相邻刻度之间至少要留的空白:严格「不相交」不够,差几个像素肉眼已经糊成一团(同 N10 的口径)
+  const MIN_CLEARANCE = 4;
+
+  const collisions = (labels: ReturnType<typeof hourLabels>) =>
+    labels
+      .slice(1)
+      .map((cur, i) => ({ cur, prev: labels[i], gap: cur.x0 - labels[i].x1 }))
+      .filter((p) => p.gap < MIN_CLEARANCE)
+      .map((p) => `${p.prev.text}×${p.cur.text}(${p.gap.toFixed(1)}px)`);
+
+  it.each(CANVASES)("%s(%i×%i):相邻时间刻度之间留得出空白", (_name, width, height) => {
+    const labels = hourLabels(width, height, width);
+    expect(labels.length).toBeGreaterThan(0);
+    expect(collisions(labels)).toEqual([]);
+  });
+
+  it.each(CANVASES)("%s(%i×%i):刻度步长均匀,且落在整点钟上", (_name, width, height) => {
+    const hours = hourLabels(width, height, width).map((l) => Number(l.text.replace("时", "")));
+    expect(hours[0]).toBe(0); // 首刻度必是 0 时
+    const steps = new Set(hours.slice(1).map((h, i) => h - hours[i]));
+    expect([...steps], "步长不均匀 ⇒ 读者没法按固定间隔推算钟点").toHaveLength(1);
+    expect(24 % [...steps][0], "步长必须是 24 的因数,否则刻度落不到整齐的钟点").toBe(0);
+  });
+
+  it("宽画布仍是每 2 小时一个,自适应不得把整屏版/后台版一起改稀", () => {
+    // 验收方原话:「注意别把整屏版(1266×620)与后台版的刻度密度一起改稀,那两处现在是正常的」
+    for (const width of [760, 1150, 1266, 1600]) {
+      expect(resolveHourStep(width), `${width}px 的步长变了`).toBe(2);
+    }
+    // 被压到 424 的指挥屏那块才放稀,且只放到读得清为止(3 小时一个 = 8 个标签)
+    expect(resolveHourStep(424)).toBe(3);
+    // 宽度未知(SSR / 尚未测量)时回落到原有疏密,不因自适应变密
+    expect(resolveHourStep(undefined)).toBe(2);
+  });
+
+  it("自证:退回写死 interval(不看容器宽)时 424 宽下确实粘连", () => {
+    // 缺陷写法 = 组件不测宽、buildHeatmapOption 收不到 width ⇒ 步长恒为 2
+    const labels = hourLabels(424, 230, undefined);
+    expect(labels.map((l) => l.text)).toContain("22时"); // 12 个标签全打上了
+    expect(collisions(labels).length, "这条不红就说明上面的守卫拦不住 N20 复发").toBeGreaterThan(0);
   });
 });
