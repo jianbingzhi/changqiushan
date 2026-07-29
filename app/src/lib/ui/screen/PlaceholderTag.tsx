@@ -1,5 +1,5 @@
 // 占位/示例数据视觉标注(风险缓解:防 mock 被误当真)。
-// 用于天气/AQI、地域、漏斗浏览量、历史回放、地图等未接入区块。
+// 用于空气质量、地域、漏斗浏览量、历史回放、地图等未接入区块。
 export function PlaceholderTag({ text = "示例数据 · 待接入" }: { text?: string }) {
   return (
     <span

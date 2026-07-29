@@ -12,6 +12,8 @@ import { ScreenCard } from "@/lib/ui/screen/ScreenCard";
 import { KpiTile } from "@/lib/ui/screen/KpiTile";
 import { DarkBarList } from "@/lib/ui/screen/DarkBarList";
 import { PlaceholderTag } from "@/lib/ui/screen/PlaceholderTag";
+import { ScreenWeather } from "@/lib/ui/screen/ScreenWeather";
+import { fetchWeather } from "@/infrastructure/amap";
 import { DonutChart } from "@/lib/ui/screen/charts/DonutChart";
 import { RadarChart } from "@/lib/ui/screen/charts/RadarChart";
 import { OverviewOccupancy } from "./_overview-occupancy";
@@ -35,7 +37,7 @@ export default async function OverviewScreenPage() {
   const rangeStart = new Date();
   rangeStart.setDate(rangeStart.getDate() - 371);
 
-  const [slots, capacity, lots, activities, devices, profile, preference, daily] = await Promise.all([
+  const [slots, capacity, lots, activities, devices, profile, preference, daily, weather] = await Promise.all([
     bookingService.listSlotsForDate(chinaToday()).catch(() => []),
     configService.getInstantCapacity().catch(() => resolveInstantCapacity()),
     trafficRepository.listParkingLots().catch(() => []),
@@ -44,6 +46,7 @@ export default async function OverviewScreenPage() {
     analyticsRepository.getProfileOverview().catch(() => []),
     analyticsRepository.getTravelPreference().catch(() => []),
     analyticsRepository.getDailyTraffic(rangeStart, new Date()).catch(() => []),
+    fetchWeather().catch(() => ({ source: "error" as const, live: null })),
   ]);
 
   // —— KPI 派生 ——
@@ -98,11 +101,7 @@ export default async function OverviewScreenPage() {
       <div className="flex h-full flex-col">
         <ScreenHeader
           title="长秋山森林公园 · 数据概览首屏"
-          rightExtra={
-            <span className="flex items-center gap-2 text-[14px]" style={{ color: "var(--screen-text-dim)" }}>
-              <PlaceholderTag text="天气/AQI 待接入" />
-            </span>
-          }
+          rightExtra={<ScreenWeather initial={weather} />}
         />
 
         <div className="flex flex-1 flex-col gap-4 p-6">
@@ -140,13 +139,7 @@ export default async function OverviewScreenPage() {
               valueSize={44}
               sub={`${lots.length} 个停车场 / 使用率 ${parkUsage}%`}
             />
-            <KpiTile
-              title="实时天气 / 空气质量"
-              value="—"
-              valueSize={44}
-              tone="highlight"
-              sub={<PlaceholderTag text="外部气象 API 待接入" />}
-            />
+            <ScreenWeather initial={weather} variant="kpi" />
             <KpiTile
               title="当日活动开展"
               value={String(ongoing + registering)}

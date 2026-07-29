@@ -64,8 +64,9 @@ function walk(dir) {
 const CHANNEL_NAME_RE = /\b(checkin_event|slot_changed|parking_state|iot_event)\b/;
 
 // 抽 JSX 可见文本节点:同一行内 `>文本<` 之间的内容(排除标签 <…> 与表达式 {…})。
-// 前置 (?<!=) 排除箭头 `=>`,避免把 `=> Promise<T>` 这类类型/代码误当文本。
-const TEXT_NODE_RE = /(?<!=)>([^<>{}]*)</g;
+// 前置 (?<![=<>!]) 排除箭头 `=>` 与比较符 `<=`/`>=`/`>>`/`!=`;后置 (?!=) 排除 `>=` 自身。
+// 否则 `if (r.dow >= 0 && r.dow < 7)` 这类纯 TS 比较会被当成 JSX 文本节点误报孤立英文。
+const TEXT_NODE_RE = /(?<![=<>!])>(?!=)([^<>{}]*)</g;
 // 用户可见的属性值(同样是 UI 文本,英文不得孤立出现);只取字面量 "…"
 const VISIBLE_ATTR_RE = /(?:placeholder|title|aria-label|alt)\s*=\s*"([^"]*)"/g;
 

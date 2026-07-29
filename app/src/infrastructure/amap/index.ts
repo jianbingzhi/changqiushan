@@ -1,6 +1,8 @@
 // 高德地图服务端 REST 客户端(路况查询,需 env.AMAP_KEY)。
 // 浏览器端 JS API 加载器在 src/lib/amap/loader.ts,与此无关。
 
+import type { WeatherResult } from "@/shared/lib/weather";
+
 /** 路段路况条目(B 端实时路况页消费) */
 export interface TrafficCondition {
   name:        string;
@@ -118,22 +120,9 @@ export async function fetchRoadConditions(): Promise<RoadConditionsResult> {
 // 高德 weatherInfo 仅含天气现象/气温/风/湿度,**不含 AQI/空气质量**(那需另接环境监测源)。
 // 与路况共用 AMAP_KEY(Web 服务 key)。城市默认蒲江县 510131(长秋山所在地),可经 env 覆盖。
 
-/** 实时天气(高德 lives[0] 的 PII-free 子集) */
-export interface WeatherLive {
-  city:          string;
-  weather:       string;  // 天气现象,如「阴」「多云」
-  temperature:   number;  // 摄氏度
-  windDirection: string;  // 风向
-  windPower:     string;  // 风力等级,如「≤3」「4」
-  humidity:      number;  // 相对湿度 %
-  reportTime:    string;  // 高德数据发布时间(原样透传)
-}
-
-/** 诚实三态:key 未配置 / 服务异常 / 高德真实数据。严禁回落硬编码假天气。 */
-export type WeatherResult = {
-  source: "amap" | "unconfigured" | "error";
-  live:   WeatherLive | null;
-};
+// 展示类型的正本在 shared/lib/weather.ts:大屏 UI 层受 eslint-boundaries 约束
+// (lib 只能依赖 lib/shared),无法引用 infrastructure。此处 re-export 保持既有引用点不破。
+export type { WeatherLive, WeatherResult } from "@/shared/lib/weather";
 
 const AMAP_WEATHER_URL = "https://restapi.amap.com/v3/weather/weatherInfo";
 // 蒲江县 adcode;运维可经 AMAP_WEATHER_CITY 覆盖(如换成成都市 510100)。

@@ -14,6 +14,7 @@ import { ScreenCard } from "@/lib/ui/screen/ScreenCard";
 import { KpiTile } from "@/lib/ui/screen/KpiTile";
 import { DarkBarList } from "@/lib/ui/screen/DarkBarList";
 import { PlaceholderTag } from "@/lib/ui/screen/PlaceholderTag";
+import { ScreenWeather } from "@/lib/ui/screen/ScreenWeather";
 import { DonutChart } from "@/lib/ui/screen/charts/DonutChart";
 import { GaugeRing } from "@/lib/ui/screen/charts/GaugeRing";
 import { Heatmap724 } from "@/lib/ui/screen/charts/Heatmap724";
@@ -193,20 +194,11 @@ export default async function CommandScreenPage() {
     alertDeviceNames: alertDevices.map((d) => d.name),
   });
 
-  const weatherNode =
-    weather.source === "amap" && weather.live ? (
-      <span className="text-[15px]" style={{ color: "var(--screen-text-dim)" }}>
-        {weather.live.city || "蒲江县"} · {weather.live.weather} {weather.live.temperature}℃ · 湿度 {weather.live.humidity}%
-      </span>
-    ) : (
-      <PlaceholderTag text="天气服务暂不可用" />
-    );
-
   return (
     <ScreenShell size={ULTRAWIDE_SCREEN_SIZE}>
       <ScreenAutoRefresh />
       <div className="flex h-full flex-col">
-        <ScreenHeader title="长秋山森林公园 · 超宽融合指挥总屏" dataSource="polling" rightExtra={weatherNode} />
+        <ScreenHeader title="长秋山森林公园 · 超宽融合指挥总屏" dataSource="polling" rightExtra={<ScreenWeather initial={weather} />} />
 
         {warn && (
           <div className="screen-flash mx-6 mt-3 rounded-lg px-6 py-3 text-center" style={{ border: "2px solid var(--screen-red)" }}>
@@ -340,7 +332,7 @@ export default async function CommandScreenPage() {
             <ScreenCard title="今日游客基础画像">
               <RadarChart height={250} indicators={radarIndicators} series={radarSeries} />
             </ScreenCard>
-            <ScreenCard title="TOP 8 核心客源城市" className="flex-1">
+            <ScreenCard title="核心客源城市前 8 位" className="flex-1">
               <DarkBarList data={topCities} emptyText="暂无客源城市数据" />
             </ScreenCard>
             <ScreenCard title="出行与入园偏好分析">
