@@ -38,6 +38,10 @@ services:
       VISITOR_JWT_SECRET: ${VISITOR_JWT_SECRET:-changqiushan_visitor_dev_secret_2026}
       # 高德服务端 Web key(REST 路况/staticmap 代理),运行期注入;不设=诚实 unconfigured 态
       AMAP_KEY: ${AMAP_KEY:-}
+      # 大屏实时天气的城市 adcode。⚠️ 本 environment 块是**显式白名单**——compose 的 .env 只用于
+      # 插值 YAML 里出现的 ${VAR},不会把 .env 的每个 key 自动注进容器。漏这一行,
+      # remote-setup.sh 写进服务器 .env 的值就永远到不了 app 进程,代码恒取缺省 510131。
+      AMAP_WEATHER_CITY: ${AMAP_WEATHER_CITY:-510131}
       # B21:内网 http(VPN)QA 必须 false,否则浏览器不回传 secure cookie → 登录"没反应";
       # 生产经 https 反代时置 true(D4)。
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
