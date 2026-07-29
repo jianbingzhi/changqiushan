@@ -44,7 +44,7 @@ export function CreateAdminForm() {
     return (
       <div className="mb-4">
         <Button onClick={() => setOpen(true)}>新建账号</Button>
-        {msg && <span className={`ml-3 text-[12px] ${msg.ok ? "text-primary" : "text-danger"}`}>{msg.text}</span>}
+        {msg && <span className={`ml-3 text-[12px] ${msg.ok ? "text-primary-strong" : "text-danger-strong"}`}>{msg.text}</span>}
       </div>
     );
   }
@@ -66,7 +66,7 @@ export function CreateAdminForm() {
       <div className="mt-3 flex items-center gap-2">
         <Button onClick={submit} disabled={pending}>{pending ? "创建中…" : "确认创建"}</Button>
         <Button variant="outline" onClick={() => { setOpen(false); setMsg(null); }} disabled={pending}>取消</Button>
-        {msg && <span className={`text-[12px] ${msg.ok ? "text-primary" : "text-danger"}`}>{msg.text}</span>}
+        {msg && <span className={`text-[12px] ${msg.ok ? "text-primary-strong" : "text-danger-strong"}`}>{msg.text}</span>}
       </div>
     </div>
   );
@@ -106,7 +106,7 @@ export function AccountRowActions({ profileId, disabled }: { profileId: string; 
       <div className="flex gap-2">
         <Button size="sm" variant="outline" className="text-[12px]" disabled={pending} onClick={() => { setResetting((v) => !v); setMsg(null); }}>重置密码</Button>
         {!disabled && (
-          <Button size="sm" variant="outline" className="text-[12px] text-danger border-[#FECACA]" disabled={pending} onClick={() => run(() => disableAdminAction(profileId))}>停用</Button>
+          <Button size="sm" variant="outline" className="text-[12px] text-danger-strong border-danger/30" disabled={pending} onClick={() => run(() => disableAdminAction(profileId))}>停用</Button>
         )}
       </div>
       {resetting && (

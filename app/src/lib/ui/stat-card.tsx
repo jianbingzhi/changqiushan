@@ -19,7 +19,7 @@ export function StatCard({ label, value, unit, trend, trendLabel }: StatCardProp
         {unit && <span className="text-sm text-muted-foreground">{unit}</span>}
       </div>
       {trend !== undefined && (
-        <p className={`mt-2 text-[13px] ${trend >= 0 ? "text-success" : "text-danger"}`}>
+        <p className={`mt-2 text-[13px] ${trend >= 0 ? "text-success-strong" : "text-danger-strong"}`}>
           {trendSign}{trend}
           {trendLabel && <span className="ml-1 text-muted-foreground">{trendLabel}</span>}
         </p>

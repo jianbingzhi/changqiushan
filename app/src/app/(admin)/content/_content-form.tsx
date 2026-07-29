@@ -163,7 +163,7 @@ export function ContentForm({
             {sidebarFields.map((f) => (
               <div key={f.key} className="space-y-1.5">
                 <label htmlFor={`cf-${f.key}`} className="text-[13px] font-medium text-foreground">
-                  {f.label}{f.required && <span className="text-danger">*</span>}
+                  {f.label}{f.required && <span className="text-danger-strong">*</span>}
                 </label>
                 <Input
                   id={`cf-${f.key}`}
@@ -181,7 +181,7 @@ export function ContentForm({
             <p className="text-xs leading-relaxed text-text-muted">保存后为草稿,需在列表中点「发布」上线。</p>
 
             {error && (
-              <p className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-[13px] text-danger">{error}</p>
+              <p className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-[13px] text-danger-strong">{error}</p>
             )}
 
             <div className="flex items-center gap-2 pt-1">

@@ -71,7 +71,7 @@ const selectCls =
 function Msg({ msg }: { msg: RuleActionResult | null }) {
   if (!msg) return null;
   return (
-    <p className={msg.ok ? "mt-3 text-[13px] text-success" : "mt-3 text-[13px] text-danger"}>
+    <p className={msg.ok ? "mt-3 text-[13px] text-success-strong" : "mt-3 text-[13px] text-danger-strong"}>
       {msg.message}
     </p>
   );
@@ -217,7 +217,7 @@ export function QuotaRules({
                       <td className="py-2 pr-3 text-right tabular-nums">{t.adminQuota}</td>
                       <td className="py-2 pr-3 text-right font-medium tabular-nums">{total}</td>
                       <td className="py-2 pr-3">
-                        <span className={t.enabled ? "text-success" : "text-text-muted"}>
+                        <span className={t.enabled ? "text-success-strong" : "text-text-muted"}>
                           {t.enabled ? "启用" : "停用"}
                         </span>
                       </td>
@@ -232,7 +232,7 @@ export function QuotaRules({
                             variant="ghost"
                             disabled={pending}
                             onClick={() => run(() => deleteTemplateAction(t.id), setTplMsg)}
-                            className="h-7 gap-1 px-2 text-danger hover:text-danger"
+                            className="h-7 gap-1 px-2 text-danger-strong hover:text-danger-strong"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                             删除
@@ -359,12 +359,12 @@ export function QuotaRules({
                   <tr key={h.date} className="border-b border-border-light last:border-0">
                     <td className="py-2 pr-3 tabular-nums">{formatCnDate(h.date)}</td>
                     <td className="py-2 pr-3">{DAY_TYPE_LABEL[h.dayType]}</td>
-                    <td className="py-2 pr-3">{h.closed ? <span className="text-danger">闭园</span> : "—"}</td>
+                    <td className="py-2 pr-3">{h.closed ? <span className="text-danger-strong">闭园</span> : "—"}</td>
                     <td className="py-2 pr-3 text-muted-foreground">{h.note || "—"}</td>
                     <td className="py-2">
                       <Button size="sm" variant="ghost" disabled={pending}
                         onClick={() => run(() => deleteHolidayAction(h.date), setHolMsg)}
-                        className="h-7 gap-1 px-2 text-danger hover:text-danger">
+                        className="h-7 gap-1 px-2 text-danger-strong hover:text-danger-strong">
                         <Trash2 className="h-3.5 w-3.5" />
                         删除
                       </Button>

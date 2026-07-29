@@ -88,7 +88,7 @@ export function Channels({ channels }: { channels: ChannelRow[] }) {
                   <span
                     className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[12px] font-medium ${
                       ch.enabled
-                        ? "border-success/30 bg-success/10 text-success"
+                        ? "border-success/30 bg-success/10 text-success-strong"
                         : "border-border bg-muted text-muted-foreground"
                     }`}
                   >
@@ -116,7 +116,7 @@ export function Channels({ channels }: { channels: ChannelRow[] }) {
         </table>
       </div>
       {msg && (
-        <p className={`mt-3 text-[13px] ${msg.ok ? "text-success" : "text-danger"}`}>{msg.message}</p>
+        <p className={`mt-3 text-[13px] ${msg.ok ? "text-success-strong" : "text-danger-strong"}`}>{msg.message}</p>
       )}
 
       <Sheet open={open} onOpenChange={setOpen}>

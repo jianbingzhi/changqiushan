@@ -10,7 +10,8 @@ import { Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { ensureAMap, type AMapNamespace } from "@/lib/amap/loader";
-import { estimateLabelExtent, fitViewAvoid, type MarkerExtent } from "./fit-view-avoid";
+import { estimateLabelExtent, fitViewAvoid, overlaySafeArea, type Box, type MarkerExtent } from "./fit-view-avoid";
+import { isSettled, planFitCorrection, unionBox } from "./fit-view-correct";
 import { cn } from "@/lib/ui/utils";
 
 export interface AmapMarkerInput {
@@ -124,14 +125,84 @@ function readFitAvoid(
   container: HTMLElement | null,
   markers: AmapMarkerInput[],
 ): [number, number, number, number] | undefined {
-  const shell = root?.parentElement;
-  if (!root || !shell) return undefined;
-  const overlays = Array.from(shell.querySelectorAll<HTMLElement>("[data-map-overlay]"));
+  if (!root) return undefined;
   return fitViewAvoid(
     root.getBoundingClientRect(),
-    overlays.map((el) => el.getBoundingClientRect()),
+    overlayRects(root),
     readMarkerExtent(container, markers),
   );
+}
+
+function overlayRects(root: HTMLElement): DOMRect[] {
+  const shell = root.parentElement;
+  if (!shell) return [];
+  return Array.from(shell.querySelectorAll<HTMLElement>("[data-map-overlay]")).map((el) =>
+    el.getBoundingClientRect(),
+  );
+}
+
+/** 逐帧校正的次数上限:一次缩放 + 一次平移 + 若干帧等标签排版,给足余量后收手,绝不无限循环 */
+const MAX_FIT_PASSES = 12;
+
+/**
+ * 取景的**实测校正**(round-01 N12 第三轮)。
+ *
+ * setFitView 把地图带到大致位置之后,这里去量**屏幕上真实的样子**:
+ * 标点落在哪(lngLatToContainer)、标签铺开多大(.amap-marker-label 的 rect),
+ * 越出浮层让开后的安全区就自己缩/挪回来。
+ *
+ * 为什么不再只算 avoid:r10 / r15 两轮把 avoid 算得越来越细(浮层 → 再叠标签占位),
+ * 评审也各自独立核过几何,可 1324×804 / 1440×900 真机两次都还是有标点被压住——
+ * 「算出来的内缩」与「标点最后落在哪」中间那段落差,只能靠量。量到的东西不会骗人。
+ *
+ * @returns true = 已到位(可以停止逐帧校正)
+ */
+function correctFitOnce(map: AMap.Map, ns: AMapNamespace, root: HTMLElement, container: HTMLElement, markers: AMap.Marker[], expectedLabels: number): boolean {
+  const base = root.getBoundingClientRect();
+  if (base.width <= 0 || base.height <= 0) return true;
+  const safe = overlaySafeArea(base, overlayRects(root));
+
+  // 标点点位(随缩放伸缩的那部分)
+  const points: Box[] = [];
+  for (const marker of markers) {
+    const position = marker.getPosition();
+    if (!position) continue;
+    const p = map.lngLatToContainer(position);
+    const [x, y] = [p.getX(), p.getY()];
+    if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+    points.push({ left: x, top: y, right: x, bottom: y });
+  }
+  const spread = unionBox(points);
+  if (!spread) return true;
+
+  // 连标签在内的实际绘制范围(固定像素的那部分)。标签还没排版出来时先只有标点,
+  // 这一帧算不出真实占位——所以下面把「标签数量够了没」也算进收敛条件,不够就再等一帧。
+  const labels = Array.from(container.querySelectorAll<HTMLElement>(".amap-marker-label"));
+  const painted = unionBox([
+    spread,
+    ...labels
+      .map((el) => el.getBoundingClientRect())
+      .filter((r) => r.width > 0 && r.height > 0)
+      .map((r) => ({
+        left: r.left - base.left,
+        top: r.top - base.top,
+        right: r.right - base.left,
+        bottom: r.bottom - base.top,
+      })),
+  ])!;
+
+  const plan = planFitCorrection(spread, painted, safe, { x: base.width / 2, y: base.height / 2 });
+  // 计划为空 = 已经落在安全区里了;但标签还没排全时那个「空」是假的(量到的框比真实的小),再等一帧
+  if (isSettled(plan)) return labels.length >= expectedLabels;
+
+  // 一帧只做一件事,做完下一帧重新量——预测误差因此不会累积
+  if (plan.scale !== 1) {
+    map.setZoom(map.getZoom() + Math.log2(plan.scale), true);
+    return false;
+  }
+  const target = map.containerToLngLat(new ns.Pixel(base.width / 2 - plan.dx, base.height / 2 - plan.dy));
+  map.setCenter([target.getLng(), target.getLat()], true);
+  return false;
 }
 
 export function AmapContainer({
@@ -152,6 +223,8 @@ export function AmapContainer({
   const amapRef = useRef<AMapNamespace | null>(null);
   const markerObjsRef = useRef<AMap.Marker[]>([]);
   const trafficRef = useRef<AMap.TileLayer.Traffic | null>(null);
+  // 取景轮次:视口/浮层一变就自增,旧的那一轮逐帧校正据此自行退出,不与新一轮抢方向盘
+  const fitRunRef = useRef(0);
 
   // 挂载即进入 loading(状态机 idle 仅为语义占位,首帧即在加载)
   const [status, setStatus] = useState<Status>("loading");
@@ -260,6 +333,39 @@ export function AmapContainer({
 
   // —— markers:变化时清空重建(序列化 key 做值比较,避免父组件重渲染抖动) ——
   const markersKey = JSON.stringify(markers ?? []);
+
+  /**
+   * 取一次景:先按浮层 + 标签占位算 avoid 交给高德摆(N12 r10/r15),再逐帧实测校正(N12 r19)。
+   * 无浮层也无标签的调用点(大屏三处)avoid 恒为 undefined:走高德默认避让、保留取景动画、
+   * **不进校正循环**——同一尺寸下取到的景与本次改动前逐字相同;
+   * 唯一的新行为是容器尺寸变了会按同一套默认避让**重新取一次景**(此前只在 markers 变化时取一次)。
+   */
+  function runFitView() {
+    const map = mapRef.current;
+    const ns = amapRef.current;
+    const root = rootRef.current;
+    const container = containerRef.current;
+    const objs = markerObjsRef.current;
+    if (!map || !ns || !root || !container || objs.length === 0) return;
+
+    const list = JSON.parse(markersKey) as AmapMarkerInput[];
+    const avoid = readFitAvoid(root, container, list);
+    // 有 avoid 时用 immediately=true:取景动画期间量到的是移动中的位置,校正会跟着动画来回追
+    map.setFitView(objs, avoid !== undefined, avoid);
+    if (avoid === undefined) return;
+
+    const expectedLabels = list.filter((m) => !!m.label).length;
+    const runId = ++fitRunRef.current;
+    let passes = 0;
+    const step = () => {
+      if (runId !== fitRunRef.current || !mapRef.current) return; // 已有新一轮取景,这一轮退出
+      if (++passes > MAX_FIT_PASSES) return;
+      if (correctFitOnce(map, ns, root, container, objs, expectedLabels)) return;
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
   useEffect(() => {
     const map = mapRef.current;
     const ns = amapRef.current;
@@ -290,11 +396,47 @@ export function AmapContainer({
     markerObjsRef.current = objs;
     if (objs.length > 0) {
       map.add(objs);
-      // avoid=[上,下,左,右] 内缩,按浮层 + 标点标签的实测占位算(N12);
-      // 两者都没有时传 undefined,走高德默认避让
-      if (fitView) map.setFitView(objs, false, readFitAvoid(rootRef.current, containerRef.current, list));
+      if (fitView) runFitView();
     }
+    // runFitView 只读 ref,不随渲染变化;列进依赖会让每次渲染都重新取景
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, markersKey, fitView]);
+
+  // —— 布局变化重新取景(round-01 N12 第三轮) ——
+  // 视口一变(tester 逐档扫 1324×804 / 1440×900 / 1920×1080 / 2560×1440),地图容器跟着变宽变窄,
+  // 而高德只会保持中心点不动——原先那次取景是按旧尺寸算的,窄下来之后边上的标点就被挤出可视区。
+  // 旧实现只在 markers 变化时取景一次,窄视口下的遮挡因此永远修不好。浮层增删(数据面板收起/展开)
+  // 同理:让开的区域变了,取景要重算。
+  useEffect(() => {
+    const root = rootRef.current;
+    const shell = root?.parentElement;
+    if (status !== "ready" || !fitView || !root || !shell) return;
+
+    let raf = 0;
+    const schedule = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => runFitView());
+    };
+    const resize = new ResizeObserver(schedule);
+    resize.observe(root);
+    for (const el of shell.querySelectorAll("[data-map-overlay]")) resize.observe(el);
+    // 面板收起时整只 <section> 会被换成小浮钮(不是尺寸变化而是节点替换),ResizeObserver 看不见,
+    // 故再挂一层 childList 监听:浮层集合一变就重新登记并重新取景。
+    const mutate = new MutationObserver(() => {
+      resize.disconnect();
+      resize.observe(root);
+      for (const el of shell.querySelectorAll("[data-map-overlay]")) resize.observe(el);
+      schedule();
+    });
+    mutate.observe(shell, { childList: true });
+
+    return () => {
+      resize.disconnect();
+      mutate.disconnect();
+      cancelAnimationFrame(raf);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, fitView, markersKey]);
 
   // —— 实时路况图层(插件按需增量加载,失败不影响底图) ——
   useEffect(() => {

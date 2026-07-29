@@ -135,9 +135,9 @@ export function ParkingMap({ lots }: { lots: ParkingLotView[] }) {
                     </div>
                     <p className="mt-1.5 flex items-center justify-between gap-2 text-[12px] text-muted-foreground">
                       <span>
-                        余位 <span className={`font-medium tabular-nums ${remaining === 0 ? "text-danger" : "text-foreground"}`}>{remaining}</span> / {lot.capacity}
+                        余位 <span className={`font-medium tabular-nums ${remaining === 0 ? "text-danger-strong" : "text-foreground"}`}>{remaining}</span> / {lot.capacity}
                       </span>
-                      {(lot.lng == null || lot.lat == null) && <span className="text-warning">未配置坐标,未上图</span>}
+                      {(lot.lng == null || lot.lat == null) && <span className="text-warning-strong">未配置坐标,未上图</span>}
                     </p>
                   </li>
                 );
@@ -162,7 +162,7 @@ export function ParkingMap({ lots }: { lots: ParkingLotView[] }) {
                         <TableCell className="text-[13px] font-medium text-foreground">{lot.name}</TableCell>
                         <TableCell className="text-[12px] tabular-nums text-muted-foreground">{lot.capacity}</TableCell>
                         <TableCell className="text-[12px] tabular-nums text-muted-foreground">{lot.occupied}</TableCell>
-                        <TableCell className={`text-[12px] font-medium tabular-nums ${remaining === 0 ? "text-danger" : "text-foreground"}`}>{remaining}</TableCell>
+                        <TableCell className={`text-[12px] font-medium tabular-nums ${remaining === 0 ? "text-danger-strong" : "text-foreground"}`}>{remaining}</TableCell>
                         <TableCell><StatusChip status={CHIP_KEY[lot.status]} /></TableCell>
                         <TableCell className="text-[12px] text-muted-foreground">{lot.updatedAtText}</TableCell>
                       </TableRow>

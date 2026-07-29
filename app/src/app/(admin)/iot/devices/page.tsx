@@ -68,7 +68,7 @@ export default async function IotDevicesPage() {
                   <TableCell className="text-[13px] font-medium tabular-nums text-text-muted">—</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <Link href={`/iot/${device.id}`} className="text-[13px] text-primary hover:underline">查看详情</Link>
+                      <Link href={`/iot/${device.id}`} className="text-[13px] text-primary-strong hover:underline">查看详情</Link>
                       <DeviceRowActions row={{ id: device.id, name: device.name, type: device.type, location: device.location }} />
                     </div>
                   </TableCell>

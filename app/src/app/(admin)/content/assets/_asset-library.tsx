@@ -75,7 +75,7 @@ export function AssetLibrary({ assets }: { assets: AssetRow[] }) {
       </div>
 
       {msg && (
-        <p className={msg.ok ? "text-[13px] text-success" : "text-[13px] text-destructive"}>
+        <p className={msg.ok ? "text-[13px] text-success-strong" : "text-[13px] text-danger-strong"}>
           {msg.message}
         </p>
       )}
@@ -114,7 +114,7 @@ export function AssetLibrary({ assets }: { assets: AssetRow[] }) {
                     variant="ghost"
                     disabled={pending}
                     onClick={() => onDelete(a.id)}
-                    className="h-7 gap-1 px-2 text-xs text-destructive hover:text-destructive"
+                    className="h-7 gap-1 px-2 text-xs text-danger-strong hover:text-danger-strong"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                     删除

@@ -70,7 +70,7 @@ export default async function BookingSlotsPage({ searchParams }: Props) {
 
       {hasCircuitBreaker && (
         <div className="mb-4 flex items-center justify-between rounded-lg border border-danger/30 bg-danger/10 px-4 py-3">
-          <p className="text-sm font-medium text-danger">
+          <p className="text-sm font-medium text-danger-strong">
             承载量达 90%，入园预约已自动暂停
           </p>
           <form>
@@ -83,7 +83,7 @@ export default async function BookingSlotsPage({ searchParams }: Props) {
                 const { bookingService } = await import("@/modules/booking");
                 await bookingService.resumePausedSlots(target);
               }}
-              className="rounded-md bg-danger px-3 py-1.5 text-xs font-medium text-white hover:bg-danger/90"
+              className="rounded-md bg-destructive px-3 py-1.5 text-xs font-medium text-destructive-foreground hover:bg-destructive/90"
             >
               手动恢复
             </button>
@@ -141,7 +141,7 @@ export default async function BookingSlotsPage({ searchParams }: Props) {
                     <td className="py-3 px-4 text-right text-xs">
                       {s.adminBooked}/{s.adminQuota}
                     </td>
-                    <td className={`py-3 px-4 text-right text-xs font-medium ${slotNearFull ? "text-danger" : ""}`}>
+                    <td className={`py-3 px-4 text-right text-xs font-medium ${slotNearFull ? "text-danger-strong" : ""}`}>
                       {s.checkedInCount}/{s.capacity}
                     </td>
                     <td className="py-3 px-4">

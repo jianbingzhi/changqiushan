@@ -86,7 +86,7 @@ export function HeaderLive() {
         <button
           type="button"
           onClick={refresh}
-          className="text-[13px] text-primary hover:underline"
+          className="text-[13px] text-primary-strong hover:underline"
         >
           刷新
         </button>

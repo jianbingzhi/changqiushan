@@ -86,15 +86,22 @@ const NO_EXTENT: MarkerExtent = { side: 0, above: 0, below: 0 };
  *
  * 两者都没有(无浮层且无标签)时返回 undefined,交回高德默认避让,不改变其它页面的取景。
  */
-export function fitViewAvoid(
-  base: Rect,
-  overlays: Rect[],
-  extent: MarkerExtent = NO_EXTENT,
-): [number, number, number, number] | undefined {
-  const width = base.right - base.left;
-  const height = base.bottom - base.top;
-  if (width <= 0 || height <= 0) return undefined;
+/** 四边内缩量(未加呼吸位、未叠标签占位);hit=是否真有浮层压在地图上 */
+interface OverlayInsets {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+  hit: boolean;
+}
 
+/**
+ * 浮层部分的内缩:每个浮层只往**离它最近的那条边**算——左上角那张 360×101 的 KPI 卡,从上边让开
+ * 117px 就够了,从左边让要让 376px,同样避开却白丢三倍视野。
+ * fitViewAvoid(算 setFitView 的 avoid)与 overlaySafeArea(算实测校正的安全区)共用这一份几何,
+ * 免得两处对"浮层占了哪儿"给出不同答案。
+ */
+function overlayInsets(base: Rect, overlays: Rect[]): OverlayInsets {
   let top = 0;
   let bottom = 0;
   let left = 0;
@@ -120,25 +127,57 @@ export function fitViewAvoid(
     else right = Math.max(right, fromRight);
   }
 
+  return { top, bottom, left, right, hit };
+}
+
+/** 容器内的矩形(以容器左上角为原点) */
+export interface Box {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+/**
+ * 浮层让开之后、地图容器里还剩下的可视安全区(容器局部坐标,已含呼吸位)。
+ * 与 fitViewAvoid 的区别:**不叠标签占位**——标签占多大由 AmapContainer 就地量真实 DOM 得到,
+ * 交给 planFitCorrection 处理(round-01 N12 r19:估出来的占位对不对,只有量了才知道)。
+ * 单边最多让到该轴的 (1 - MIN_VIEW_RATIO),两边之和同样受这条上限约束。
+ */
+export function overlaySafeArea(base: Rect, overlays: Rect[]): Box {
+  const width = base.right - base.left;
+  const height = base.bottom - base.top;
+  const { top, bottom, left, right } = overlayInsets(base, overlays);
+  const [t, b] = clampAxis(top, bottom, height);
+  const [l, r] = clampAxis(left, right, width);
+  return { left: l, top: t, right: width - r, bottom: height - b };
+}
+
+/** 两边内缩各加呼吸位,总量超过该轴可让上限时按比例同收(而不是各自砍到上限——那会改掉两边的比例关系) */
+function clampAxis(a: number, b: number, size: number): [number, number] {
+  const room = size * (1 - MIN_VIEW_RATIO);
+  const [ga, gb] = [a + FIT_VIEW_GAP, b + FIT_VIEW_GAP];
+  const total = ga + gb;
+  const scale = total > room ? room / total : 1;
+  return [Math.round(ga * scale), Math.round(gb * scale)];
+}
+
+export function fitViewAvoid(
+  base: Rect,
+  overlays: Rect[],
+  extent: MarkerExtent = NO_EXTENT,
+): [number, number, number, number] | undefined {
+  const width = base.right - base.left;
+  const height = base.bottom - base.top;
+  if (width <= 0 || height <= 0) return undefined;
+
+  const insets = overlayInsets(base, overlays);
+
   const hasExtent = extent.side > 0 || extent.above > 0 || extent.below > 0;
-  if (!hit && !hasExtent) return undefined;
+  if (!insets.hit && !hasExtent) return undefined;
 
   // 标签占位与浮层内缩是**叠加**关系:标点要先躲开浮层,它的标签还要再往外多占半个标签宽。
-  top += extent.above;
-  bottom += extent.below;
-  left += extent.side;
-  right += extent.side;
-
-  const axis = (a: number, b: number, size: number): [number, number] => {
-    const room = size * (1 - MIN_VIEW_RATIO);
-    const [ga, gb] = [a + FIT_VIEW_GAP, b + FIT_VIEW_GAP];
-    const total = ga + gb;
-    // 超过可让上限时按比例收,而不是各自砍到上限——砍到上限会把两边的比例关系改掉
-    const scale = total > room ? room / total : 1;
-    return [Math.round(ga * scale), Math.round(gb * scale)];
-  };
-
-  const [t, b] = axis(top, bottom, height);
-  const [l, r] = axis(left, right, width);
+  const [t, b] = clampAxis(insets.top + extent.above, insets.bottom + extent.below, height);
+  const [l, r] = clampAxis(insets.left + extent.side, insets.right + extent.side, width);
   return [t, b, l, r];
 }

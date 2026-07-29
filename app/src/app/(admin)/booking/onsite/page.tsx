@@ -26,13 +26,13 @@ function StepIndicator({ current }: { current: number }) {
                 className={cn(
                   "flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold border-2",
                   done ? "bg-primary border-primary text-white" :
-                  active ? "border-primary text-primary bg-card" :
+                  active ? "border-primary text-primary-strong bg-card" :
                   "border-border text-text-muted bg-card",
                 )}
               >
                 {done ? <Check className="h-4 w-4" /> : i + 1}
               </div>
-              <span className={cn("mt-1.5 text-xs whitespace-nowrap", active ? "text-primary font-semibold" : "text-text-muted")}>
+              <span className={cn("mt-1.5 text-xs whitespace-nowrap", active ? "text-primary-strong font-semibold" : "text-text-muted")}>
                 {label}
               </span>
             </div>
@@ -171,7 +171,7 @@ export default function OnsitePage() {
                 onChange={(date) => setForm((f) => ({ ...f, date, slotId: "", slotLabel: "" }))}
                 className="max-w-xs"
               />
-              {errors.date && <p className="text-[12px] text-danger">{errors.date}</p>}
+              {errors.date && <p className="text-[12px] text-danger-strong">{errors.date}</p>}
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-foreground">时段</label>
@@ -193,7 +193,7 @@ export default function OnsitePage() {
                   </option>
                 ))}
               </select>
-              {errors.slotLabel && <p className="text-[12px] text-danger">{errors.slotLabel}</p>}
+              {errors.slotLabel && <p className="text-[12px] text-danger-strong">{errors.slotLabel}</p>}
             </div>
           </div>
         )}
@@ -212,7 +212,7 @@ export default function OnsitePage() {
                   maxLength={field === "idCard" ? 18 : field === "phone" ? 11 : 40}
                   className={cn("max-w-xs", errors[field] && "border-danger")}
                 />
-                {errors[field] && <p className="text-[12px] text-danger">{errors[field]}</p>}
+                {errors[field] && <p className="text-[12px] text-danger-strong">{errors[field]}</p>}
               </div>
             ))}
           </div>
@@ -230,7 +230,7 @@ export default function OnsitePage() {
                   className={cn(
                     "flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors",
                     form.hasVehicle === v
-                      ? "border-primary bg-primary/10 text-primary"
+                      ? "border-primary bg-primary/10 text-primary-strong"
                       : "border-border text-muted-foreground hover:border-primary/40",
                   )}
                 >
@@ -262,7 +262,7 @@ export default function OnsitePage() {
                 <span className="text-sm text-foreground">本人确认无自驾车辆入园，知悉相关规定</span>
               </label>
             )}
-            {errors.vehicle && <p className="text-[12px] text-danger">{errors.vehicle}</p>}
+            {errors.vehicle && <p className="text-[12px] text-danger-strong">{errors.vehicle}</p>}
           </div>
         )}
 
@@ -289,7 +289,7 @@ export default function OnsitePage() {
         )}
 
         {submitError && step === STEPS.length - 1 && (
-          <p className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-[13px] text-danger">
+          <p className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-[13px] text-danger-strong">
             {submitError}
           </p>
         )}

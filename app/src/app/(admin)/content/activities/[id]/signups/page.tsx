@@ -26,8 +26,8 @@ export default async function ActivitySignupsPage({ params }: Props) {
   return (
     <>
       <PageHeader title="报名审核" description={`${activity?.title ?? "活动"} · 查看参与者报名信息及支付状态`} />
-      <div className="mb-4 flex items-center gap-3 rounded-lg border border-[#BFDBFE] bg-[#EFF6FF] px-4 py-3">
-        <span className="text-[13px] text-info">支付状态由 C 端小程序同步，B 端不触发支付，审核操作仅影响参与资格。</span>
+      <div className="mb-4 flex items-center gap-3 rounded-lg border border-info/30 bg-info/10 px-4 py-3">
+        <span className="text-[13px] text-info-strong">支付状态由 C 端小程序同步，B 端不触发支付，审核操作仅影响参与资格。</span>
       </div>
       <div className="rounded-lg border border-border bg-card">
         <Table>

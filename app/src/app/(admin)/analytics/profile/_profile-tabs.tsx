@@ -34,9 +34,9 @@ export function ProfileTabs({ overview, travel }: { overview: ProfileRow[]; trav
   return (
     <Tabs defaultValue="overview" className="w-full">
       <TabsList className="mb-4 bg-muted border border-border">
-        <TabsTrigger value="overview" className="data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm">总览</TabsTrigger>
-        <TabsTrigger value="travel"   className="data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm">出行偏好</TabsTrigger>
-        <TabsTrigger value="app"      className="data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm">应用偏好</TabsTrigger>
+        <TabsTrigger value="overview" className="data-[state=active]:bg-card data-[state=active]:text-primary-strong data-[state=active]:shadow-sm">总览</TabsTrigger>
+        <TabsTrigger value="travel"   className="data-[state=active]:bg-card data-[state=active]:text-primary-strong data-[state=active]:shadow-sm">出行偏好</TabsTrigger>
+        <TabsTrigger value="app"      className="data-[state=active]:bg-card data-[state=active]:text-primary-strong data-[state=active]:shadow-sm">应用偏好</TabsTrigger>
       </TabsList>
       <TabsContent value="overview">
         <div className="rounded-lg border border-border bg-card">

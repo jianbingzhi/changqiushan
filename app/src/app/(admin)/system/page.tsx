@@ -79,7 +79,7 @@ export default async function SystemPage() {
                   {role.permissions.length === 0 ? (
                     <span className="text-[13px] text-text-muted">无权限</span>
                   ) : role.permissions.map((rp) => (
-                    <span key={rp.permission.id} className="rounded-md border border-[#BBF7D0] bg-[#F0FDF4] px-2.5 py-1 text-[12px] text-primary">
+                    <span key={rp.permission.id} className="rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1 text-[12px] text-primary-strong">
                       {rp.permission.name}
                     </span>
                   ))}

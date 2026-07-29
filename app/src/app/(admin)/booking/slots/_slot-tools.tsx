@@ -90,8 +90,8 @@ export function SlotTools({ targetDate }: { targetDate: string }) {
         <p
           className={
             msg.ok
-              ? "mt-3 text-[13px] text-success"
-              : "mt-3 text-[13px] text-danger"
+              ? "mt-3 text-[13px] text-success-strong"
+              : "mt-3 text-[13px] text-danger-strong"
           }
         >
           {msg.message}

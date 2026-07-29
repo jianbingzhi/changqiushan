@@ -34,8 +34,8 @@ export default async function ContentActivitiesPage() {
           <StatCard label="本月新增" value={newThisMonth} unit="个" />
         </KpiRow>
       </div>
-      <div className="mb-4 flex items-center gap-3 rounded-lg border border-[#BFDBFE] bg-[#EFF6FF] px-4 py-3">
-        <span className="text-[13px] text-info">报名费由 C 端小程序支付，B 端仅查看参与人数与支付状态，不触发任何支付操作。</span>
+      <div className="mb-4 flex items-center gap-3 rounded-lg border border-info/30 bg-info/10 px-4 py-3">
+        <span className="text-[13px] text-info-strong">报名费由 C 端小程序支付，B 端仅查看参与人数与支付状态，不触发任何支付操作。</span>
       </div>
       <div className="rounded-lg border border-border bg-card">
         <Table>

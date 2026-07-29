@@ -112,7 +112,7 @@ export function SortableContentRows({
   return (
     <div className="rounded-lg border border-border bg-card">
       {(saving || msg) && (
-        <p className={`px-4 py-2 text-[13px] ${msg ? "text-danger" : "text-muted-foreground"}`}>
+        <p className={`px-4 py-2 text-[13px] ${msg ? "text-danger-strong" : "text-muted-foreground"}`}>
           {msg ?? "排序保存中…"}
         </p>
       )}

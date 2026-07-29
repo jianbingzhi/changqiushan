@@ -29,11 +29,11 @@ export function RemoveBlacklistButton({ userId }: { userId: string }) {
         variant="outline"
         disabled={pending}
         onClick={() => run(() => removeBlacklistAction(userId))}
-        className="text-[12px] text-danger border-[#FECACA]"
+        className="text-[12px] text-danger-strong border-danger/30"
       >
         {pending ? "处理中…" : "移除"}
       </Button>
-      {error && <span className="text-xs text-danger">{error}</span>}
+      {error && <span className="text-xs text-danger-strong">{error}</span>}
     </div>
   );
 }
@@ -62,7 +62,7 @@ export function ReviewAppealButtons({ appealId }: { appealId: string }) {
           驳回
         </Button>
       </div>
-      {error && <span className="text-xs text-danger">{error}</span>}
+      {error && <span className="text-xs text-danger-strong">{error}</span>}
     </div>
   );
 }

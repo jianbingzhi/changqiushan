@@ -104,7 +104,7 @@ export function MapSidePanel<K extends string>({
 
   const tabBtn = (active: boolean) =>
     `rounded-md px-2.5 py-1 text-[12px] font-medium transition-colors ${
-      active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+      active ? "bg-primary/10 text-primary-strong" : "text-muted-foreground hover:bg-muted hover:text-foreground"
     }`;
 
   return (

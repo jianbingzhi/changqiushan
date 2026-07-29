@@ -121,7 +121,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
         </Link>
         <a
           href={`/api/export/bookings${exportQs}`}
-          className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-md border border-primary/40 bg-card px-4 text-sm font-medium text-primary hover:bg-primary/5"
+          className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-md border border-primary/40 bg-card px-4 text-sm font-medium text-primary-strong hover:bg-primary/5"
         >
           <Download className="h-3.5 w-3.5" /> 导出 Excel
         </a>
@@ -137,7 +137,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
           const isActive = status === v;
           return (
             <Link key={v} href={`/booking/bookings${p.toString() ? "?" + p.toString() : ""}`}
-              className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${isActive ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+              className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${isActive ? "border-primary text-primary-strong" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
               {label}
             </Link>
           );

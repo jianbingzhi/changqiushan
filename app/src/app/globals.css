@@ -16,8 +16,13 @@
   --color-popover-foreground: var(--popover-fg);
 
   /* —— 品牌 / 主色 —— */
+  /* --primary 是**实底填充**那一支(按钮 / 头像 / 选中块,上面压白字);
+     主色当**前景文字**用(品牌名、「查看全部 →」、tab 选中态)走 --primary-strong,
+     理由与下面 --*-strong 同一条:填充色要够暗(白字压得住)、文字色要够亮(深底上读得清),
+     深色主题下这两个诉求正好相反(round-01 N18 ③:白字压 #4C8C43 仅 4.09:1)。 */
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
+  --color-primary-strong: var(--primary-strong);
   --color-primary-foreground: var(--primary-fg);
 
   /* —— 次级 / 弱化 / 强调(shadcn 抽象语义,组件已在引用) —— */
@@ -87,12 +92,14 @@
 
   --primary: #2D5A27;
   --primary-hover: #3A7232;
+  --primary-strong: #2D5A27;
   --primary-fg: #FFFFFF;
 
   --secondary: #F3F4F6;
   --secondary-fg: #1F2937;
   --muted: #F3F4F6;
-  --muted-fg: #6B7280;
+  /* round-01 N18 ②:表头等 text-muted-foreground 压在 --muted(#F3F4F6)上,#6B7280 只有 4.39:1 */
+  --muted-fg: #4B5563;
   --accent: #F1F5F0;
   --accent-fg: #1F2937;
   --destructive: #DC2626;
@@ -109,9 +116,12 @@
   --sidebar-section: #A8C09A;
   --sidebar-active: #2D5A27;
 
+  /* 三档文字灰的取值口径(round-01 N18 ①②):最浅的那一档也必须在**最浅的底**(--card #FFFFFF /
+     --bg #F9FAFB / --muted #F3F4F6)上过 WCAG AA 4.5:1。原 #6B7280 / #9CA3AF 分别只有 4.39 / 2.43,
+     层级是靠"越来越淡"拉开的,淡到读不出来就不是层级而是缺陷,故整体压深、只保留相对次序。 */
   --text-primary: #1F2937;
-  --text-secondary: #6B7280;
-  --text-muted: #9CA3AF;
+  --text-secondary: #4B5563;
+  --text-muted: #5B6472;
 
   --success: #16A34A;
   --warning: #D97706;
@@ -137,8 +147,14 @@
   --popover: #16201A;
   --popover-fg: #E8EFE3;
 
-  --primary: #4C8C43;
-  --primary-hover: #5BA052;
+  /* round-01 N18 ③(人工已授权可动品牌绿明度):
+     - --primary 是实底填充,白字压在上面要 ≥4.5:1 → #4C8C43 只有 4.09,压深到 #457F3C(4.82:1);
+     - hover 在深色下**继续压深**而不是提亮:提亮会把白字打到 3.2:1,深色主题里"按下去更深"同样是
+       清晰的状态反馈,而"更亮 + 读不出字"不是;
+     - 主色当前景文字改走 --primary-strong(见 @theme 处说明),两个诉求各归各的 token。 */
+  --primary: #457F3C;
+  --primary-hover: #3A6C33;
+  --primary-strong: #63A95A;
   --primary-fg: #FFFFFF;
 
   --secondary: #1A241E;
@@ -147,7 +163,10 @@
   --muted-fg: #9CA3AF;
   --accent: #243029;
   --accent-fg: #E8EFE3;
-  --destructive: #EF4444;
+  /* round-01 N18 ④:--destructive 是**实底**破坏性色(按钮 / 顶栏消息徽标),上面压 --destructive-fg
+     白字,故深浅同值取 #DC2626 —— 深色原值 #EF4444 白字只有 3.76:1。
+     深色下要当前景文字的红走 --danger(#EF4444)/ --danger-strong(#F87171),两支各司其职。 */
+  --destructive: #DC2626;
   --destructive-fg: #FFFFFF;
 
   --border: #2A3A30;
@@ -163,7 +182,8 @@
 
   --text-primary: #E8EFE3;
   --text-secondary: #A8B5AC;
-  --text-muted: #7C8A82;
+  /* 深色最浅那一档同样按最难的底算:压在 --muted(#1A241E)上 #7C8A82 只有 4.42:1 */
+  --text-muted: #8A9990;
 
   --success: #22C55E;
   --warning: #F59E0B;

@@ -30,7 +30,7 @@ export function CheckinButton({ qrCode }: { qrCode: string }) {
       >
         {pending ? "核销中…" : "核销"}
       </Button>
-      {error && <span className="text-xs text-danger">{error}</span>}
+      {error && <span className="text-xs text-danger-strong">{error}</span>}
     </div>
   );
 }

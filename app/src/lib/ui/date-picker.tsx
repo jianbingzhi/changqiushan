@@ -121,7 +121,7 @@ export function DatePicker({
             <button
               type="button"
               onClick={() => commit(todayYmd())}
-              className="text-[12px] text-primary hover:underline"
+              className="text-[12px] text-primary-strong hover:underline"
             >
               今天
             </button>

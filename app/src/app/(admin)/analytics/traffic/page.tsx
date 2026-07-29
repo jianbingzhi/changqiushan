@@ -75,9 +75,9 @@ export default async function AnalyticsTrafficPage({ searchParams }: Props) {
               <TableRow key={r.date} className="hover:bg-muted">
                 <TableCell className="text-[13px] text-foreground">{formatCnDate(r.date)}</TableCell>
                 <TableCell className="text-[13px]">{r.total}</TableCell>
-                <TableCell className="text-[13px] text-primary">{r.checkedIn}</TableCell>
+                <TableCell className="text-[13px] text-primary-strong">{r.checkedIn}</TableCell>
                 <TableCell className="text-[13px] text-muted-foreground">{r.cancelled}</TableCell>
-                <TableCell className="text-[13px] text-danger">{r.noshow}</TableCell>
+                <TableCell className="text-[13px] text-danger-strong">{r.noshow}</TableCell>
               </TableRow>
             ))}
           </TableBody>

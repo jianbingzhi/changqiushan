@@ -90,7 +90,7 @@ function ToolbarButton({
       title={label}
       className={cn(
         "flex h-8 w-8 items-center justify-center rounded text-muted-foreground hover:bg-muted disabled:opacity-40",
-        active && "bg-primary/10 text-primary",
+        active && "bg-primary/10 text-primary-strong",
       )}
     >
       {children}
@@ -212,7 +212,7 @@ function Toolbar({
         {uploadingVideo && <span className="ml-1 text-[12px] text-muted-foreground">视频上传中,大文件请耐心等候…</span>}
       </div>
 
-      {uploadErr && <p className="border-b border-border bg-danger/10 px-3 py-1.5 text-[12px] text-danger">{uploadErr}</p>}
+      {uploadErr && <p className="border-b border-border bg-danger/10 px-3 py-1.5 text-[12px] text-danger-strong">{uploadErr}</p>}
 
       {field && (
         <div className="flex items-center gap-2 border-b border-border bg-card px-3 py-2">
@@ -256,7 +256,7 @@ export function RichTextEditor({ value, onChange, placeholder, onUploadImage, on
     immediatelyRender: false, // Next SSR 安全:避免水合不一致
     extensions: [
       StarterKit.configure({
-        link: { openOnClick: false, HTMLAttributes: { class: "text-primary underline" } },
+        link: { openOnClick: false, HTMLAttributes: { class: "text-primary-strong underline" } },
       }),
       Image.configure({ HTMLAttributes: { class: "max-w-full rounded-lg" } }),
       VideoNode,
@@ -362,7 +362,7 @@ export function RichTextEditor({ value, onChange, placeholder, onUploadImage, on
   );
 
   const dropErrBar = mediaDropErr ? (
-    <div role="alert" className="flex items-center justify-between gap-2 px-3 py-1.5 text-[12px] text-destructive">
+    <div role="alert" className="flex items-center justify-between gap-2 px-3 py-1.5 text-[12px] text-danger-strong">
       <span>{mediaDropErr}</span>
       <button type="button" onClick={() => setMediaDropErr(null)} className="shrink-0 text-muted-foreground hover:text-foreground">知道了</button>
     </div>

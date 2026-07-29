@@ -47,7 +47,7 @@ export default async function ActivityAwardsPage({ params }: Props) {
                 <TableCell className="text-[13px] text-foreground">{item.awardTitle}</TableCell>
                 <TableCell className="text-[13px] text-muted-foreground">{formatCnDateTime(item.announcedAt)}</TableCell>
                 <TableCell>
-                  <Button size="sm" variant="outline" className="text-[12px] text-danger border-[#FECACA]" disabled>撤销公示</Button>
+                  <Button size="sm" variant="outline" className="text-[12px] text-danger-strong border-danger/30" disabled>撤销公示</Button>
                 </TableCell>
               </TableRow>
             ))}

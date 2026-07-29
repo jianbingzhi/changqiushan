@@ -40,8 +40,9 @@ declare global {
       constructor(container: string | HTMLElement, opts?: MapOptions);
       on(event: string, handler: (e: { type?: string; info?: string }) => void): void;
       setMapStyle(style: string): void;
-      setCenter(center: [number, number]): void;
-      setZoom(zoom: number): void;
+      setCenter(center: [number, number], immediately?: boolean): void;
+      setZoom(zoom: number, immediately?: boolean): void;
+      getZoom(): number;
       setStatus(status: MapStatus): void;
       add(overlays: Marker | Marker[]): void;
       remove(overlays: Marker | Marker[]): void;
@@ -52,11 +53,23 @@ declare global {
         avoid?: [number, number, number, number],
         maxZoom?: number,
       ): void;
+      /** 经纬度 → 容器像素坐标(取景实测校正靠它读出标点真正落在哪,round-01 N12) */
+      lngLatToContainer(position: LngLat): Pixel;
+      /** 容器像素坐标 → 经纬度(反算校正后应把中心挪到哪) */
+      containerToLngLat(pixel: Pixel): LngLat;
       destroy(): void;
     }
 
     class Pixel {
       constructor(x: number, y: number);
+      getX(): number;
+      getY(): number;
+    }
+
+    class LngLat {
+      constructor(lng: number, lat: number);
+      getLng(): number;
+      getLat(): number;
     }
 
     interface MarkerLabel {
@@ -76,6 +89,7 @@ declare global {
     class Marker {
       constructor(opts: MarkerOptions);
       setLabel(label: MarkerLabel): void;
+      getPosition(): LngLat | null;
     }
 
     namespace TileLayer {

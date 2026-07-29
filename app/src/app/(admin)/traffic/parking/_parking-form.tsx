@@ -47,7 +47,7 @@ const selectCls =
 function Msg({ msg }: { msg: ParkingActionResult | null }) {
   if (!msg) return null;
   return (
-    <p className={msg.ok ? "mt-3 text-[13px] text-success" : "mt-3 text-[13px] text-danger"}>
+    <p className={msg.ok ? "mt-3 text-[13px] text-success-strong" : "mt-3 text-[13px] text-danger-strong"}>
       {msg.message}
     </p>
   );
@@ -144,7 +144,7 @@ export function ParkingForm({ lots }: { lots: ParkingLotRow[] }) {
                   onClick={() => {
                     if (window.confirm(`确认删除停车场「${lot.name}」?此操作不可恢复。`)) run(() => deleteParkingLotAction(lot.id));
                   }}
-                  className="h-7 shrink-0 gap-1 px-2 text-danger hover:text-danger"
+                  className="h-7 shrink-0 gap-1 px-2 text-danger-strong hover:text-danger-strong"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                   删除

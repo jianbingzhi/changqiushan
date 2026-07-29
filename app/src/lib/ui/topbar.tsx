@@ -43,7 +43,7 @@ export function Topbar() {
             <path d="M2 14l4.5-7L10 11l2.5-4L16 14H2Z" fill="white" fillOpacity="0.9" />
           </svg>
         </span>
-        <span className="text-base font-bold text-primary">长秋山森林公园智慧景区</span>
+        <span className="text-base font-bold text-primary-strong">长秋山森林公园智慧景区</span>
       </div>
 
       {/* Right */}
@@ -66,7 +66,7 @@ export function Topbar() {
           className="relative flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent"
         >
           <Bell size={16} />
-          <span className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-danger px-1 text-xs font-semibold text-white">
+          <span className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-destructive px-1 text-xs font-semibold text-destructive-foreground">
             3
           </span>
         </button>

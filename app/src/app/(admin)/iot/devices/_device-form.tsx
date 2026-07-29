@@ -151,7 +151,7 @@ export function DeviceToolbar() {
       )}
 
       {msg && (
-        <p className={msg.ok ? "mt-3 text-[12px] text-success" : "mt-3 text-[12px] text-danger"}>
+        <p className={msg.ok ? "mt-3 text-[12px] text-success-strong" : "mt-3 text-[12px] text-danger-strong"}>
           {msg.message}
         </p>
       )}
@@ -174,7 +174,7 @@ export function DeviceRowActions({ row }: { row: DeviceRow }) {
         onClick={() => {
           if (window.confirm(`确认删除设备「${row.name}」?该设备的心跳历史将一并删除,不可恢复。`)) remove(row.id);
         }}
-        className="h-7 gap-1 px-2 text-danger hover:text-danger"
+        className="h-7 gap-1 px-2 text-danger-strong hover:text-danger-strong"
       >
         <Trash2 className="h-3.5 w-3.5" />
         删除

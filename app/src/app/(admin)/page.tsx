@@ -56,7 +56,7 @@ export default async function DashboardPage() {
       <div className="mb-5 rounded-lg border border-border bg-card">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <p className="text-[13px] font-semibold text-foreground">今日预约时段</p>
-          <Link href="/booking/slots" className="text-[13px] text-primary hover:underline">查看全部 →</Link>
+          <Link href="/booking/slots" className="text-[13px] text-primary-strong hover:underline">查看全部 →</Link>
         </div>
         {slots.length === 0 ? (
           <div className="py-8 text-center text-[13px] text-muted-foreground">今日暂无时段数据</div>
@@ -72,7 +72,7 @@ export default async function DashboardPage() {
                     <span className="text-[13px] text-muted-foreground">{s.startTime}–{s.endTime}</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className={`text-[13px] ${warn ? "text-danger" : "text-muted-foreground"}`}>
+                    <span className={`text-[13px] ${warn ? "text-danger-strong" : "text-muted-foreground"}`}>
                       在园 {s.checkedInCount}/{s.capacity}（{pct}%）
                     </span>
                     <StatusChip status={s.status === "ACTIVE" ? "ACTIVE" : s.status === "PAUSED" ? "PAUSED" : s.status === "CLOSED" ? "CLOSED" : "CANCELLED"} />
@@ -88,7 +88,7 @@ export default async function DashboardPage() {
       <div className="rounded-lg border border-border bg-card">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <p className="text-[13px] font-semibold text-foreground">设备在线状态</p>
-          <Link href="/iot/devices" className="text-[13px] text-primary hover:underline">查看全部 →</Link>
+          <Link href="/iot/devices" className="text-[13px] text-primary-strong hover:underline">查看全部 →</Link>
         </div>
         {devices.length === 0 ? (
           <div className="py-8 text-center text-[13px] text-muted-foreground">暂无设备数据</div>

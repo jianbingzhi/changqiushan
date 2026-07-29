@@ -19,24 +19,24 @@ export function OccupancyCard({ capacity }: { capacity: number }) {
         isRed ? "border-danger/30 bg-danger/10" : "border-border bg-card",
       )}
     >
-      <p className={cn("text-[13px]", isRed ? "text-danger" : "text-muted-foreground")}>
+      <p className={cn("text-[13px]", isRed ? "text-danger-strong" : "text-muted-foreground")}>
         在园人数（实时）
       </p>
       <div className="mt-2 flex items-baseline gap-1">
         <span
           className={cn(
             "text-[32px] font-bold leading-none",
-            isRed ? "text-danger" : "text-foreground",
+            isRed ? "text-danger-strong" : "text-foreground",
           )}
         >
           {count}
         </span>
-        <span className={cn("text-sm", isRed ? "text-danger" : "text-muted-foreground")}>
+        <span className={cn("text-sm", isRed ? "text-danger-strong" : "text-muted-foreground")}>
           /{capacity} 人（{pct}%）
         </span>
       </div>
       {isRed && (
-        <p className="mt-2 text-[12px] font-semibold text-danger">⚠ 在园达 90%，预约已自动暂停</p>
+        <p className="mt-2 text-[12px] font-semibold text-danger-strong">⚠ 在园达 90%，预约已自动暂停</p>
       )}
     </div>
   );

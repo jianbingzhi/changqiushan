@@ -49,7 +49,7 @@ function occupancy(cell: DayCell): number {
 // 占用率分档配色:<70% 绿(primary)/70-90% 琥珀/≥90% 红(danger)
 function barColor(pct: number): string {
   if (pct >= 90) return "bg-danger"
-  if (pct >= 70) return "bg-amber-500"
+  if (pct >= 70) return "bg-warning"
   return "bg-primary"
 }
 
@@ -279,7 +279,7 @@ export function QuotaCalendar(props: {
                     className={cn(
                       "text-[13px] font-medium text-foreground",
                       isClosed && "text-muted-foreground line-through",
-                      meta.isToday && "text-primary",
+                      meta.isToday && "text-primary-strong",
                     )}
                   >
                     {meta.day}
@@ -371,7 +371,7 @@ export function QuotaCalendar(props: {
               />
             </div>
             {dayMsg && (
-              <p className={cn("text-[12px]", dayMsg.ok ? "text-primary" : "text-danger")}>
+              <p className={cn("text-[12px]", dayMsg.ok ? "text-primary-strong" : "text-danger-strong")}>
                 {dayMsg.text}
               </p>
             )}
@@ -454,7 +454,7 @@ export function QuotaCalendar(props: {
               />
             </div>
             {rangeMsg && (
-              <p className={cn("text-[12px]", rangeMsg.ok ? "text-primary" : "text-danger")}>
+              <p className={cn("text-[12px]", rangeMsg.ok ? "text-primary-strong" : "text-danger-strong")}>
                 {rangeMsg.text}
               </p>
             )}
@@ -517,7 +517,7 @@ export function QuotaCalendar(props: {
               />
             </div>
             {limitsMsg && (
-              <p className={cn("text-[12px]", limitsMsg.ok ? "text-primary" : "text-danger")}>
+              <p className={cn("text-[12px]", limitsMsg.ok ? "text-primary-strong" : "text-danger-strong")}>
                 {limitsMsg.text}
               </p>
             )}

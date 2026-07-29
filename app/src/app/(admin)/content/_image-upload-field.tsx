@@ -63,7 +63,7 @@ export function ImageUploadField({
               <Button type="button" size="sm" variant="outline" onClick={() => setPicking(true)} className="bg-card/90">
                 <Library className="h-3.5 w-3.5" />素材库
               </Button>
-              <Button type="button" size="sm" variant="outline" onClick={() => onChange("")} className="bg-card/90 text-destructive hover:text-destructive">
+              <Button type="button" size="sm" variant="outline" onClick={() => onChange("")} className="bg-card/90 text-danger-strong hover:text-danger-strong">
                 <X className="h-3.5 w-3.5" />移除
               </Button>
             </div>
@@ -74,7 +74,7 @@ export function ImageUploadField({
               type="button"
               disabled={busy}
               onClick={() => fileRef.current?.click()}
-              className="flex aspect-[16/5] w-full flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-border bg-muted/30 text-muted-foreground hover:border-primary/50 hover:text-primary disabled:opacity-50"
+              className="flex aspect-[16/5] w-full flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-border bg-muted/30 text-muted-foreground hover:border-primary/50 hover:text-primary-strong disabled:opacity-50"
             >
               <ImagePlus className="h-7 w-7" />
               <span className="text-sm">{busy ? "上传中…" : "添加封面图(点击上传)"}</span>
@@ -86,7 +86,7 @@ export function ImageUploadField({
             </div>
           </div>
         )}
-        {msg && <p className="mt-1.5 text-[13px] text-destructive">{msg}</p>}
+        {msg && <p className="mt-1.5 text-[13px] text-danger-strong">{msg}</p>}
         {pickerModal}
       </div>
     );
@@ -108,7 +108,7 @@ export function ImageUploadField({
             <Button type="button" size="sm" variant="ghost" onClick={() => setPicking(true)}>
               <Library className="h-3.5 w-3.5" />从素材库选择
             </Button>
-            <Button type="button" size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => onChange("")}>
+            <Button type="button" size="sm" variant="ghost" className="text-danger-strong hover:text-danger-strong" onClick={() => onChange("")}>
               <X className="h-3.5 w-3.5" />移除封面
             </Button>
           </div>
@@ -119,7 +119,7 @@ export function ImageUploadField({
             type="button"
             disabled={busy}
             onClick={() => fileRef.current?.click()}
-            className="flex h-28 w-44 flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-border bg-muted/30 text-muted-foreground hover:border-primary/50 hover:text-primary disabled:opacity-50"
+            className="flex h-28 w-44 flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-border bg-muted/30 text-muted-foreground hover:border-primary/50 hover:text-primary-strong disabled:opacity-50"
           >
             <ImagePlus className="h-6 w-6" />
             <span className="text-xs">{busy ? "上传中…" : "上传封面"}</span>
@@ -131,7 +131,7 @@ export function ImageUploadField({
       )}
 
       <p className="text-xs text-muted-foreground">支持 JPG / PNG / WebP / GIF,单张 10MB 以内</p>
-      {msg && <p className="text-[13px] text-destructive">{msg}</p>}
+      {msg && <p className="text-[13px] text-danger-strong">{msg}</p>}
 
       {picking && (
         <AssetPickerModal

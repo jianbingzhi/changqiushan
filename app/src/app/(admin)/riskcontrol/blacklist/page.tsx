@@ -31,7 +31,7 @@ export default async function BlacklistPage({ searchParams }: { searchParams: Pr
 
       <div className="flex border-b border-border mb-5">
         {([ { key: "blacklist", label: "黑名单", href: "?tab=blacklist" }, { key: "appeals", label: "申诉管理", href: "?tab=appeals" } ] as const).map(({ key, label, href }) => (
-          <Link key={key} href={href} className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === key ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+          <Link key={key} href={href} className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === key ? "border-primary text-primary-strong" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
             {label}
           </Link>
         ))}

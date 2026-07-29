@@ -218,14 +218,19 @@ export const bookingService = {
     // 红线4 显示口径:熔断时派生行同样置 PAUSED——核销路径的 PAUSE 只改物化行,派生行若仍显
     // ACTIVE,大屏闪红与时段板「可约」会自相矛盾。inPark 直接复用已取回的物化行,零额外查询;
     // 非当日 checkedIn 恒 0,天然不误伤(b-103 评审 #1)。
+    // round-01 N19:置位对**物化行与派生行一视同仁**。此前只置派生行,已物化的今日时段(运营在
+    // /booking/slots 补建的行是正常生产路径)在 C 端仍是 ACTIVE/bookable,用户填完表单提交才被
+    // 写守卫的 CIRCUIT_BREAKER_OPEN 拒掉——写是牢的,漏的是显示口径。
     const inPark = materialized.reduce((s, m) => s + m.checkedInCount, 0);
     const broken = isCircuitBroken(inPark, resolveInstantCapacity(capRaw));
+    // 与写侧 pauseSlotsForCircuitBreak 同口径:只有 ACTIVE 被置 PAUSED,CLOSED 更严格、保持不变
+    const pauseIfBroken = (v: SlotView): SlotView =>
+      broken && v.status === "ACTIVE" ? { ...v, status: "PAUSED" } : v;
     const byStart = new Map<string, SlotView>();
     for (const d of deriveSlots(dateStr, templates, holiday)) {
-      const v = derivedToView(d);
-      byStart.set(d.startTime, broken ? { ...v, status: "PAUSED" } : v);
+      byStart.set(d.startTime, pauseIfBroken(derivedToView(d)));
     }
-    for (const m of materialized) byStart.set(m.startTime, materializedToView(m)); // 已物化优先
+    for (const m of materialized) byStart.set(m.startTime, pauseIfBroken(materializedToView(m))); // 已物化优先
     return [...byStart.values()].sort((a, b) => a.startTime.localeCompare(b.startTime));
   },
 

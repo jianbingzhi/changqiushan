@@ -132,7 +132,7 @@ export function RegionMap({ provinceData }: { provinceData: RegionDatum[] }) {
           <span key={f.mapName + i} className="flex items-center gap-1">
             {i > 0 && <span className="text-text-muted">/</span>}
             {i < stack.length - 1 ? (
-              <button type="button" onClick={() => popTo(i)} className="text-primary hover:underline">
+              <button type="button" onClick={() => popTo(i)} className="text-primary-strong hover:underline">
                 {f.name}
               </button>
             ) : (
@@ -145,7 +145,7 @@ export function RegionMap({ provinceData }: { provinceData: RegionDatum[] }) {
         )}
       </div>
 
-      {error && <p className="mb-2 text-[12px] text-danger">{error}</p>}
+      {error && <p className="mb-2 text-[12px] text-danger-strong">{error}</p>}
 
       <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
         {/* 地图 */}

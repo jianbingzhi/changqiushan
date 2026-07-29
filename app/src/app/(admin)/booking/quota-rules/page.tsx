@@ -46,7 +46,7 @@ export default async function QuotaRulesPage({ searchParams }: { searchParams: P
       <Link
         href={`/booking/quota-rules?view=${key}`}
         className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-          active ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+          active ? "border-primary text-primary-strong" : "border-transparent text-muted-foreground hover:text-foreground"
         }`}
       >
         {label}

@@ -51,7 +51,7 @@ export function LoginForm({ action }: LoginFormProps) {
       </div>
 
       {error && (
-        <p className="text-[13px] text-destructive" role="alert">
+        <p className="text-[13px] text-danger-strong" role="alert">
           {error}
         </p>
       )}
