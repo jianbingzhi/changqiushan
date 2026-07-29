@@ -113,3 +113,85 @@ export async function fetchRoadConditions(): Promise<RoadConditionsResult> {
     return { source: "error", conditions: [] };
   }
 }
+
+// ── 实时天气(大屏顶栏)──────────────────────────────────────────────────────
+// 高德 weatherInfo 仅含天气现象/气温/风/湿度,**不含 AQI/空气质量**(那需另接环境监测源)。
+// 与路况共用 AMAP_KEY(Web 服务 key)。城市默认蒲江县 510131(长秋山所在地),可经 env 覆盖。
+
+/** 实时天气(高德 lives[0] 的 PII-free 子集) */
+export interface WeatherLive {
+  city:          string;
+  weather:       string;  // 天气现象,如「阴」「多云」
+  temperature:   number;  // 摄氏度
+  windDirection: string;  // 风向
+  windPower:     string;  // 风力等级,如「≤3」「4」
+  humidity:      number;  // 相对湿度 %
+  reportTime:    string;  // 高德数据发布时间(原样透传)
+}
+
+/** 诚实三态:key 未配置 / 服务异常 / 高德真实数据。严禁回落硬编码假天气。 */
+export type WeatherResult = {
+  source: "amap" | "unconfigured" | "error";
+  live:   WeatherLive | null;
+};
+
+const AMAP_WEATHER_URL = "https://restapi.amap.com/v3/weather/weatherInfo";
+// 蒲江县 adcode;运维可经 AMAP_WEATHER_CITY 覆盖(如换成成都市 510100)。
+const WEATHER_CITY = process.env.AMAP_WEATHER_CITY || "510131";
+
+interface AmapWeatherLive {
+  city?:          string;
+  weather?:       string;
+  temperature?:   string;
+  winddirection?: string;
+  windpower?:     string;
+  humidity?:      string;
+  reporttime?:    string;
+}
+
+interface AmapWeatherResponse {
+  status?:   string;
+  infocode?: string;
+  lives?:    AmapWeatherLive[];
+}
+
+/**
+ * 查询景区所在地实时天气(extensions=base)。
+ * - AMAP_KEY 未配置:source="unconfigured"
+ * - HTTP 失败 / infocode!=="10000" / 无 lives / 网络异常:source="error"
+ * - 成功:source="amap"
+ * 高德实时天气约每小时更新一次,fetch 走 Data Cache 600 秒再验证,保护配额。
+ */
+export async function fetchWeather(): Promise<WeatherResult> {
+  const key = process.env.AMAP_KEY;
+  if (!key) return { source: "unconfigured", live: null };
+
+  try {
+    const params = new URLSearchParams({ key, city: WEATHER_CITY, extensions: "base" });
+    const res = await fetch(`${AMAP_WEATHER_URL}?${params.toString()}`, {
+      next: { revalidate: 600 },
+    });
+    if (!res.ok) return { source: "error", live: null };
+
+    const data = (await res.json()) as AmapWeatherResponse;
+    const live = data.lives?.[0];
+    if (data.infocode !== "10000" || !live || !live.weather) {
+      return { source: "error", live: null };
+    }
+
+    return {
+      source: "amap",
+      live: {
+        city:          live.city ?? "",
+        weather:       live.weather,
+        temperature:   Number(live.temperature ?? 0),
+        windDirection: live.winddirection ?? "",
+        windPower:     live.windpower ?? "",
+        humidity:      Number(live.humidity ?? 0),
+        reportTime:    live.reporttime ?? "",
+      },
+    };
+  } catch {
+    return { source: "error", live: null };
+  }
+}

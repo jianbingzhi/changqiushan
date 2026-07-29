@@ -1,0 +1,96 @@
+# 推送 deploy-demo 分支(或手动触发)→ 自动部署到演示服务器(自托管 Docker 全栈)。
+# 与 ci-deploy.yml(Vercel)互不干扰:那个看 main,这个看 deploy-demo。
+# 机制:runner checkout 代码 → tar 经 SSH 推到服务器 → 调 remote-setup.sh 幂等部署。
+# 私有库也能部署,服务器无需配 deploy key。
+#
+# 需在 GitHub repo(d2xstudio/changqiushan)→ Settings → Secrets and variables → Actions 配置:
+#   必填:DEMO_SSH_HOST(如 8.137.184.228)、DEMO_SSH_USER(如 root)、DEMO_SSH_PASSWORD
+#   可选:DEMO_PUBLIC_HOST(默认=DEMO_SSH_HOST)、AMAP_KEY、NEXT_PUBLIC_AMAP_KEY、
+#         NEXT_PUBLIC_AMAP_SECURITY、WECHAT_APPID、WECHAT_SECRET、AI_BASE_URL、AI_MODEL、AI_API_KEY
+# ⚠️ 前置:阿里云安全组放行 22(GitHub runner 出口 IP 不固定→需对 0.0.0.0/0 开 22,demo 取舍;
+#         生产应换 SSH key + 限源)。另放行 80(Caddy 统一入口:后台/BFF/大屏/媒体全走它)。
+#         有备案域名后再放行 443(设 SITE_ADDRESS=<域名> → Caddy 自动 HTTPS)。
+# 未配齐 DEMO_SSH_* 的库(如 jianbingzhi)→ guard 自动跳过,不报错。
+
+name: 部署到演示服务器
+
+on:
+  push:
+    branches: [deploy-demo]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-demo-server
+  cancel-in-progress: false   # 部署不可被打断(build/migrate 半途中止危险)
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.chk.outputs.ready }}
+    steps:
+      - id: chk
+        env:
+          HOST: ${{ secrets.DEMO_SSH_HOST }}
+        run: |
+          if [ -n "$HOST" ]; then echo "ready=true" >> "$GITHUB_OUTPUT"
+          else echo "ready=false" >> "$GITHUB_OUTPUT"; echo "::notice::未配 DEMO_SSH_HOST,跳过部署"; fi
+
+  deploy:
+    needs: guard
+    if: needs.guard.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    env:
+      DEMO_SSH_HOST: ${{ secrets.DEMO_SSH_HOST }}
+      DEMO_SSH_USER: ${{ secrets.DEMO_SSH_USER }}
+      DEMO_SSH_PASSWORD: ${{ secrets.DEMO_SSH_PASSWORD }}
+      PUBLIC_HOST: ${{ secrets.DEMO_PUBLIC_HOST }}
+      # 可选业务密钥(注入服务器 .env;首次生成后即固化,改值需删服务器 .env 重生成)
+      AMAP_KEY: ${{ secrets.AMAP_KEY }}
+      NEXT_PUBLIC_AMAP_KEY: ${{ secrets.NEXT_PUBLIC_AMAP_KEY }}
+      NEXT_PUBLIC_AMAP_SECURITY: ${{ secrets.NEXT_PUBLIC_AMAP_SECURITY }}
+      WECHAT_APPID: ${{ secrets.WECHAT_APPID }}
+      WECHAT_SECRET: ${{ secrets.WECHAT_SECRET }}
+      AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
+      AI_MODEL: ${{ secrets.AI_MODEL }}
+      AI_API_KEY: ${{ secrets.AI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 sshpass
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq sshpass
+
+      - name: 推送代码到服务器(tar over SSH)
+        run: |
+          set -euo pipefail
+          export SSHPASS="$DEMO_SSH_PASSWORD"
+          SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=20"
+          PUB="${PUBLIC_HOST:-$DEMO_SSH_HOST}"
+          # 打包 app/(排除依赖/产物/密钥)→ 经 SSH 解到 /opt/changqiushan/app
+          tar czf - -C app \
+            --exclude=node_modules --exclude=.next --exclude=.git --exclude=.env \
+            --exclude='*.log' . \
+          | sshpass -e ssh $SSH_OPTS "$DEMO_SSH_USER@$DEMO_SSH_HOST" \
+              "mkdir -p /opt/changqiushan/app && tar xzf - -C /opt/changqiushan/app"
+          echo "PUB=$PUB" >> "$GITHUB_ENV"
+
+      - name: 远程构建并部署(remote-setup.sh)
+        run: |
+          set -euo pipefail
+          export SSHPASS="$DEMO_SSH_PASSWORD"
+          SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=20 -o ServerAliveInterval=30"
+          # 把可选密钥透传给 remote-setup(首次写入服务器 .env)。单引号包裹防止特殊字符破坏远端解析。
+          REMOTE_ENV="PUBLIC_HOST='$PUB' \
+            AMAP_KEY='${AMAP_KEY:-}' \
+            NEXT_PUBLIC_AMAP_KEY='${NEXT_PUBLIC_AMAP_KEY:-}' \
+            NEXT_PUBLIC_AMAP_SECURITY='${NEXT_PUBLIC_AMAP_SECURITY:-}' \
+            WECHAT_APPID='${WECHAT_APPID:-}' \
+            WECHAT_SECRET='${WECHAT_SECRET:-}' \
+            AI_BASE_URL='${AI_BASE_URL:-}' \
+            AI_MODEL='${AI_MODEL:-}' \
+            AI_API_KEY='${AI_API_KEY:-}'"
+          # root 登录无需 sudo;非 root 用户自动 sudo(脚本需 root 装 docker/建 swap)
+          sshpass -e ssh $SSH_OPTS "$DEMO_SSH_USER@$DEMO_SSH_HOST" \
+            "chmod +x /opt/changqiushan/app/deploy/remote-setup.sh && \
+             if [ \"\$(id -u)\" = 0 ]; then SUDO=; else SUDO=sudo; fi && \
+             \$SUDO env $REMOTE_ENV bash /opt/changqiushan/app/deploy/remote-setup.sh"

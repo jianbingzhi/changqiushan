@@ -1,0 +1,18 @@
+# 长秋山演示统一入口。SITE_ADDRESS 默认 :80(IP+HTTP);设为域名则 Caddy 自动 HTTPS。
+{$SITE_ADDRESS::80} {
+	encode zstd gzip
+
+	# 媒体:MinIO path-style(/<bucket>/*)。Caddy 默认透传 Host、不改路径,
+	# 故 S3 预签名(SigV4,签名绑定 Host+路径+query)经此仍有效。
+	@media path /changqiushan-media/*
+	reverse_proxy @media minio:9000
+
+	# 实时 SSE(大屏/仪表盘):禁缓冲、立即冲刷,避免长连接被攒包
+	@sse path /api/sse/*
+	reverse_proxy @sse app:3000 {
+		flush_interval -1
+	}
+
+	# 其余全部 → B 端后台 + C 端 BFF(/api/c/*)+ 大屏(/screen)
+	reverse_proxy app:3000
+}

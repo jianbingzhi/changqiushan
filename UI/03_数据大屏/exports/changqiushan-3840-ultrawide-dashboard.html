@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>长秋山森林公园智慧景区 · 超宽融合指挥总屏</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary-fixed": "#002201",
+                        "surface": "#0b160f",
+                        "tertiary-fixed-dim": "#73d1ff",
+                        "tertiary-fixed": "#c1e8ff",
+                        "on-tertiary-container": "#6ecefc",
+                        "error": "#ffb4ab",
+                        "on-secondary-fixed": "#002201",
+                        "on-surface": "#d9e6da",
+                        "on-tertiary-fixed": "#001e2b",
+                        "surface-bright": "#303c34",
+                        "secondary": "#90d87f",
+                        "surface-container-lowest": "#06100a",
+                        "secondary-fixed": "#abf599",
+                        "surface-tint": "#a1d494",
+                        "on-secondary": "#003a02",
+                        "on-error": "#690005",
+                        "inverse-surface": "#d9e6da",
+                        "primary-container": "#2d5a27",
+                        "surface-container-high": "#212d25",
+                        "primary": "#a1d494",
+                        "on-tertiary-fixed-variant": "#004d67",
+                        "on-tertiary": "#003548",
+                        "surface-variant": "#2c372f",
+                        "on-primary-fixed-variant": "#23501e",
+                        "primary-fixed": "#bcf0ae",
+                        "on-secondary-container": "#7fc670",
+                        "secondary-container": "#0a5309",
+                        "tertiary": "#73d1ff",
+                        "background": "#061306", // Adjusted for prompt
+                        "on-secondary-fixed-variant": "#0a5309",
+                        "on-surface-variant": "#c2c9bb",
+                        "surface-container-low": "#131e17",
+                        "error-container": "#93000a",
+                        "on-primary": "#0a3909",
+                        "surface-dim": "#0b160f",
+                        "outline": "#8c9387",
+                        "tertiary-container": "#005774",
+                        "on-background": "#d9e6da",
+                        "on-primary-container": "#9dd090",
+                        "outline-variant": "#42493e",
+                        "secondary-fixed-dim": "#90d87f",
+                        "surface-container-highest": "#2c372f",
+                        "inverse-primary": "#3b6934",
+                        "surface-container": "#17221b",
+                        "primary-fixed-dim": "#a1d494",
+                        "on-error-container": "#ffdad6",
+                        "inverse-on-surface": "#28332b",
+                        "glow-green": "#4a8e3f",
+                        "warning-orange": "#d97706",
+                        "failure-red": "#dc2626"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "grid-gutter": "16px",
+                        "element-margin": "12px",
+                        "container-padding": "24px",
+                        "panel-gap": "24px"
+                    },
+                    "fontFamily": {
+                        "kpi-md": ["JetBrains Mono"],
+                        "headline-md": ["PingFang SC"],
+                        "body": ["PingFang SC"],
+                        "label": ["PingFang SC"],
+                        "kpi-display": ["JetBrains Mono"],
+                        "headline-lg": ["PingFang SC"],
+                        "section-subtitle": ["PingFang SC"],
+                        "section-title": ["PingFang SC"]
+                    },
+                    "fontSize": {
+                        "kpi-md": ["44px", {"lineHeight": "48px", "letterSpacing": "0", "fontWeight": "600"}],
+                        "headline-md": ["34px", {"lineHeight": "44px", "letterSpacing": "0", "fontWeight": "600"}],
+                        "body": ["14px", {"lineHeight": "20px", "letterSpacing": "0", "fontWeight": "400"}],
+                        "label": ["12px", {"lineHeight": "16px", "letterSpacing": "0", "fontWeight": "400"}],
+                        "kpi-display": ["58px", {"lineHeight": "60px", "letterSpacing": "0", "fontWeight": "700"}],
+                        "headline-lg": ["40px", {"lineHeight": "52px", "letterSpacing": "0", "fontWeight": "600"}],
+                        "section-subtitle": ["18px", {"lineHeight": "24px", "letterSpacing": "0", "fontWeight": "500"}],
+                        "section-title": ["22px", {"lineHeight": "28px", "letterSpacing": "0", "fontWeight": "600"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        html {
+            width: 100%;
+            min-height: 100%;
+            overflow: auto;
+        }
+
+        body {
+            width: 3840px;
+            height: 1080px;
+            overflow: visible;
+            background-color: #061306;
+            background-image: radial-gradient(circle at 50% 50%, rgba(45, 90, 39, 0.05) 0%, transparent 100%),
+                              linear-gradient(rgba(74, 142, 63, 0.03) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(74, 142, 63, 0.03) 1px, transparent 1px);
+            background-size: 100% 100%, 32px 32px, 32px 32px;
+            color: #d9e6da;
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* Panel Styles */
+        .panel {
+            background: rgba(45, 90, 39, 0.16);
+            border: 1px solid rgba(74, 142, 63, 0.42);
+            position: relative;
+            backdrop-filter: blur(4px);
+        }
+        
+        .panel-header {
+            display: flex;
+            align-items: center;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(232, 245, 233, 0.05);
+            margin-bottom: 16px;
+        }
+        
+        .panel-title {
+            font-family: 'PingFang SC', sans-serif;
+            font-size: 18px;
+            font-weight: 500;
+            color: #d9e6da;
+            display: flex;
+            align-items: center;
+        }
+        
+        .panel-title::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 16px;
+            background-color: #4a8e3f;
+            margin-right: 8px;
+            box-shadow: 0 0 8px rgba(74, 142, 63, 0.8);
+        }
+
+        /* Glow effects */
+        .glow-dot-success {
+            box-shadow: 0 0 8px #90d87f;
+            background-color: #90d87f;
+        }
+        .glow-dot-warning {
+            box-shadow: 0 0 8px #d97706;
+            background-color: #d97706;
+        }
+        .glow-dot-danger {
+            box-shadow: 0 0 8px #dc2626;
+            background-color: #dc2626;
+        }
+        .glow-text-primary {
+            text-shadow: 0 0 10px rgba(161, 212, 148, 0.5);
+        }
+
+        /* Chart grids */
+        .chart-grid {
+            background-image: linear-gradient(rgba(232, 245, 233, 0.1) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(232, 245, 233, 0.1) 1px, transparent 1px);
+            background-size: 100% 20%, 10% 100%;
+        }
+
+        /* Scrollbar hide for alerts */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+
+        /* Local preview mode: make the fixed 3840x1080 artboard scroll with the page. */
+        body {
+            min-width: 3840px;
+            min-height: 1080px;
+            position: relative;
+        }
+        header,
+        main,
+        footer {
+            position: absolute !important;
+            left: 0 !important;
+            width: 3840px !important;
+        }
+        main {
+            top: 84px !important;
+            height: 904px !important;
+        }
+        footer {
+            top: 988px !important;
+            bottom: auto !important;
+            height: 92px !important;
+        }
+    </style>
+</head>
+<body class="font-body text-body antialiased flex flex-col">
+<!-- TopNavBar -->
+<header class="bg-surface-container border-b border-secondary/40 shadow-[0_0_15px_rgba(161,212,148,0.2)] fixed top-0 left-0 w-full z-50 flex justify-between items-center px-grid-gutter h-[84px]">
+<div class="font-headline-lg text-headline-lg font-bold text-primary flex items-center gap-2 glow-text-primary">
+            长秋山森林公园智慧景区 · 超宽融合指挥总屏
+        </div>
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-4 text-primary ml-8 pl-8">
+<div class="flex flex-col items-end">
+<span class="font-kpi-md text-[24px] font-bold tracking-wider">2026 年 6 月 22 日</span>
+<span class="font-label text-label flex gap-2"><span>17:42:18</span> <span>周一</span></span>
+</div>
+<div class="flex gap-3 items-center">
+<span class="material-symbols-outlined text-3xl">partly_cloudy_day</span>
+<span class="font-kpi-md text-[24px]">26°C</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="fixed top-[84px] left-0 w-full h-[904px] px-[24px] py-[24px] flex gap-[16px] z-10 box-border">
+<!-- 1. Left Overview (640px) -->
+<section class="w-[640px] flex flex-col gap-[16px] h-full shrink-0">
+<!-- Main KPI -->
+<div class="panel p-6 h-[220px] flex flex-col justify-between">
+<div class="panel-header mb-0 border-none pb-0">
+<div class="panel-title">当前在园总人数</div>
+<div class="ml-auto flex items-center gap-2 bg-surface-container-high px-3 py-1 rounded border border-outline-variant">
+<span class="w-2 h-2 rounded-full glow-dot-success"></span>
+<span class="font-label text-label text-on-surface-variant">状态正常</span>
+</div>
+</div>
+<div class="flex items-end justify-between">
+<div class="font-kpi-display text-kpi-display text-primary glow-text-primary">4,108</div>
+<div class="flex flex-col items-end">
+<div class="font-section-subtitle text-section-subtitle text-on-surface mb-1">容量占比 41%</div>
+<div class="font-label text-label text-on-surface-variant">总承载量限制 9000</div>
+</div>
+</div>
+<!-- Capacity Bar -->
+<div class="w-full h-3 bg-surface-container-high rounded-full overflow-hidden mt-4 relative">
+<div class="h-full bg-gradient-to-r from-tertiary-fixed-dim to-glow-green w-[41%] rounded-full shadow-[0_0_10px_#4a8e3f]"></div>
+<div class="absolute top-0 left-[90%] w-[2px] h-full bg-warning-orange shadow-[0_0_8px_#d97706] z-10"></div>
+</div>
+</div>
+<!-- Metrics Matrix -->
+<div class="panel p-5 flex-1">
+<div class="panel-header">
+<div class="panel-title">景区实时动态感知</div>
+</div>
+<div class="grid grid-cols-2 gap-4 h-[calc(100%-40px)]">
+<!-- Metric 1 -->
+<div class="bg-surface-container/50 border border-secondary/20 p-4 flex flex-col justify-center relative overflow-hidden group hover:border-primary/50 transition-colors">
+<div class="absolute -right-4 -top-4 opacity-10 text-6xl material-symbols-outlined group-hover:scale-110 transition-transform">confirmation_number</div>
+<div class="font-label text-label text-on-surface-variant mb-1">今日总预约</div>
+<div class="font-kpi-md text-[32px] text-on-surface">5,240<span class="text-sm ml-1 text-on-surface-variant">人</span></div>
+</div>
+<!-- Metric 2 -->
+<div class="bg-surface-container/50 border border-secondary/20 p-4 flex flex-col justify-center relative overflow-hidden group hover:border-primary/50 transition-colors">
+<div class="absolute -right-4 -top-4 opacity-10 text-6xl material-symbols-outlined group-hover:scale-110 transition-transform">how_to_reg</div>
+<div class="font-label text-label text-on-surface-variant mb-1">今日已核销</div>
+<div class="font-kpi-md text-[32px] text-secondary">3,892<span class="text-sm ml-1 text-on-surface-variant">人</span></div>
+</div>
+<!-- Metric 3 -->
+<div class="bg-surface-container/50 border border-secondary/20 p-4 flex flex-col justify-center relative overflow-hidden group hover:border-primary/50 transition-colors">
+<div class="absolute -right-4 -top-4 opacity-10 text-6xl material-symbols-outlined group-hover:scale-110 transition-transform">event_seat</div>
+<div class="font-label text-label text-on-surface-variant mb-1">剩余可预约量</div>
+<div class="font-kpi-md text-[32px] text-tertiary">3,760<span class="text-sm ml-1 text-on-surface-variant">人</span></div>
+</div>
+<!-- Metric 4 -->
+<div class="bg-surface-container/50 border border-secondary/20 p-4 flex flex-col justify-center relative overflow-hidden group hover:border-primary/50 transition-colors">
+<div class="absolute -right-4 -top-4 opacity-10 text-6xl material-symbols-outlined group-hover:scale-110 transition-transform">local_parking</div>
+<div class="font-label text-label text-on-surface-variant mb-1">停车场余位</div>
+<div class="font-kpi-md text-[32px] text-warning-orange">142<span class="text-sm ml-1 text-on-surface-variant">辆</span></div>
+</div>
+<!-- Metric 5 -->
+<div class="bg-surface-container/50 border border-secondary/20 p-4 flex flex-col justify-center relative overflow-hidden group hover:border-primary/50 transition-colors">
+<div class="absolute -right-4 -top-4 opacity-10 text-6xl material-symbols-outlined group-hover:scale-110 transition-transform">directions_walk</div>
+<div class="font-label text-label text-on-surface-variant mb-1">当前进行中活动</div>
+<div class="font-kpi-md text-[32px] text-on-surface">3<span class="text-sm ml-1 text-on-surface-variant">项</span></div>
+</div>
+<!-- Metric 6 -->
+<div class="bg-surface-container/50 border border-secondary/20 p-4 flex flex-col justify-center relative overflow-hidden group hover:border-primary/50 transition-colors">
+<div class="absolute -right-4 -top-4 opacity-10 text-6xl material-symbols-outlined group-hover:scale-110 transition-transform">notifications_active</div>
+<div class="font-label text-label text-on-surface-variant mb-1">未处理预警</div>
+<div class="font-kpi-md text-[32px] text-failure-red">2<span class="text-sm ml-1 text-on-surface-variant">条</span></div>
+</div>
+</div>
+</div>
+<!-- Conversion Funnel -->
+<div class="panel p-5 h-[240px]">
+<div class="panel-header">
+<div class="panel-title">预约核销转化漏斗</div>
+</div>
+<div class="flex flex-col items-center justify-center h-[calc(100%-40px)] gap-2">
+<div class="w-full max-w-[400px] h-10 bg-primary-container/40 border border-primary/50 flex justify-between items-center px-4">
+<span class="font-label text-label text-on-surface">总预约人数</span>
+<span class="font-kpi-md text-[20px] text-primary">5,240</span>
+</div>
+<div class="w-[85%] max-w-[340px] h-10 bg-secondary-container/40 border border-secondary/50 flex justify-between items-center px-4">
+<span class="font-label text-label text-on-surface">到场扫码数</span>
+<span class="font-kpi-md text-[20px] text-secondary">4,120 <span class="text-xs text-on-surface-variant ml-2">(78%)</span></span>
+</div>
+<div class="w-[70%] max-w-[280px] h-10 bg-tertiary-container/40 border border-tertiary/50 flex justify-between items-center px-4">
+<span class="font-label text-label text-on-surface">成功核销入园</span>
+<span class="font-kpi-md text-[20px] text-tertiary">3,892 <span class="text-xs text-on-surface-variant ml-2">(94%)</span></span>
+</div>
+</div>
+</div>
+</section>
+<!-- 2. Left-Center Trends (760px) -->
+<section class="w-[760px] flex flex-col gap-[16px] h-full shrink-0">
+<!-- Top Chart -->
+<div class="panel p-5 h-[300px]">
+<div class="panel-header">
+<div class="panel-title">近30日客流趋势分析 (预约/核销/爽约)</div>
+</div>
+<div class="h-[calc(100%-40px)] relative chart-grid p-4 flex items-end justify-between">
+<!-- Faux Line Chart Visualization -->
+<svg class="absolute inset-0 w-full h-full" preserveaspectratio="none" viewbox="0 0 100 100">
+<path d="M0,80 Q10,75 20,60 T40,40 T60,50 T80,30 T100,20 L100,100 L0,100 Z" fill="rgba(161, 212, 148, 0.1)" stroke="none"></path>
+<path d="M0,80 Q10,75 20,60 T40,40 T60,50 T80,30 T100,20" fill="none" stroke="#a1d494" stroke-width="1.5"></path>
+<path d="M0,90 Q15,85 25,75 T45,60 T65,65 T85,50 T100,45" fill="none" stroke="#73d1ff" stroke-dasharray="2,2" stroke-width="1.5"></path>
+<path d="M0,98 Q20,97 30,96 T50,95 T70,96 T90,95 T100,94" fill="none" stroke="#d97706" stroke-width="1"></path>
+</svg>
+<!-- X-Axis Labels -->
+<div class="w-full flex justify-between absolute bottom-0 left-0 px-4 pt-2 border-t border-surface-variant/50">
+<span class="font-label text-[10px] text-on-surface-variant">05-23</span>
+<span class="font-label text-[10px] text-on-surface-variant">06-01</span>
+<span class="font-label text-[10px] text-on-surface-variant">06-10</span>
+<span class="font-label text-[10px] text-on-surface-variant">06-15</span>
+<span class="font-label text-[10px] text-on-surface-variant">06-22</span>
+</div>
+<!-- Legend -->
+<div class="absolute top-2 right-4 flex gap-4">
+<div class="flex items-center gap-1 font-label text-[10px] text-on-surface"><div class="w-3 h-[2px] bg-primary"></div>预约量</div>
+<div class="flex items-center gap-1 font-label text-[10px] text-on-surface"><div class="w-3 h-[2px] bg-tertiary border-dashed border-b"></div>核销数</div>
+<div class="flex items-center gap-1 font-label text-[10px] text-on-surface"><div class="w-3 h-[2px] bg-warning-orange"></div>爽约量</div>
+</div>
+</div>
+</div>
+<!-- Middle Flow Source -->
+<div class="panel p-5 h-[260px] flex gap-4">
+<div class="w-1/3 flex flex-col">
+<div class="panel-header border-none mb-2 pb-0">
+<div class="panel-title text-[16px]">客源地占比</div>
+</div>
+<div class="flex-1 flex flex-col justify-center gap-4">
+<div>
+<div class="flex justify-between font-label text-label text-on-surface mb-1">
+<span>本市游客</span> <span>65%</span>
+</div>
+<div class="w-full h-1.5 bg-surface-variant rounded-full overflow-hidden">
+<div class="w-[65%] h-full bg-primary shadow-[0_0_5px_#a1d494]"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between font-label text-label text-on-surface mb-1">
+<span>省内其他市</span> <span>25%</span>
+</div>
+<div class="w-full h-1.5 bg-surface-variant rounded-full overflow-hidden">
+<div class="w-[25%] h-full bg-tertiary"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between font-label text-label text-on-surface mb-1">
+<span>省外游客</span> <span>10%</span>
+</div>
+<div class="w-full h-1.5 bg-surface-variant rounded-full overflow-hidden">
+<div class="w-[10%] h-full bg-secondary"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="w-2/3 border-l border-surface-variant pl-4 flex flex-col">
+<div class="panel-header border-none mb-2 pb-0">
+<div class="panel-title text-[16px]">今日分时入园时段分布</div>
+</div>
+<!-- Stacked Bar Chart Faux -->
+<div class="flex-1 flex items-end justify-between px-2 pb-6 border-b border-surface-variant/50 relative">
+<div class="w-6 bg-surface-variant/30 h-[20%] relative group"><div class="absolute bottom-0 w-full h-full bg-primary/20"></div></div>
+<div class="w-6 bg-surface-variant/30 h-[40%] relative group"><div class="absolute bottom-0 w-full h-[60%] bg-primary"></div><div class="absolute bottom-[60%] w-full h-[40%] bg-tertiary"></div></div>
+<div class="w-6 bg-surface-variant/30 h-[80%] relative group"><div class="absolute bottom-0 w-full h-[70%] bg-primary shadow-[0_0_8px_rgba(161,212,148,0.5)]"></div><div class="absolute bottom-[70%] w-full h-[30%] bg-tertiary"></div></div>
+<div class="w-6 bg-surface-variant/30 h-[100%] relative group"><div class="absolute bottom-0 w-full h-[65%] bg-primary shadow-[0_0_8px_rgba(161,212,148,0.5)]"></div><div class="absolute bottom-[65%] w-full h-[35%] bg-tertiary"></div></div>
+<div class="w-6 bg-surface-variant/30 h-[60%] relative group"><div class="absolute bottom-0 w-full h-[80%] bg-primary"></div><div class="absolute bottom-[80%] w-full h-[20%] bg-tertiary"></div></div>
+<div class="w-6 bg-surface-variant/30 h-[30%] relative group"><div class="absolute bottom-0 w-full h-[90%] bg-primary"></div><div class="absolute bottom-[90%] w-full h-[10%] bg-tertiary"></div></div>
+<div class="absolute bottom-0 left-0 w-full flex justify-between font-label text-[10px] text-on-surface-variant pt-1">
+<span>08:00</span><span>10:00</span><span>12:00</span><span>14:00</span><span>16:00</span><span>18:00</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Heatmap -->
+<div class="panel p-5 flex-1 flex flex-col">
+<div class="panel-header">
+<div class="panel-title">7x24h 空间预约密度热力矩阵与阈值点位</div>
+</div>
+<div class="flex gap-4 flex-1">
+<!-- Heatmap Matrix -->
+<div class="w-3/5 flex flex-col h-full justify-between">
+<!-- Faux Heatmap Rows -->
+<div class="flex h-[12%] gap-1">
+<div class="w-8 flex items-center justify-end pr-2 font-label text-[10px] text-on-surface-variant">周一</div>
+<div class="flex-1 flex gap-1"><div class="flex-1 bg-primary-container/20"></div><div class="flex-1 bg-primary-container/40"></div><div class="flex-1 bg-warning-orange/60"></div><div class="flex-1 bg-primary/80"></div><div class="flex-1 bg-primary-container/30"></div></div>
+</div>
+<div class="flex h-[12%] gap-1">
+<div class="w-8 flex items-center justify-end pr-2 font-label text-[10px] text-on-surface-variant">周二</div>
+<div class="flex-1 flex gap-1"><div class="flex-1 bg-primary-container/10"></div><div class="flex-1 bg-primary-container/30"></div><div class="flex-1 bg-primary-container/70"></div><div class="flex-1 bg-primary-container/40"></div><div class="flex-1 bg-primary-container/20"></div></div>
+</div>
+<!-- Skip visually to weekend -->
+<div class="flex h-[12%] gap-1">
+<div class="w-8 flex items-center justify-end pr-2 font-label text-[10px] text-on-surface-variant">周六</div>
+<div class="flex-1 flex gap-1"><div class="flex-1 bg-primary-container/50"></div><div class="flex-1 bg-warning-orange/80 shadow-[0_0_8px_#d97706]"></div><div class="flex-1 bg-failure-red/80 shadow-[0_0_8px_#dc2626]"></div><div class="flex-1 bg-warning-orange/70"></div><div class="flex-1 bg-primary-container/40"></div></div>
+</div>
+<div class="flex h-[12%] gap-1">
+<div class="w-8 flex items-center justify-end pr-2 font-label text-[10px] text-on-surface-variant">周日</div>
+<div class="flex-1 flex gap-1"><div class="flex-1 bg-primary-container/40"></div><div class="flex-1 bg-primary/60"></div><div class="flex-1 bg-warning-orange/90 shadow-[0_0_8px_#d97706]"></div><div class="flex-1 bg-primary/50"></div><div class="flex-1 bg-primary-container/20"></div></div>
+</div>
+<div class="flex h-[12%] gap-1 pl-9 border-t border-surface-variant mt-1 pt-1">
+<div class="flex-1 text-center font-label text-[10px] text-on-surface-variant">晨间</div>
+<div class="flex-1 text-center font-label text-[10px] text-on-surface-variant">上午</div>
+<div class="flex-1 text-center font-label text-[10px] text-on-surface-variant">中午</div>
+<div class="flex-1 text-center font-label text-[10px] text-on-surface-variant">下午</div>
+<div class="flex-1 text-center font-label text-[10px] text-on-surface-variant">傍晚</div>
+</div>
+</div>
+<!-- Top POI Threshold List -->
+<div class="w-2/5 border-l border-surface-variant pl-4 overflow-hidden flex flex-col">
+<div class="font-section-subtitle text-[14px] text-on-surface mb-3 flex items-center gap-2"><span class="material-symbols-outlined text-warning-orange text-sm">warning</span> 高负荷预警点位 Top 4</div>
+<div class="flex flex-col gap-3 flex-1">
+<div class="flex justify-between items-center bg-surface-container/30 px-2 py-1 border-l-2 border-failure-red">
+<span class="font-label text-label text-on-surface">玻璃观景台</span>
+<span class="font-label text-[10px] text-failure-red">92% 负荷</span>
+</div>
+<div class="flex justify-between items-center bg-surface-container/30 px-2 py-1 border-l-2 border-warning-orange">
+<span class="font-label text-label text-on-surface">长秋古柏群</span>
+<span class="font-label text-[10px] text-warning-orange">85% 负荷</span>
+</div>
+<div class="flex justify-between items-center bg-surface-container/30 px-2 py-1 border-l-2 border-warning-orange">
+<span class="font-label text-label text-on-surface">云海索道下站</span>
+<span class="font-label text-[10px] text-warning-orange">78% 负荷</span>
+</div>
+<div class="flex justify-between items-center bg-surface-container/30 px-2 py-1 border-l-2 border-primary">
+<span class="font-label text-label text-on-surface">森林康养驿站</span>
+<span class="font-label text-[10px] text-primary">60% 负荷</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- 3. Center Digital Twin (1180px) -->
+<section class="w-[1180px] h-full shrink-0 relative panel overflow-hidden">
+<div class="absolute top-5 left-5 z-20 pointer-events-none">
+<div class="panel-title text-[24px] font-bold bg-surface-container-low/80 px-4 py-2 rounded border border-secondary/20 backdrop-blur-md">景区实时态势分布图</div>
+</div>
+<!-- Digital Twin Canvas Container (Placeholder for Animation/WebGL) -->
+<div class="absolute inset-0 w-full h-full bg-[#030904]">
+<!-- Using webgl-shader as requested for digital twin 3d terrain -->
+<!-- Map Overlays / POI Markers (Faux positioning for visual structure) -->
+<!-- P1 Parking -->
+<div class="absolute top-[30%] left-[20%] flex flex-col items-center">
+<div class="bg-surface-container-high border border-outline px-2 py-0.5 rounded text-[10px] mb-1 flex items-center gap-1">P1 <span class="w-1.5 h-1.5 rounded-full glow-dot-warning"></span></div>
+<span class="material-symbols-outlined text-warning-orange glow-text-primary text-xl">local_parking</span>
+</div>
+<!-- P2 Parking -->
+<div class="absolute bottom-[20%] left-[15%] flex flex-col items-center">
+<div class="bg-surface-container-high border border-outline px-2 py-0.5 rounded text-[10px] mb-1 flex items-center gap-1">P2 <span class="w-1.5 h-1.5 rounded-full glow-dot-success"></span></div>
+<span class="material-symbols-outlined text-primary text-xl">local_parking</span>
+</div>
+<!-- P3 Parking -->
+<div class="absolute top-[45%] right-[25%] flex flex-col items-center">
+<div class="bg-surface-container-high border border-outline px-2 py-0.5 rounded text-[10px] mb-1 flex items-center gap-1">P3 <span class="w-1.5 h-1.5 rounded-full glow-dot-success"></span></div>
+<span class="material-symbols-outlined text-primary text-xl">local_parking</span>
+</div>
+<!-- POIs -->
+<div class="absolute top-[15%] left-[45%] flex flex-col items-center transform -translate-x-1/2">
+<div class="bg-surface-container/80 border border-failure-red px-2 py-1 rounded text-[12px] mb-1 text-on-surface whitespace-nowrap">玻璃观景台 (高警)</div>
+<div class="w-4 h-4 rounded-full border-2 border-failure-red flex items-center justify-center animate-pulse"><div class="w-2 h-2 rounded-full glow-dot-danger"></div></div>
+</div>
+<div class="absolute top-[50%] left-[50%] flex flex-col items-center transform -translate-x-1/2 -translate-y-1/2">
+<div class="bg-surface-container/80 border border-primary px-2 py-1 rounded text-[12px] mb-1 text-on-surface whitespace-nowrap">长秋古柏群</div>
+<div class="w-3 h-3 rounded-full border border-primary flex items-center justify-center"><div class="w-1.5 h-1.5 rounded-full glow-dot-success"></div></div>
+</div>
+<div class="absolute bottom-[30%] left-[60%] flex flex-col items-center transform -translate-x-1/2">
+<div class="bg-surface-container/80 border border-warning-orange px-2 py-1 rounded text-[12px] mb-1 text-on-surface whitespace-nowrap">云海索道下站</div>
+<div class="w-3 h-3 rounded-full border border-warning-orange flex items-center justify-center"><div class="w-1.5 h-1.5 rounded-full glow-dot-warning"></div></div>
+</div>
+<div class="absolute bottom-[10%] left-[40%] flex flex-col items-center transform -translate-x-1/2">
+<div class="bg-surface-container/80 border border-primary px-2 py-1 rounded text-[12px] mb-1 text-on-surface whitespace-nowrap">景区主入口 (Gate)</div>
+<span class="material-symbols-outlined text-primary text-2xl glow-text-primary">door_front</span>
+</div>
+<div class="absolute top-[60%] left-[30%] flex flex-col items-center">
+<div class="bg-surface-container/80 border border-primary px-1 py-0.5 rounded text-[10px] mb-0.5 text-on-surface">森林驿站</div>
+<div class="w-2 h-2 rounded-full glow-dot-success"></div>
+</div>
+</div>
+<!-- Bottom Status & Warning Bar -->
+<div class="absolute bottom-5 left-5 right-5 flex flex-col gap-3 z-20">
+<!-- Warning Bar -->
+<div class="bg-surface-container-high/90 border border-secondary/30 p-4 rounded backdrop-blur-md flex items-center gap-6">
+<div class="flex items-center gap-3 shrink-0">
+<div class="w-12 h-12 rounded-full bg-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-2xl">security</span>
+</div>
+<div>
+<div class="font-section-title text-[18px] text-on-surface">全局承载安全态势</div>
+<div class="font-label text-label text-primary">当前安全 · 运行平稳</div>
+</div>
+</div>
+<div class="flex-1 flex flex-col gap-2">
+<div class="flex justify-between font-label text-label">
+<span class="text-on-surface-variant">实时在园容量: <span class="text-on-surface font-bold">41%</span></span>
+<span class="text-warning-orange font-bold tracking-wider">距 90% 熔断线 49 个百分点</span>
+</div>
+<div class="w-full h-2 bg-surface-variant rounded-full overflow-hidden relative">
+<div class="absolute top-0 left-0 h-full w-[41%] bg-gradient-to-r from-tertiary to-primary shadow-[0_0_10px_#a1d494]"></div>
+<!-- 90% Threshold marker -->
+<div class="absolute top-0 left-[90%] w-0.5 h-full bg-failure-red shadow-[0_0_5px_#dc2626] z-10"></div>
+</div>
+</div>
+</div>
+<!-- Status Bar -->
+<div class="flex justify-between items-center text-[10px] font-kpi-md text-on-surface-variant bg-surface-container-lowest/80 px-3 py-1.5 rounded backdrop-blur border border-secondary/10">
+<div class="flex gap-4">
+<span>坐标系: CGCS2000</span>
+<span>中心经纬度: 103.61E, 30.23N</span>
+</div>
+<div class="flex gap-4 items-center">
+<span>数据延迟: &lt;500ms</span>
+<div class="flex items-center gap-2">
+<span>比例尺 1:5000</span>
+<div class="w-16 h-1 border-x border-b border-on-surface-variant"></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- 4. Right-Center Profile (650px) -->
+<section class="w-[650px] flex flex-col gap-[16px] h-full shrink-0">
+<!-- Visitor Snapshot -->
+<div class="panel p-5 h-[320px]">
+<div class="panel-header">
+<div class="panel-title">今日游客基础画像</div>
+</div>
+<div class="flex h-[calc(100%-40px)] items-center justify-center">
+<div class="relative w-48 h-48 flex items-center justify-center">
+<!-- Radar Chart Faux -->
+<svg class="w-full h-full" viewbox="0 0 100 100">
+<!-- Background Grid -->
+<polygon fill="none" points="50,5 95,35 75,90 25,90 5,35" stroke="rgba(232,245,233,0.1)" stroke-width="1"></polygon>
+<polygon fill="none" points="50,15 85,40 68,82 32,82 15,40" stroke="rgba(232,245,233,0.1)" stroke-width="1"></polygon>
+<polygon fill="none" points="50,25 75,45 61,74 39,74 25,45" stroke="rgba(232,245,233,0.1)" stroke-width="1"></polygon>
+<!-- Axes -->
+<line stroke="rgba(232,245,233,0.2)" stroke-width="1" x1="50" x2="50" y1="50" y2="5"></line>
+<line stroke="rgba(232,245,233,0.2)" stroke-width="1" x1="50" x2="95" y1="50" y2="35"></line>
+<line stroke="rgba(232,245,233,0.2)" stroke-width="1" x1="50" x2="75" y1="50" y2="90"></line>
+<line stroke="rgba(232,245,233,0.2)" stroke-width="1" x1="50" x2="25" y1="50" y2="90"></line>
+<line stroke="rgba(232,245,233,0.2)" stroke-width="1" x1="50" x2="5" y1="50" y2="35"></line>
+<!-- Data Polygon -->
+<polygon fill="rgba(161, 212, 148, 0.4)" points="50,25 83,38 66,74 32,82 34,42" stroke="#a1d494" stroke-width="2"></polygon>
+</svg>
+</div>
+<!-- Labels -->
+<div class="flex flex-col gap-3 ml-8 text-[12px] font-label text-on-surface">
+<div class="flex items-center justify-between w-32"><span class="text-on-surface-variant">男性占比</span><span class="text-primary font-bold">55%</span></div>
+<div class="flex items-center justify-between w-32"><span class="text-on-surface-variant">青年(18-35)</span><span class="text-primary font-bold">75%</span></div>
+<div class="flex items-center justify-between w-32"><span class="text-on-surface-variant">成都游客</span><span class="text-primary font-bold">65%</span></div>
+<div class="flex items-center justify-between w-32"><span class="text-on-surface-variant">自驾出行</span><span class="text-primary font-bold">72%</span></div>
+<div class="flex items-center justify-between w-32"><span class="text-on-surface-variant">午前入园</span><span class="text-primary font-bold">35%</span></div>
+</div>
+</div>
+</div>
+<!-- Top Source Cities List -->
+<div class="panel p-5 h-[280px] flex flex-col">
+<div class="panel-header">
+<div class="panel-title">TOP 8 核心客源城市实时排行</div>
+</div>
+<div class="flex-1 flex flex-col gap-1 overflow-hidden">
+<div class="flex text-[10px] font-label text-on-surface-variant border-b border-surface-variant/50 pb-1 mb-1">
+<div class="w-10">排名</div>
+<div class="w-24">城市</div>
+<div class="flex-1">实时核销人数</div>
+<div class="w-16 text-right">占比</div>
+</div>
+<!-- List items -->
+<div class="flex items-center text-[12px] font-label text-on-surface py-1.5 bg-surface-container/40">
+<div class="w-10 text-warning-orange font-bold italic">01</div>
+<div class="w-24 font-bold">成都市</div>
+<div class="flex-1 flex items-center pr-4">
+<div class="h-1.5 bg-primary w-[80%] rounded-r shadow-[0_0_5px_#a1d494]"></div>
+</div>
+<div class="w-16 text-right font-kpi-md text-primary">2,529</div>
+</div>
+<div class="flex items-center text-[12px] font-label text-on-surface py-1">
+<div class="w-10 text-secondary font-bold italic">02</div>
+<div class="w-24">绵阳市</div>
+<div class="flex-1 flex items-center pr-4">
+<div class="h-1.5 bg-secondary w-[40%] rounded-r"></div>
+</div>
+<div class="w-16 text-right font-kpi-md text-secondary">467</div>
+</div>
+<div class="flex items-center text-[12px] font-label text-on-surface py-1 bg-surface-container/20">
+<div class="w-10 text-tertiary font-bold italic">03</div>
+<div class="w-24">德阳市</div>
+<div class="flex-1 flex items-center pr-4">
+<div class="h-1.5 bg-tertiary w-[30%] rounded-r"></div>
+</div>
+<div class="w-16 text-right font-kpi-md text-tertiary">311</div>
+</div>
+<div class="flex items-center text-[12px] font-label text-on-surface py-1">
+<div class="w-10 text-on-surface-variant italic">04</div>
+<div class="w-24">重庆市</div>
+<div class="flex-1 flex items-center pr-4">
+<div class="h-1.5 bg-surface-variant w-[25%] rounded-r"></div>
+</div>
+<div class="w-16 text-right font-kpi-md">194</div>
+</div>
+<div class="flex items-center text-[12px] font-label text-on-surface py-1 bg-surface-container/20">
+<div class="w-10 text-on-surface-variant italic">05</div>
+<div class="w-24">眉山市</div>
+<div class="flex-1 flex items-center pr-4">
+<div class="h-1.5 bg-surface-variant w-[20%] rounded-r"></div>
+</div>
+<div class="w-16 text-right font-kpi-md">155</div>
+</div>
+<div class="flex items-center text-[12px] font-label text-on-surface py-1">
+<div class="w-10 text-on-surface-variant italic">06</div>
+<div class="w-24">乐山市</div>
+<div class="flex-1 flex items-center pr-4">
+<div class="h-1.5 bg-surface-variant w-[15%] rounded-r"></div>
+</div>
+<div class="w-16 text-right font-kpi-md">112</div>
+</div>
+<div class="flex items-center text-[12px] font-label text-on-surface py-1 bg-surface-container/20">
+<div class="w-10 text-on-surface-variant italic">07</div>
+<div class="w-24">资阳市</div>
+<div class="flex-1 flex items-center pr-4">
+<div class="h-1.5 bg-surface-variant w-[10%] rounded-r"></div>
+</div>
+<div class="w-16 text-right font-kpi-md">89</div>
+</div>
+<div class="flex items-center text-[12px] font-label text-on-surface py-1">
+<div class="w-10 text-on-surface-variant italic">08</div>
+<div class="w-24">北京市</div>
+<div class="flex-1 flex items-center pr-4">
+<div class="h-1.5 bg-surface-variant w-[5%] rounded-r"></div>
+</div>
+<div class="w-16 text-right font-kpi-md">35</div>
+</div>
+</div>
+</div>
+<!-- Preferences -->
+<div class="panel p-5 flex-1">
+<div class="panel-header">
+<div class="panel-title">出行与入园偏好分析</div>
+</div>
+<div class="grid grid-cols-2 gap-4 h-[calc(100%-40px)]">
+<div class="flex flex-col">
+<div class="text-[12px] text-on-surface-variant mb-2 text-center">出行方式</div>
+<div class="flex-1 flex flex-col justify-center gap-4 px-4">
+<div class="flex justify-between items-center text-[12px]">
+<span class="flex items-center gap-2"><span class="material-symbols-outlined text-[16px] text-primary">directions_car</span>自驾</span>
+<span class="font-bold text-primary">72%</span>
+</div>
+<div class="w-full h-2 bg-surface-variant rounded overflow-hidden mt-1 mb-2">
+<div class="h-full bg-primary w-[72%]"></div>
+</div>
+<div class="flex justify-between items-center text-[12px]">
+<span class="flex items-center gap-2"><span class="material-symbols-outlined text-[16px] text-tertiary">train</span>非自驾</span>
+<span class="font-bold text-tertiary">28%</span>
+</div>
+<div class="w-full h-2 bg-surface-variant rounded overflow-hidden mt-1">
+<div class="h-full bg-tertiary w-[28%]"></div>
+</div>
+</div>
+</div>
+<div class="flex flex-col border-l border-surface-variant/50 pl-4">
+<div class="text-[12px] text-on-surface-variant mb-2 text-center">入园时段偏好</div>
+<div class="flex-1 flex flex-col justify-center gap-3 px-4">
+<div class="flex justify-between text-[12px]"><span>上午(12时前)</span> <span class="text-primary font-bold">35%</span></div>
+<div class="flex justify-between text-[12px]"><span>下午(12–16时)</span> <span class="text-tertiary font-bold">50%</span></div>
+<div class="flex justify-between text-[12px]"><span>傍晚(16时后)</span> <span class="text-on-surface-variant font-bold">15%</span></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- 5. Right Alerts & Scheduling (520px) -->
+<section class="w-[520px] flex flex-col gap-[16px] h-full shrink-0">
+<!-- Alert List -->
+<div class="panel p-5 h-[340px] flex flex-col">
+<div class="panel-header border-failure-red/30">
+<div class="panel-title text-failure-red glow-text-primary before:bg-failure-red before:shadow-[0_0_8px_#dc2626]">实时异常预警与通知</div>
+<div class="ml-auto bg-failure-red/20 text-failure-red px-2 py-0.5 text-[12px] rounded animate-pulse border border-failure-red/50">2 条未处理</div>
+</div>
+<div class="flex-1 overflow-y-auto no-scrollbar flex flex-col gap-2 pr-1">
+<div class="bg-surface-container-high border-l-4 border-failure-red p-3 flex flex-col gap-1">
+<div class="flex justify-between items-center">
+<div class="font-bold text-[14px] text-on-surface flex items-center gap-1"><span class="text-[14px]">🔴</span> 监控设备离线</div>
+<span class="text-[10px] text-on-surface-variant">刚刚</span>
+</div>
+<div class="text-[12px] text-on-surface-variant">东三区 04 号探头信号丢失（已报修）</div>
+</div>
+<div class="bg-surface-container-high border-l-4 border-failure-red p-3 flex flex-col gap-1">
+<div class="flex justify-between items-center">
+<div class="font-bold text-[14px] text-on-surface flex items-center gap-1"><span class="text-[14px]">🔴</span> P1 停车场接近满载</div>
+<span class="text-[10px] text-on-surface-variant">5分钟前</span>
+</div>
+<div class="text-[12px] text-on-surface-variant">占用率 96%</div>
+</div>
+<div class="bg-surface-container-high border-l-4 border-warning-orange p-3 flex flex-col gap-1">
+<div class="flex justify-between items-center">
+<div class="font-bold text-[14px] text-on-surface flex items-center gap-1"><span class="text-[14px]">🟠</span> 在园承载率偏高</div>
+<span class="text-[10px] text-on-surface-variant">15分钟前</span>
+</div>
+<div class="text-[12px] text-on-surface-variant">当前 76%，距 90% 熔断线 14 个百分点</div>
+</div>
+<div class="bg-surface-container-high border-l-4 border-warning-orange p-3 flex flex-col gap-1">
+<div class="flex justify-between items-center">
+<div class="font-bold text-[14px] text-on-surface flex items-center gap-1"><span class="text-[14px]">🟠</span> 时段名额售罄</div>
+<span class="text-[10px] text-on-surface-variant">30分钟前</span>
+</div>
+<div class="text-[12px] text-on-surface-variant">14:00–16:00 时段已约满</div>
+</div>
+<div class="bg-surface-container-high border-l-4 border-surface-variant p-3 flex flex-col gap-1 opacity-70">
+<div class="flex justify-between items-center">
+<div class="font-bold text-[14px] text-on-surface flex items-center gap-1"><span class="text-[14px]">⚪</span> 传感器异常恢复</div>
+<span class="text-[10px] text-on-surface-variant">1小时前</span>
+</div>
+<div class="text-[12px] text-on-surface-variant">某网关心跳恢复正常</div>
+</div>
+</div>
+</div>
+<!-- Device Health & Channel -->
+<div class="panel p-5 h-[220px] flex gap-4">
+<!-- Device Health -->
+<div class="w-1/2 flex flex-col border-r border-surface-variant/50 pr-4">
+<div class="panel-header border-none mb-0 pb-0">
+<div class="panel-title text-[16px]">全域物联设备健康度</div>
+</div>
+<div class="flex-1 flex flex-col items-center justify-center relative">
+<div class="font-kpi-display text-[48px] text-primary glow-text-primary">96.4<span class="text-xl">%</span></div>
+<div class="text-[12px] text-on-surface-variant mt-1 flex gap-4">
+<span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-primary"></span>在线 1,245</span>
+<span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-surface-variant"></span>离线 46</span>
+</div>
+</div>
+</div>
+<!-- Channel Stack -->
+<div class="w-1/2 flex flex-col">
+<div class="panel-header border-none mb-2 pb-0">
+<div class="panel-title text-[16px]">预约渠道来源</div>
+</div>
+<div class="flex-1 flex flex-col justify-center gap-3">
+<div class="flex items-center gap-2 text-[12px]">
+<span class="w-12 text-on-surface-variant">小程序</span>
+<div class="flex-1 h-3 bg-surface-variant rounded overflow-hidden"><div class="h-full bg-primary w-[55%]"></div></div>
+<span class="w-8 text-right font-kpi-md text-primary">55%</span>
+</div>
+<div class="flex items-center gap-2 text-[12px]">
+<span class="w-12 text-on-surface-variant">现场补录</span>
+<div class="flex-1 h-3 bg-surface-variant rounded overflow-hidden"><div class="h-full bg-tertiary w-[30%]"></div></div>
+<span class="w-8 text-right font-kpi-md text-tertiary">30%</span>
+</div>
+<div class="flex items-center gap-2 text-[12px]">
+<span class="w-12 text-on-surface-variant">OTA</span>
+<div class="flex-1 h-3 bg-surface-variant rounded overflow-hidden"><div class="h-full bg-secondary w-[15%]"></div></div>
+<span class="w-8 text-right font-kpi-md text-secondary">15%</span>
+</div>
+</div>
+</div>
+</div>
+<!-- AI Scheduling -->
+<div class="panel p-5 flex-1 flex flex-col border-primary/60 bg-primary-container/10">
+<div class="panel-header border-primary/20">
+<div class="panel-title text-primary before:bg-primary before:shadow-[0_0_8px_#a1d494] flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">smart_toy</span> 智能调度策略建议 (AI生成)
+                    </div>
+</div>
+<div class="flex-1 flex flex-col gap-3 justify-center">
+<div class="flex items-center gap-2 text-failure-red font-bold text-[13px] bg-failure-red/10 px-3 py-1.5 rounded border border-failure-red/20">
+<span class="w-2 h-2 rounded-full bg-failure-red animate-pulse"></span>
+    特殊态势 · 已生成调度策略 · 18:05
+</div>
+<div class="text-[13px] text-on-surface leading-relaxed">
+                        检测到 P1 停车场占用 96%、玻璃观景台高负荷，已生成调度策略：
+                    </div>
+<div class="flex flex-col gap-2 mt-1 text-[13px] text-on-surface-variant pl-2">
+<div>1. 全园广播疏导，引导车辆转至 P2 / P3</div>
+<div>2. 增派网格安全员 2 名至玻璃观景台</div>
+<div>3. 临时下调 14:00–16:00 时段放量</div>
+</div>
+<div class="mt-auto flex items-center justify-between pt-2 border-t border-primary/20">
+<span class="text-[12px] text-primary">请相关岗位按策略执行</span>
+<span class="bg-surface-variant text-on-surface-variant px-2 py-0.5 rounded text-[10px]">待执行</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-surface-container-highest/90 border-t border-secondary/40 backdrop-blur-xl shadow-[0_-4px_20px_rgba(0,0,0,0.5)] fixed bottom-0 left-0 w-full z-50 flex justify-between items-center px-container-padding h-[92px]">
+<div class="font-label text-label text-tertiary">
+            数据来源: 智慧景区物联感知平台
+        </div>
+<div class="flex gap-6">
+</div>
+</footer>
+</body></html>
