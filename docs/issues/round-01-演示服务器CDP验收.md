@@ -1325,7 +1325,7 @@ token 改动确认：浅色 `--text-muted` `#9CA3AF → #5b6472`、`--text-secon
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | 🛠️ **fix**（r23 修复，2026 年 7 月 29 日；待评审 + 真机复验）|
+| 状态 | 🛠️ `fix`（修复方已改；**r25 因 CDP 真机不可达未能复验**）|
 | 页面 | `/screen/command`（B104 超宽融合指挥总屏）的「7×24h 预约热力矩阵」面板 |
 | 复现 | 稳定；**@3840×1080（PRD 规定规格）与 @1920×1080 均复现** |
 
@@ -1364,11 +1364,20 @@ token 改动确认：浅色 `--text-muted` `#9CA3AF → #5b6472`、`--text-secon
 
 ---
 
+**r25 复验：**⏸ **未能完成——CDP 真机不可达**
+
+修复方改法已核（`heatmap-layout.ts`）：按实测容器宽算**均匀步长**，步长只取 24 的因数（2/3/4/6/8/12）、**下限锁 2**，因此宽画布（`/screen/heatmap` 1266、`/analytics/heatmap` 1150、`/screen/poster` 760）维持现状每 2 小时一个，只有 424px 的指挥屏实例变为 3 小时一档、8 个标签。逻辑上不会误伤另外三处。
+
+**但本条的验收契约是「刻度肉眼不再粘连」——必须像素级实测，源码正确 ≠ 渲染正确。** 本轮 CDP 连续 10 次轮询均无响应（10.7.0.2 不可达），**故不予 `pass`，挂起待真机恢复**。
+
+复验就绪的脚本已备好（`/tmp/share/长秋山/n20final.js`）：对四个实例的底部刻度带做**像素列投影**，量文字簇数量与簇间最小间隙，并在 @3840×1080 / @1920×1080 双分辨率各截一张。
+
+
 ### N21 🟠 中偏高 · compose 的 env 白名单漏了 **25 个键**，其中 2 个 fail-closed 让功能在 docker 路径下从未可用（执行方提出，r23 本方全量清点）
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | 🛠️ **fix**（r23 修复，2026 年 7 月 29 日；人工已指示「compose 白名单加」，待评审 + 重建后复验）|
+| 状态 | ✔️ **pass**（r25 复验，2026 年 7 月 29 日，四个高危键功能性实测）|
 | 文件 | `app/docker-compose.yml` 的 `app.environment` 块 |
 | 复现 | 稳定，容器内 `printenv` 直接可证 |
 
@@ -1434,6 +1443,28 @@ token 改动确认：浅色 `--text-muted` `#9CA3AF → #5b6472`、`--text-secon
 
 ---
 
+**r25 复验（测试，2026 年 7 月 29 日）：通过 ✔️ → `pass`**
+
+compose 白名单由 **18 → 42 个键**（补齐 24 个，含已暂缓的支付九键——按建议只通管路、不推进功能）。
+
+**① 注入确认**（容器内 `printenv`）：`GATE_API_KEY` / `CRON_SECRET` / `SCREEN_TOKEN` / `PARK_INSTANT_CAPACITY` 四个高危键全部真注入；`AI_*` / `WECHAT_*` 因测试 `.env` 未填而为空串（符合 `${KEY:-}` 设计，不改变行为）。
+
+**② 容器健康**（本次最该防的回归）：空 `LOG_LEVEL` 注入后容器 `Up (healthy)`、日志 `✓ Ready in 273ms` + `pg-listen connected`，**pino 未抛错、进程正常起来** ✔️（修复方把三处 `??` 改 `||` 是对的——`??` 不拦空串）。
+
+**③ 功能性实测**（注入 ≠ 生效，逐个打真实接口）：
+
+| 键 | 修复前 | 修复后实测 |
+|---|---|---|
+| `GATE_API_KEY` | `/api/gate/checkin` **恒 401** | 无 key → 401；错 key → 401；**正确 key → 400「缺少核销凭证」** = 已过鉴权进入业务层 ✔️ |
+| `CRON_SECRET` | `refresh-mv` **恒 500** | 无 secret → 401；**正确 secret → `{"ok":true}` 200** ✔️（注：该路由是 `GET`，非 `POST`） |
+| `SCREEN_TOKEN` | 配了等于没配，`/screen/*` 永远全开 | 无 token → **401**；带 `?k=<token>` → **200**，**软门真生效** ✔️ |
+| `PARK_INSTANT_CAPACITY` | env 层恒失效 | 删掉 `system_config` 行后，`occupancy` 回落到 **env 的 1234**（而非默认 5000）⇒ env 层已通 ✔️ |
+
+**④ 环境复原**：测试用的 `SCREEN_TOKEN` / `PARK_INSTANT_CAPACITY` 已从 `.env` 撤除并重启，`/screen/*` 恢复 200 免 token、`capacity` 回到 5000；`system_config` 的 `park.instant_capacity` 已还原为 `5000`。`GATE_API_KEY` / `CRON_SECRET` 保留在测试环境（便于后续补验闸机链路）。
+
+> ⚠️ **顺带解锁一条从未验过的 PRD 核心流程**：闸机核销（PRD §0.6 / §1.2）此前在 docker 路径下恒 401、根本无从验起。本条修好后该接口已可达业务层，**建议后续轮次补一次端到端核销验收**。
+
+
 ## 二、需人工验证（本验收方不下结论）
 
 | 项 | 原因 |
@@ -1470,6 +1501,7 @@ token 改动确认：浅色 `--text-muted` `#9CA3AF → #5b6472`、`--text-secon
 |---|---|---|---|---|---|
 | r24 | 2026-07-29 | 评审 | code review（N20+N21 修复） | **clean（可合并）**——`main-fixer_A` @ `5d1623b`。**N20**:`resolveHourStep` 数学独立核对成立(424→3h、760/1150/1266→2h、`need` 相等边界取当档),`interval = 步长-1` 语义正确;组件量宽接线(SSR/水合首帧一致、跨档才 setState 防每帧重画)无懈;**刻意不用 `interval:"auto"` 的取舍认可**——auto 会把宽画布 12 标签变 24,动到现在正常的两处;**守卫盲区自纠是本轮最有价值的发现**:两套几何守卫的 command 画布写的是估值 900×270、实测 424×230,守卫一直在量一块不存在的画布所以从没红过——已改实测值并加「调用点尺寸变了要回来改表」警示 + 「宽画布仍每 2 小时」防呆。**N21**:清点复核采信;`${KEY:-}` 注入**空串而非未设置**的陷阱为真(compose 语义),3 处 `??`→`||`(logger 空 level 会让 pino 抛错进程起不来,属实)修法正确;我追查的 `S3_PUBLIC_ENDPOINT ?? endpoint` 同类隐患经核实安全(compose 该键带非空缺省),且第 4 条守卫「空串缺省键禁 `?? 非空`」把这一类系统性拦死。**三处偏离裁定**:①补齐 3 个「无需补」键**认可**——全集镜像使守卫可做集合比对而非维护会腐烂的例外表,`DB_POOL_MAX` docker 旋钮属实;②`??`→`||` 属必要配套;③微信 9 键只补管路不启用**正确**,凭据启用需另行验收,红线 3 不受影响。compose-env 4 条守卫(全集比对/强制插值/4 高危键点名/禁 `?? 非空`)设计到位,反向自证 4 条均可信。`pnpm test` 442 passed(20 files)复跑属实;N20/N21 只标 `fix` 合规。可收尾:squash 合并 + push,通知测试重建镜像复验 | 核查:步长数学/接线水合/compose 语义/守卫画布/文档纪律 + 复跑 442 单测 |
 | r23 | 2026-07-29 | 修复 | 据 r22 修 N20 + N21 | **2 条 → `fix`**（待评审 code review + 测试重建后复验） | **N20**：先量再改 —— 424×230 + 大屏 14px 字号 SSR 实渲染，实测 `10时…22时` 相邻间隙仅 **0.1px**，与验收方截图一致。修法是按 `ResizeObserver` 实测容器宽算**均匀步长**（`resolveHourStep()`），**下限锁 2 小时** ⇒ 整屏版 1266 / 后台 1150 / 海报 760 逐字不变，只有被压到 424 的指挥屏走 3 小时一个（最小间隙 0.1 → 12.8px）；刻意**不用 echarts 的 `interval:"auto"`**（它会把宽画布从 12 个标签变 24 个，等于动了那两处现在正常的显示）。顺带修掉守卫表里 `/screen/command` 写成 900×270（估值，实测 424×230）—— 两套几何守卫此前一直在量一块不存在的画布，所以从没红过。新增 4 条守卫，判据取渲染产物的真实坐标，含「宽画布仍是每 2 小时一个」与自证位。<br>**N21**：清点独立复核后采信（本方同口径重算：代码 46 个 env，排除构建期内联/运行时自带后缺 **24 个**，逐条一致），两个 fail-closed 也在源码核实。24 键全补 `${KEY:-}`、白名单说明提到块首。**三处与期望不同**：① 「无需补」的 `DB_POOL_MAX`（代码注释原文即写它是 docker 路径旋钮，归 Vercel 属误判）/ `GOTRUE_JWKS_URL` / `SUPABASE_ANON_KEY` 也补了，让白名单成为代码 env 面的完整镜像，守卫才能用全集比对；② **发现 `${KEY:-}` 会注入空串而非保持未设置**（`docker compose config` 实测），`process.env.X ?? "缺省"` 会被空串顶掉 —— 全量筛出 3 处（`logger.ts` 的空 level 会让 **pino 抛错、进程起不来**、`S3_REGION`、`verify-t2e.ts`），改 `??` → `||`；③ 微信/支付 9 键只补管路、功能仍暂缓（注释写明），红线 3 不受影响。新增 `compose-env.test.ts` 4 条（全集比对 / 必须走 `${}` 插值 / 4 个高危键点名 / 禁 `?? 非空缺省`），四条均做过反向自证。 |
+| r25 | 2026-07-29 | 测试 | 复验（`main` @ `dcbbef4`） | **N21 → `pass`**（白名单 18→42 键；四个高危键功能性实测全通：闸机 401→400 进业务层、cron 500→`{"ok":true}`、软门 401/200 生效、承载量回落 env 1234；空 `LOG_LEVEL` 未致 pino 崩）；**N20 因 CDP 真机不可达未能复验，挂起** | 测试数据与 env 已复原 |
 | r22 | 2026-07-29 | 执行 | b-105 单主干合并与收口 | **N06 → 已执行（merge `2779552`）· N08 → `fix`**；⚠️ **N13 / N15 的 `pass` 结论需在新版指挥屏上复验**（见下「新版指挥屏对 N13/N15 的影响」） | `main-runner_A`。真 merge 保留 `deploy-demo` 9 个原始 SHA（`git branch --merged` 判据已过，未用 squash）；2 处 add/add 均取 deploy-demo 版，`b-104` 计划以「附二」补回 main 侧 3 条评审结论；`amap/index.ts` 走三方自动合并，N07 修复（`resolveFetchedAt`/`ROAD_CACHE_SECONDS`）与新增 `fetchWeather` 并存，未做任何整文件覆盖。N08 收口：展示逻辑下沉 `shared/lib/weather.ts`，两屏共用 `ScreenWeather`，7 条单测把红线 6 变成 CI 卡口。CI 触发分支 `deploy-demo` → `main` + `paths` 过滤。合并集成附带修 2 处 lint 阻塞（`lint-cn.mjs` 比较符误报、卡片标题「TOP 8」违反红线 6）。验证：`tsc --noEmit` 干净 / `lint` 0 error / `pnpm test` **420 passed**（18 files，含 N07 `fetched-at.test.ts` 与 N13 `heatmap-option.test.ts` 合并后仍绿）/ `pnpm build` 通过。⏸ `deploy-demo` 分支退役（b-105 T6.4）停在人工确认 worktree 占用前，执行方未自行删除 |
 | r20 | 2026-07-29 | 评审 | code review（N12 三修 + N18①②③④ + N19） | **clean（可合并）**——`main-fixer_A` @ `12f8c9a`。**N12 换判据:认可**——「算准了交给高德摆」两轮真机不过,r17 实测 -66px 对算出的 ≥99px 差一个数量级,证明该量的不是几何精度而是「算出的 avoid」与「标点实际落点」间的落差;改为 setFitView 粗摆 + 逐帧实测校正(`lngLatToContainer` + 量真实 label rect,不再估算)方向正确。修复方三问逐一裁定:**①行为变化判断对**——resize/浮层变化重新取景对所有 fitView 调用点生效属良性改进,大屏同尺寸取景逐字不变已核实(`readFitAvoid` undefined 即返回、不进校正、保留动画),文档 732 行如实标注;**②rAF 循环无漏**——`fitRunRef` 轮次隔离防重入、卸载经 `mapRef.current=null`(AmapContainer:288)下一帧退出、12 帧硬上限防无限循环、双 observer cleanup 齐全、校正只动 zoom/center 不触发自身 observer 无反馈回路;**③FIT_SLACK+outward 是解决问题不是掩盖**——判据 `contains` 是闭区间,贴边 0.1px 即判失败,slack 只保证不落在边界线上;每帧重新实测,无误差被吞的通道。缩放经 `log2(scale)` 换算 zoom、平移中心反算方向均核对无误;`overlaySafeArea` 与 avoid 共用 `overlayInsets` 防几何口径分叉,坐标系(容器局部)全程一致。**N18**:批量替换**零误伤**——精确边界 grep 全仓,裸 `text-primary`/裸语义色前景仅剩对比度测试的 token 名列表,`text-primary-foreground`(button/badge/date-grid)完好;`--primary` 实底/`--primary-strong` 前景分家、hover 压深不提亮、徽标复用 `--destructive` 不新立 token,取值决策全部合理;212 条对比度守卫(文字×中性底全组合×双主题+实底+淡底+源码守卫)设计到位。**N19**:`pauseIfBroken` 对派生行与物化行一视同仁、与写侧同口径只改 ACTIVE,且修正了旧版把 CLOSED 派生行误置 PAUSED 的隐患,显示口径与红线 4 写守卫对齐。`pnpm test` 413 passed 复跑属实;r16 收尾更正(r15 行 N14 措辞)已兑现;3 条只标 `fix` 合规 | 核查:几何/循环安全/坐标系/精确 grep/booking 口径 + 复跑 413 单测 |
 | r19 | 2026-07-29 | 修复 | 据 r17/r18 修 N12 复修 + N18(①②③④)+ N19 | **3 条 → `fix`**(待评审 code review + 测试真机复验) | **N12(第三轮)**:先把账算清——1324×804 算出的 `avoid` 要求标点离容器左缘 ≥99px,r17 真机量到的是 **-66px**,差一个数量级,不是几何精度问题。故**换判据**:`setFitView` 照旧调用把地图带到大致位置,之后**逐帧实测校正**(新模块 `lib/ui/map/fit-view-correct.ts`)——标点位置读 `map.lngLatToContainer()`、标签占位直接量 `.amap-marker-label` 的 rect(**不再估算**),越出「浮层让开后的安全区」就算缩放倍率 + 平移收回来;**一帧只做一件事、下一帧重新量**,预测误差不累积,上限 12 帧。另补上两轮都缺的一环:**视口/浮层变化重新取景**(`ResizeObserver` 盯容器 + `MutationObserver` 盯浮层增删)——旧实现只在 markers 变化时取一次景,tester 逐档扫分辨率时那次取景根本没重算,这条单独就能解释「1920 好、1324 不好」。无浮层无标签的调用点(大屏三处 + road)`avoid` 恒 undefined、直接返回不进校正,**取景逐字不变**。守卫 `fit-view-correct.test.ts`(20 条)模拟运行时逐帧节奏跑到稳定态,含自证:① r17 实测那一幕(溢出 66px / 8px)校正前必须判 false;② 四档分辨率 × 展开/收起从最坏情形出发都要收敛;③ 反向守卫:已摆好的取景(含大屏形状)校正必须是空操作。**N18**:①`--text-muted` `#9CA3AF`→`#5B6472`、`--text-secondary`/`--muted-fg` `#6B7280`→`#4B5563`(2.43→5.73 / 4.39→6.87);③**拆两支**——`--primary` 留给实底填充(压深到 `#457F3C`,白字 4.09→4.82)、主色作前景文字新开 `--primary-strong`(深 `#63A95A`,4.09→5.86),全仓 30 处 `text-primary` 改走它;`--primary-hover` 深色**压深**到 `#3A6C33`(提亮会把 hover 白字打到 3.18);④徽标改用 `--destructive` 并把深色值 `#EF4444`→`#DC2626`(3.76→4.83),**不新立 token**。同族一并清:B36 余项 7 处硬编码 hex 换 token、语义色当前景文字的 51 处改走 `-strong`(浅色 `text-success` 3.30 / `text-warning` 3.19、深色 `text-danger` 4.44 都在 AA 线下)、`bg-amber-500`→`bg-warning`、深色 `--text-muted` 压在 `--muted` 上 4.42→5.35。守卫 `design-token.contrast.test.ts`(212 条)从 globals.css 读实值现算「文字 token × 中性底 token」全组合 × 双主题,外加两条**源码**守卫(实底 token 不许当文字色、组件不许写死 hex),并含 N18 四个实测值的自证复算。**N19**:熔断置位抽 `pauseIfBroken()` 给派生行与物化行共用,与写侧 `pauseSlotsForCircuitBreak` 同口径只改 ACTIVE(CLOSED 更严格,不冲淡);守卫判据取「熔断时**每一条**都不得 ACTIVE」。合计 `pnpm test` **413 passed**(+236)/ `lint` 0 error / `tsc --noEmit` / `pnpm build` 全过;**真机 CDP 未跑(归测试方)** |
