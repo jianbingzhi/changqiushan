@@ -4,6 +4,10 @@
 // 断点/a11y/样式改一处漏一处已现漂移——收口到此(b-103 评审 #10)。
 // 布局约定:页面根用 MapPageShell 逃逸 admin shell 的 p-6 内边距(main flex-1 overflow-y-auto
 // p-6、topbar h-16),地图组件自带 absolute inset-0 铺底,浮层卡叠 z-20。
+//
+// ⚠️ 每张浮层卡都要带 `data-map-overlay`:AmapContainer 的 fitView 靠它就地量出浮层占位、
+// 把标点让出这些区域(round-01 N12——停车场 4 个标点上了图,却有 2 个被自家浮层压住)。
+// 新增浮层忘了这个属性,标点又会被压回去。
 
 import { useEffect, useState } from "react";
 import { PanelRightClose, PanelRightOpen } from "lucide-react";
@@ -37,7 +41,7 @@ export function MapKpiCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="absolute left-4 top-4 z-20 max-w-[calc(100%-2rem)] rounded-lg border border-border bg-card/85 px-4 py-3 shadow-sm backdrop-blur">
+    <section data-map-overlay className="absolute left-4 top-4 z-20 max-w-[calc(100%-2rem)] rounded-lg border border-border bg-card/85 px-4 py-3 shadow-sm backdrop-blur">
       <h1 className="text-[16px] font-bold leading-tight text-foreground">{title}</h1>
       <p className="mt-0.5 text-[12px] text-muted-foreground">{subtitle}</p>
       <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5">{children}</div>
@@ -55,7 +59,7 @@ export function MapLegend({
   dotClass: string;
 }) {
   return (
-    <div className="absolute bottom-4 left-4 z-20 flex items-center gap-3 rounded-lg border border-border bg-card/85 px-3 py-2 backdrop-blur" aria-label={ariaLabel}>
+    <div data-map-overlay className="absolute bottom-4 left-4 z-20 flex items-center gap-3 rounded-lg border border-border bg-card/85 px-3 py-2 backdrop-blur" aria-label={ariaLabel}>
       {items.map(([label, cls]) => (
         <span key={label} className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
           <span className={`${dotClass} ${cls}`} aria-hidden />
@@ -87,6 +91,7 @@ export function MapSidePanel<K extends string>({
     return (
       <button
         type="button"
+        data-map-overlay
         aria-expanded={false}
         onClick={() => onOpenChange(true)}
         className="absolute right-4 top-4 z-20 flex items-center gap-1.5 rounded-lg border border-border bg-card/85 px-3 py-2 text-[13px] font-medium text-foreground shadow-sm backdrop-blur hover:bg-muted"
@@ -103,7 +108,7 @@ export function MapSidePanel<K extends string>({
     }`;
 
   return (
-    <section className="absolute bottom-4 right-4 top-4 z-20 flex w-[360px] max-w-[calc(100%-2rem)] flex-col overflow-hidden rounded-lg border border-border bg-card/85 shadow-sm backdrop-blur">
+    <section data-map-overlay className="absolute bottom-4 right-4 top-4 z-20 flex w-[360px] max-w-[calc(100%-2rem)] flex-col overflow-hidden rounded-lg border border-border bg-card/85 shadow-sm backdrop-blur">
       <header className="flex items-center justify-between gap-2 border-b border-border px-4 py-2.5">
         <h2 className="text-[14px] font-semibold text-foreground">{title}</h2>
         <div className="flex items-center gap-1" role="tablist" aria-label={tablistLabel}>

@@ -10,6 +10,7 @@ import { Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { ensureAMap, type AMapNamespace } from "@/lib/amap/loader";
+import { fitViewAvoid } from "./fit-view-avoid";
 import { cn } from "@/lib/ui/utils";
 
 export interface AmapMarkerInput {
@@ -27,7 +28,13 @@ export interface AmapContainerProps {
   center?: [number, number];
   zoom?: number;
   markers?: AmapMarkerInput[];
-  /** true 时按标记自动调整视野 */
+  /**
+   * true 时按标记自动调整视野。
+   *
+   * 取景会自动避开**同一层里带 `data-map-overlay` 的浮层**(整页地图的 KPI 卡/图例/侧栏,
+   * 见 lib/ui/map/map-overlay):否则标点会被自家浮层压住(round-01 N12,1440×900 下 4 个标点
+   * 只露得出 2 个)。没有这类浮层的调用点(大屏各图)行为不变,仍走高德默认避让。
+   */
   fitView?: boolean;
   /** true 时叠加高德实时路况图层 */
   traffic?: boolean;
@@ -75,6 +82,25 @@ function isDarkTheme(): boolean {
   return document.documentElement.classList.contains("dark");
 }
 
+/**
+ * 量出同层浮层的实际占位,换算成 setFitView 的 avoid 内缩(round-01 N12)。
+ *
+ * 约定:整页地图的浮层(KPI 卡 / 图例 / 右侧数据面板)挂 `data-map-overlay`,且与地图容器同为
+ * MapPageShell 的直接子元素;这里就地量 getBoundingClientRect,不写死任何一张卡的尺寸——
+ * 卡片高度随内容(KPI 换行、图例条数、面板收起成小浮钮)变,写死必漂。
+ * 没有这类浮层时返回 undefined,高德按默认避让取景,其它调用点(大屏各图)行为不变。
+ */
+function readOverlayAvoid(root: HTMLElement | null): [number, number, number, number] | undefined {
+  const shell = root?.parentElement;
+  if (!root || !shell) return undefined;
+  const overlays = Array.from(shell.querySelectorAll<HTMLElement>("[data-map-overlay]"));
+  if (overlays.length === 0) return undefined;
+  return fitViewAvoid(
+    root.getBoundingClientRect(),
+    overlays.map((el) => el.getBoundingClientRect()),
+  );
+}
+
 export function AmapContainer({
   center,
   zoom,
@@ -87,6 +113,7 @@ export function AmapContainer({
   onReady,
   className,
 }: AmapContainerProps) {
+  const rootRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<AMap.Map | null>(null);
   const amapRef = useRef<AMapNamespace | null>(null);
@@ -230,7 +257,8 @@ export function AmapContainer({
     markerObjsRef.current = objs;
     if (objs.length > 0) {
       map.add(objs);
-      if (fitView) map.setFitView(objs);
+      // avoid=[上,下,左,右] 内缩,按浮层实测占位算(N12);无浮层时传 undefined,走高德默认避让
+      if (fitView) map.setFitView(objs, false, readOverlayAvoid(rootRef.current));
     }
   }, [status, markersKey, fitView]);
 
@@ -269,7 +297,7 @@ export function AmapContainer({
     // 审计 P2-4:z-0 + isolate 把高德内部元素(logo z≈160)关进独立 stacking context,不与页面浮层竞争。
     // ⚠️ 地图 div 必须用 h-full/w-full 显式定尺寸,不能靠 absolute inset-0——
     //    高德 SDK 初始化会把容器 position 强写成 relative,inset 定高随之失效、高度塌 0(线上实测)。
-    <div className={cn("relative h-full w-full overflow-hidden", className)}>
+    <div ref={rootRef} className={cn("relative h-full w-full overflow-hidden", className)}>
       <div ref={containerRef} className="h-full w-full z-0 isolate" />
       {(status === "idle" || status === "loading") && (
         <div className={cn("absolute inset-0 z-10 flex flex-col items-center justify-center gap-2", !overlayDark && "bg-muted")} style={overlayStyle}>

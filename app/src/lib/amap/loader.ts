@@ -45,7 +45,13 @@ declare global {
       setStatus(status: MapStatus): void;
       add(overlays: Marker | Marker[]): void;
       remove(overlays: Marker | Marker[]): void;
-      setFitView(overlays?: Marker[] | null): void;
+      /** avoid = 视野四周的内缩像素 [上, 下, 左, 右],缺省 [60,60,60,60](用于避开页面浮层) */
+      setFitView(
+        overlays?: Marker[] | null,
+        immediately?: boolean,
+        avoid?: [number, number, number, number],
+        maxZoom?: number,
+      ): void;
       destroy(): void;
     }
 

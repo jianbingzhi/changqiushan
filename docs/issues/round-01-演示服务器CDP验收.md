@@ -582,7 +582,7 @@ UPDATE traffic_parking_lot SET coordinates = c.coord::jsonb, location = c.loc FR
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | 🆕 |
+| 状态 | ✅ **fix**（r10 修复方，2026 年 7 月 29 日，待测试真机复验）|
 | 页面 | `/traffic/parking` |
 | 复现 | **与视口宽度相关**：≤1440 宽必现，≥1920 宽不现 |
 
@@ -610,13 +610,22 @@ UPDATE traffic_parking_lot SET coordinates = c.coord::jsonb, location = c.loc FR
 
 **期望**：地图自适应视野（fitView）时按浮层区域做 padding 内缩，让标点落在未被遮挡的可视区内。
 
+**修复方结论（r10，2026 年 7 月 29 日）**：按期望做 fitView 内缩，但**内缩量不写死** —— 浮层高度随内容变（KPI 换行、图例条数、面板收起成小浮钮），写死一组常数必漂。
+
+- 浮层占位**就地量**：`map-overlay` 的三张卡（KPI / 图例 / 侧栏，含收起态浮钮）统一挂 `data-map-overlay`，`AmapContainer` 在 fitView 时 `getBoundingClientRect` 量出实际矩形，算成高德 `setFitView` 的第三参 `avoid`（`[上, 下, 左, 右]` 内缩）。新增浮层只要带上这个属性就自动被避开。
+- 几何抽成纯函数 `lib/ui/map/fit-view-avoid.ts`：每张浮层只往**离它最近的那条边**让 —— 左上角那张 360×101 的卡从上边让 117px 就够，从左边让要丢 376px，同样避开却白丢三倍视野。无浮层时返回 `undefined`，交回高德默认避让，**大屏各图取景不变**。
+- 守卫 `fit-view-avoid.test.ts`（11 条）：判据取「**fitView 安全区与任何一张浮层都不相交**」，比断言某个内缩数值稳（卡片一改数值就得跟着改，守不住东西）。覆盖 tester 实测的 1324×804 / 1440×900 / 1920×1080 / 2560×1440 四档 × 面板展开/收起两态；并含一条**自证**：同一判据加在缺陷版（高德默认 `[60,60,60,60]`）上必须是红的。
+- 高德类型声明 `lib/amap/loader.ts` 的 `setFitView` 补齐 `immediately/avoid/maxZoom` 三参（原声明只有一参，传 avoid 过不了 tsc）。
+
+⚠️ **本方未跑真机 CDP**：内缩量是否真把 4 个标点都露出来、地图缩放后的观感，需测试方在真机上逐点复验（`document.elementFromPoint` 那套口径）。
+
 ---
 
 ### N13 🔴 高 · 三块大屏的热力矩阵**完全空白**并抛未捕获异常 —— 由 `6d27afa` 引入的回归
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | 🆕 |
+| 状态 | ✅ **fix**（r10 修复方，2026 年 7 月 29 日，待测试真机复验）|
 | 页面 | `/screen/heatmap`（整屏主面板）、`/screen/poster`、`/screen/command`（「预约分时热力」面板） |
 | 复现 | 稳定，100% |
 | 引入 | **`6d27afa`**（round-01 N01–N07 修复批次里的 N03 echarts 色板重构），**非 N10 的 `2d68067`** |
@@ -660,6 +669,29 @@ const splitArea = { show: true, areaStyle: pal.splitArea ? { color: pal.splitAre
 
 **证据**：`docs/issues/assets/round-01-N13-大屏热力矩阵空白.png`、`docs/issues/assets/round-01-N13-指挥总屏热力面板空白.png`
 
+**修复方结论（r10，2026 年 7 月 29 日）**：根因与归属**逐条复核后完全采信** —— 未去 N10 方向找。本方在 node 里用 echarts SSR 独立复现了同一条崩溃，栈与 tester 抓到的一致：
+
+```
+TypeError: Cannot read properties of null (reading 'length')
+  at rectCoordAxisBuildSplitArea (echarts/lib/component/axis/axisSplitHelper.js:67)
+  at Object.splitArea (echarts/lib/component/axis/CartesianAxisView.js:196)
+```
+
+对照实验(同一份 option 只换 `splitArea`)：`{show:true, areaStyle: undefined}` → **抛异常、零图元**；`{show:true, areaStyle:{color:[…]}}` → 正常；`{show:true}`（不带 `areaStyle` 键，即 `6d27afa` 之前的写法）→ 正常。**证实 `areaStyle: undefined` 会把默认值覆盖成空,而不是"什么都不做"**。
+
+改法（比期望多做一步,理由见下）：
+
+1. **option 与配色从组件里抽出成纯模块** `screen/charts/heatmap-option.ts`。这一步是为了让守卫**测得到线上那份 option** —— 旧守卫 `heatmap-layout.test.ts` 是自己手搓一份 option 去渲染的,和组件真正下发的是两码事,组件里写错了它照样绿。**这正是 N13 能溜过去的第二重原因**(第一重是 tester 自述的没扫大屏)。`Heatmap724.tsx` 只剩选变体 + 主题订阅。
+2. **大屏变体给出真实的 `splitArea` 色值**(`rgba(232,245,233,0.02/0.05)`,同族于主题文字色),并把 `HeatmapPalette.splitArea` 类型**改成必填**,让"忘了配色"在 tsc 阶段就过不去。
+3. **运行期再兜一道**:色值为空时**整个 `areaStyle` 键不下发**(按期望的写法),绝不再出现 `areaStyle: undefined`。
+4. 顺手修一处同源隐患:原代码 x/y 两轴**共用同一个 `splitArea` 对象引用**,而 echarts 会就地 merge —— 改成各持一份。
+
+守卫 `heatmap-option.test.ts`(17 条)：**三个变体(大屏注册主题 / 后台浅 / 后台深) × 四个真实画布尺寸(大屏三块 + 后台卡片)** 全部用 echarts SSR 真渲染,断言① 不抛异常 ② 画出的图元数 ≥ 7×24 格(SVG 侧的「非空 canvas」等价物) ③ 两条轴的 `splitArea.areaStyle.color` 都是非空数组。**自证有效**:把配色改回缺陷版(`splitArea: undefined` + 下发 `areaStyle: undefined`)重跑,**6 条转红**（大屏四个画布的渲染断言 + 大屏根因断言 + 引用共享断言),恢复后 17 条全绿 —— 守卫捉得住原缺陷,不是恒绿。
+
+**采纳评审 r11 的两条非阻塞建议（r12）**：① 大屏交替带色值改为**与注册主题的雷达 `splitArea` 共用同一常量** `SCREEN_SPLIT_AREA`（`screen/echarts-theme.ts`），两处各写一份必漂，收成单一来源；② 旧守卫 `heatmap-layout.test.ts` 改为**消费 `buildHeatmapOption` 的产物**，不再手搓一份平行 option —— 换掉后退回旧布局常量仍复现出 N10 原现象（`10时 × 0`、`12时 × 62`），守卫有效性不因换源而失效。
+
+⚠️ **本方未跑真机 CDP**：大屏三块的实际观感(交替带在深底上是否合适、色阶是否如期)需测试方在真机上复看。
+
 ---
 
 ## 二、需人工验证（本验收方不下结论）
@@ -696,7 +728,9 @@ const splitArea = { show: true, areaStyle: pal.splitArea ? { color: pal.splitAre
 
 | 轮次 | 日期 | 角色 | 类型 | 结论 | 说明 |
 |---|---|---|---|---|---|
+| r12 | 2026-07-29 | 修复 | 采纳 r11 的两条非阻塞建议 | 两条**全部采纳**（评审已说明不用再过审） | ① 大屏交替带色值改为与注册主题的雷达 `splitArea` **共用同一常量** `SCREEN_SPLIT_AREA`（`screen/echarts-theme.ts` 导出，雷达与热力矩阵各写一份必漂，收成单一来源）—— 实际观感仍留真机复看；② 旧守卫 `heatmap-layout.test.ts` 改为**消费 `buildHeatmapOption` 的产物**，不再手搓一份平行 option（手搓版盖不住组件内改动，正是 N13 溜过去的第二重原因）。⚠️ 换源后**复核了 N10 守卫仍然有效**：退回旧布局常量照样复现出原现象 `10时 × 0` / `12时 × 62`，不是换完就恒绿。`pnpm test` 132 passed / lint 0 error / tsc / build 全过 |
 | r11 | 2026-07-29 | 评审 | code review（N13+N12 修复） | **clean（可合并，附 2 条非阻塞建议）**——`main-fixer_A` @ `c79c45c`。**N13 核实**:评审独立三向对照复现(node SSR,大屏注册主题下)与修复方结论逐字吻合——`areaStyle:undefined` 抛同一条 `Cannot read properties of null (reading 'length')`,修复版/原始版均正常出图 192 图元;`splitArea` 类型必填 + 运行期整键不下发 + 两轴各持引用,三层防线成立;「option 抽纯模块让守卫测线上那份」定位准确(旧守卫手搓 option 正是 N13 溜过的第二重原因)。**N12 核实**:`data-map-overlay` 同层约定在 `_parking-map.tsx` 成立(浮层与 AmapContainer 同为 MapPageShell 直接子元素);大屏三处 fitView 调用点(command/situation/twin)无该属性→返回 undefined 走默认避让,「大屏取景不变」属实;`/traffic/road` 不用 fitView 不受波及;最近边内缩 + 0.4 封顶几何正确。`pnpm test` 132 passed 复跑属实;r8 收尾要求(seed 不可重跑登记待办清单)已兑现(待办清单:97);N13/N12 只标 fix 合规。**非阻塞建议**:① 大屏交替带新色值 `rgba(232,245,233,0.02/0.05)` 与回归前注册主题的 `rgba(74,142,63,0.04/0.08)` 不同——非精确还原,已如实留真机复看;若测试觉得偏,最小改动是两处共用同一常量(单一来源,顺带防再漂移);② 旧守卫 `heatmap-layout.test.ts` 仍手搓 option(几何经共享常量锚定,风险低),建议日后改为消费 `buildHeatmapOption` 产物,与 N13 守卫同源 | 独立复现脚本存 scratchpad;结论以本行+守卫单测为准 |
+| r10 | 2026-07-29 | 修复 | 据 r9 新立 N13 + N12 修改 | **N13 / N12 → `fix`**（待测试真机复验） | **N13**：tester 的根因与归属逐条复核后完全采信，未往 N10 方向找；本方在 node 里用 echarts SSR 独立复现同一条崩溃（`rectCoordAxisBuildSplitArea` 读 `color.length`），并做三向对照证实 `areaStyle: undefined` 是**覆盖**默认值而非"什么都不做"。改法：① option 与配色抽出成纯模块 `screen/charts/heatmap-option.ts`——**这是为了让守卫测得到线上那份 option**（旧守卫 `heatmap-layout.test.ts` 手搓了另一份，组件写错它照样绿，是 N13 溜过去的第二重原因）；② 大屏变体给出真实 `splitArea` 色值，并把 `HeatmapPalette.splitArea` 类型改为**必填**，"忘了配色"在 tsc 阶段就过不去；③ 运行期再兜一道：色值为空则整个 `areaStyle` 键不下发；④ 顺手修 x/y 两轴共用同一 `splitArea` 对象引用（echarts 就地 merge）。守卫 `heatmap-option.test.ts`（17 条）：**3 变体 × 4 真实画布**全部 SSR 真渲染，断言不抛异常 + 图元数 ≥ 7×24 + 两轴 `areaStyle.color` 非空；**自证**：退回缺陷版 6 条转红。**N12**：fitView 内缩量**不写死**——`map-overlay` 三张卡（含收起态浮钮）挂 `data-map-overlay`，`AmapContainer` 就地量 `getBoundingClientRect` 算成高德 `setFitView` 的 `avoid`；几何抽纯函数 `lib/ui/map/fit-view-avoid.ts`，每张卡只往**最近的那条边**让（左上 360×101 的卡从上让 117px 即可，从左让要丢 376px）；无浮层时返回 `undefined`，**大屏各图取景不变**。守卫 `fit-view-avoid.test.ts`（11 条）判据取「安全区与任何浮层都不相交」，覆盖 tester 实测四档分辨率 × 面板展开/收起，含缺陷版（高德默认 `[60,60,60,60]`）必红的自证。另补 `lib/amap/loader.ts` 的 `setFitView` 类型声明（原只有一参）。合计 `pnpm test` **132 passed** / `lint` 0 error / `tsc --noEmit` / `pnpm build` 全过；**真机 CDP 未跑（归测试方）** |
 | r8 | 2026-07-29 | 评审 | code review（N11 修复） | **clean（可合并，附 1 条收尾要求）**——`main-fixer_A` @ `96d31b4`。核实:`createParkingLotSchema` 坐标形状与页面 `toCoord`/表单/actions 三处 `{lng,lat}` 一致;`traffic.prisma` `name @unique` 支撑 `ON CONFLICT (name)`;四个坐标与 seed 内 POI 骨架数值逐一对得上、均落园区中心 ±0.01° 内、两两不重合;`booking_slot` 段(seed.ts:80 附近)确无 `ON CONFLICT`,「seed 不可重复执行、走不到停车场段」说法属实;`pnpm test` 102 passed 复跑属实;N10/N11 只标 `fix` 合规。**两处请示的裁定**:① `location` 由「=名字」改位置描述**该带**——同一批种子行、修的正是被复验页面的显示冗余、给老库的 UPDATE SQL 同步覆盖了它、issue/commit 均已透明留痕,不构成夹带;② seed 不可重复执行**本轮不修正确**(动 slot 播种会牵动已验收数据),但该性质只活在 N11 条目里会随本轮关单而失踪——**收尾要求:在 `docs/待办清单.md` 登记独立一行**(如「seed.ts 不可重复执行,booking_slot 无 ON CONFLICT」,指回 N11),与 squash 合并同批带出。演示级坐标非实测点位、命名正本待人工,均已如实声明 | 核查:schema/唯一约束/POI 数值/复跑单测/文档纪律 |
 | r7 | 2026-07-29 | 评审 | code review（N10 修复） | **clean（可合并）**——`main-fixer_A` @ `66ad7d2`。核实:布局改动仅两处常量（`heatmap-layout.ts`,组件内配色/tooltip/`useMounted` 确未动）;`pnpm test` 95 passed 复跑属实;**守卫有效性独立自证**——评审在 node 里用**旧布局常量**重跑同口径 SSR 碰撞检测,报出结果与修复方 r6 表逐格一致（后台 `10时×0`/`12时×62`、poster `8时×0`/`14时×62`、command/矮容器无重叠、窄容器 `6时×0`/`14时×62`）,证明该守卫捉得住原缺陷而非恒绿;`HEATMAP_GRID.right(64) ≥ visualMap.right(12)+24` 余量断言合理。**范围扩到大屏三块判断成立**:同一组件同一几何,poster/heatmap 画布实测同样重叠,组件内一次修好优于给后台开特例;大屏竖排色阶条的观感变化按 r6 所注留待测试真机复看。状态回填合规（N10 标 `fix` 未越权 `pass`）。可按流程收尾:squash 合并 + push 后通知测试复验 | 抽验脚本存 scratchpad(session 级,结论以本行与守卫单测为准) |
 | r6 | 2026-07-29 | 修复 | 据 r5 新立 N10 + 人工报 N11 修改 | **N10 / N11 → `fix`**（待测试真机复验） | 色阶条改竖排右侧：`Heatmap724.tsx` 的 `grid` `{right:16,bottom:64}`→`{right:64,bottom:32}`、`visualMap` `horizontal/bottom:8`→`vertical/right:12/top:middle`，位置常量抽到 `charts/heatmap-layout.ts`；同组件驱动的大屏三块热力图（heatmap/poster/command）几何缺陷同源，一并修好。新增守卫单测 `heatmap-layout.test.ts`(7 条)：用 echarts SSR 真渲染 SVG + 解析 `<text>` 坐标做碰撞检测，判据取「留白 ≥ 6px」；退回旧布局可复现出本条现象本身(`10时 × 0`/`12时 × 62`)。**N11**：`prisma/seed.ts` 停车场段补 4 个 GCJ-02 坐标（按既有 POI 园区骨架推的演示级坐标，命名沿用现有 4 个、未与 POI 合并，正本待人工定）+ `location` 由「=名字」改为位置描述；`ON CONFLICT` 一并覆盖 `coordinates`/`location`，否则老库补不上。**另起一次性 postgres:18 容器真跑了迁移+seed 验证**（未碰测试方在跑的栈）：全新库 4 行坐标全写入、坐标置 NULL 后重跑全部回填；并发现既有性质 —— seed 整体不可重复执行（`booking_slot` 唯一键，走不到停车场段），已在 N11 条给出两条复验路径。守卫单测 `parking-seed.test.ts`(7 条) 用生产 zod schema 校验种子坐标。合计 `pnpm test` 102 passed / lint 0 error / tsc / build 全过；真机 CDP 未跑（归测试方） |

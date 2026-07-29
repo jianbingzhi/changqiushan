@@ -2,14 +2,15 @@ import * as echarts from "echarts";
 import { describe, it, expect } from "vitest";
 
 import { HEATMAP_GRID, HEATMAP_VISUAL_MAP_POS } from "./heatmap-layout";
+import { SCREEN_HEATMAP_PALETTE, buildHeatmapOption } from "./heatmap-option";
 
 // round-01 N10 防回归:色阶条压住 X 轴时间刻度。
 // 这是纯几何缺陷,读源码看不出来——只有把图真画一遍、量出文字坐标才能判。
 // 故用 echarts 的 SSR 模式(renderer: svg)在 node 里真渲染,再解析 <text> 的坐标做碰撞检测。
 
-const HOURS = Array.from({ length: 24 }, (_, h) => `${h}时`);
-const DOW = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
-const POINTS = DOW.flatMap((_, dow) => HOURS.map((_, hour) => [hour, dow, (hour * 7 + dow) % 63]));
+// 渲染的必须是组件真正下发的那份 option(buildHeatmapOption),不能手搓一份平行的——
+// 手搓版盖不住组件里的改动,round-01 N13 就是这么溜过去的(评审建议 ②)。
+const MATRIX = Array.from({ length: 7 }, (_, dow) => Array.from({ length: 24 }, (_, hour) => (hour * 7 + dow) % 63));
 
 // 各调用点的真实画布尺寸(后台卡片 / 大屏三块 / 两个极端容器)
 const CANVASES: [name: string, width: number, height: number][] = [
@@ -57,11 +58,7 @@ function textBoxes(svg: string): Box[] {
 function renderHeatmap(width: number, height: number) {
   const chart = echarts.init(null, null, { renderer: "svg", ssr: true, width, height });
   chart.setOption({
-    grid: { ...HEATMAP_GRID },
-    xAxis: { type: "category", data: HOURS, splitArea: { show: true }, axisLabel: { interval: 1 } },
-    yAxis: { type: "category", data: DOW, splitArea: { show: true } },
-    visualMap: { min: 0, max: 62, calculable: true, ...HEATMAP_VISUAL_MAP_POS },
-    series: [{ type: "heatmap", data: POINTS }],
+    ...buildHeatmapOption({ matrix: MATRIX, pal: SCREEN_HEATMAP_PALETTE }),
     animation: false,
   });
   const svg = chart.renderToSVGString();

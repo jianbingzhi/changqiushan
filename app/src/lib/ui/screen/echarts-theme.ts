@@ -14,6 +14,12 @@ const SPLIT_LINE = "rgba(232,245,233,0.08)";
 const FONT =
   'system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
 
+/**
+ * 大屏交替带配色(雷达 splitArea / 热力矩阵 x-y 轴 splitArea 共用)。
+ * 单一来源:两处各写一份必漂(round-01 N13 复审建议 ①)。
+ */
+export const SCREEN_SPLIT_AREA: [string, string] = ["rgba(74,142,63,0.04)", "rgba(74,142,63,0.08)"];
+
 const axis = {
   axisLine: { lineStyle: { color: AXIS_LINE } },
   axisTick: { lineStyle: { color: AXIS_LINE } },
@@ -46,7 +52,7 @@ export function ensureScreenTheme() {
       name: { textStyle: { color: TEXT } },
       axisLine: { lineStyle: { color: AXIS_LINE } },
       splitLine: { lineStyle: { color: SPLIT_LINE } },
-      splitArea: { areaStyle: { color: ["rgba(74,142,63,0.04)", "rgba(74,142,63,0.08)"] } },
+      splitArea: { areaStyle: { color: [...SCREEN_SPLIT_AREA] } },
     },
   });
   registered = true;
